@@ -1,0 +1,24 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente (o .env.example fica versionado)
+.env
+.env.local
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Notas locais de ferramentas de IA — nunca versionar
+CLAUDE.md
+.claude/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

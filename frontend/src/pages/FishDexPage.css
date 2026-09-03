@@ -1,0 +1,65 @@
+.dex-cabecalho {
+  margin-bottom: 1.25rem;
+  color: var(--texto-fraco);
+}
+
+.dex-grade {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.dex-card {
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Espécie ainda não pescada aparece apagada, como numa Pokédex. */
+.dex-card.bloqueado {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+
+.dex-card img,
+.dex-imagem-vazia {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--raio);
+  background: var(--agua-clara);
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+}
+
+.dex-card h3 {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+}
+
+.dex-cientifico {
+  margin: 0;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.dex-habitat {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.dex-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--agua-clara);
+  color: var(--agua);
+}

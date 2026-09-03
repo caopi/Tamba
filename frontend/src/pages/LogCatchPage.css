@@ -1,0 +1,10 @@
+.captura-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 420px;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}

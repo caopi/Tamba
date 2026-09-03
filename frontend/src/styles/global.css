@@ -1,0 +1,81 @@
+/* Estilos globais e variáveis de cor. Cada página tem seu próprio .css ao lado. (place holder)*/
+
+:root {
+  --agua: #0f5c73;
+  --agua-clara: #e6f2f5;
+  --areia: #f7f5ef;
+  --texto: #1d2b30;
+  --texto-fraco: #63757c;
+  --borda: #d7dfe2;
+  --erro: #b3261e;
+  --raio: 8px;
+
+  font-family: system-ui, "Segoe UI", sans-serif;
+  color: var(--texto);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--areia);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.5rem;
+}
+
+button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: var(--raio);
+  background: var(--agua);
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button.link {
+  background: none;
+  color: var(--agua);
+  text-decoration: underline;
+  padding: 0.3rem;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.55rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}
+
+.erro {
+  color: var(--erro);
+  font-size: 0.9rem;
+}
+
+.estado-carregando {
+  padding: 2rem;
+  text-align: center;
+  color: var(--texto-fraco);
+}

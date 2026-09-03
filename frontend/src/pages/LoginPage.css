@@ -1,0 +1,24 @@
+.login-pagina {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 2rem;
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.login-subtitulo {
+  margin: -0.75rem 0 0.5rem;
+  color: var(--texto-fraco);
+  font-size: 0.9rem;
+}

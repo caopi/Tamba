@@ -58,6 +58,69 @@ export async function findActivePublicById(id) {
   );
 }
 
+// Colunas de um "cartão de pessoa" (busca e sugestões): perfil público +
+// contagens + se quem está vendo já segue. O `?` é o id de quem está vendo.
+const SELECT_CARTAO = `
+  SELECT u.id, u.name, u.nickname, u.avatar_url, u.created_at,
+    (SELECT COUNT(*) FROM follows f JOIN users s ON s.id = f.follower_id
+      WHERE f.following_id = u.id AND s.is_active = TRUE) AS followers,
+    (SELECT COUNT(*) FROM catches c WHERE c.user_id = u.id AND c.is_hidden = FALSE) AS catch_count,
+    (SELECT MAX(c.created_at) FROM catches c WHERE c.user_id = u.id AND c.is_hidden = FALSE)
+      AS last_catch_at,
+    EXISTS (SELECT 1 FROM follows f WHERE f.follower_id = v.viewer_id AND f.following_id = u.id)
+      AS followed_by_me
+  FROM (SELECT ? AS viewer_id) v
+  CROSS JOIN users u
+`;
+
+function mapCartao(linha) {
+  return {
+    ...mapPublicUser(linha),
+    followers: linha.followers,
+    catchCount: linha.catch_count,
+    lastCatchAt: linha.last_catch_at,
+    isFollowedByMe: Boolean(linha.followed_by_me),
+  };
+}
+
+/**
+ * Busca por nome ou apelido (REQ-41/42). A collation da tabela ignora caixa
+ * e acento: "joao" acha "João". `%` e `_` digitados são escapados para valer
+ * como texto, não como curinga do LIKE.
+ */
+export async function search(viewerId, termo, limit) {
+  const padrao = `%${termo.replace(/[\\%_]/g, "\\$&")}%`;
+  const linhas = await query(
+    `${SELECT_CARTAO}
+     WHERE u.is_active = TRUE AND (u.name LIKE ? OR u.nickname LIKE ?)
+     ORDER BY (u.nickname LIKE ?) DESC, followers DESC, u.nickname ASC
+     LIMIT ?`,
+    // O 3º padrão põe primeiro quem tem o APELIDO começando pelo termo.
+    [viewerId, padrao, padrao, `${termo.replace(/[\\%_]/g, "\\$&")}%`, String(limit)],
+  );
+  return linhas.map(mapCartao);
+}
+
+/**
+ * Sugestões de quem seguir (REQ-36): os mais seguidos, desempatando por quem
+ * postou mais recentemente. Só entra quem tem pelo menos uma captura visível —
+ * seguir um perfil vazio não resolveria o feed vazio. Fora quem o usuário já
+ * segue e ele mesmo.
+ */
+export async function suggestions(viewerId, limit) {
+  const linhas = await query(
+    `${SELECT_CARTAO}
+     WHERE u.is_active = TRUE
+       AND u.id <> v.viewer_id
+       AND NOT EXISTS (SELECT 1 FROM follows f WHERE f.follower_id = v.viewer_id AND f.following_id = u.id)
+       AND EXISTS (SELECT 1 FROM catches c WHERE c.user_id = u.id AND c.is_hidden = FALSE)
+     ORDER BY followers DESC, last_catch_at DESC
+     LIMIT ?`,
+    [viewerId, String(limit)],
+  );
+  return linhas.map(mapCartao);
+}
+
 /** `exceptId` deixa o próprio usuário "reusar" o apelido que já é dele. */
 export async function nicknameTaken(nickname, exceptId = null) {
   const linha = await queryOne(

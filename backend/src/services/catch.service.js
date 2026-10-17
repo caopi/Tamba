@@ -10,7 +10,7 @@ import * as speciesModel from "../models/species.model.js";
 import * as spotModel from "../models/spot.model.js";
 import * as userModel from "../models/user.model.js";
 import { withTransaction } from "../lib/db.js";
-import { isStoredUrl } from "../lib/storage.js";
+import { belongsTo } from "../lib/storage.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
 // Folga para relógio de celular um pouco adiantado: sem ela, quem registra a
@@ -26,10 +26,9 @@ const textoOpcional = (max, mensagem) =>
     // Campo vazio vira null para não gravar string em branco no banco.
     .transform((valor) => valor || null);
 
-const fotoEnviada = z
-  .string()
-  .trim()
-  .refine(isStoredUrl, "A foto precisa ser enviada pelo app (upload), não um link externo");
+// O formato da URL é conferido aqui; QUEM enviou a foto depende do usuário,
+// então fica em `conferirDonoDasFotos`.
+const fotoEnviada = z.string().trim().url("URL da foto inválida");
 
 const createSchema = z.object({
   // RGN-07: toda captura tem espécie.
@@ -68,9 +67,31 @@ const feedSchema = z.object({
   // (e é o que faz o estado vazio do REQ-36 aparecer para quem não segue
   // ninguém). `all` é o modo "Descobrir" do REQ-28, sempre pedido explicitamente.
   scope: z.enum(["following", "all"]).default("following"),
-  before: z.coerce.date().optional(),
+  // REQ-35: cronológico (padrão) ou por engajamento (curtidas + comentários).
+  order: z.enum(["recent", "engagement"]).default("recent"),
+  // Cursor opaco devolvido em `nextCursor`: uma data no cronológico, um
+  // offset no engajamento. O frontend só repassa o que recebeu.
+  cursor: z.string().max(40).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
+
+/**
+ * REQ-15: toda foto da captura tem de ter sido enviada pelo próprio autor
+ * (POST /api/uploads grava na pasta dele). Barra link externo e também a URL
+ * da foto de OUTRA pessoa copiada do feed.
+ *
+ * `jaAnexadas`: na edição, as fotos que a captura já tem continuam valendo,
+ * para dar para reordenar ou remover fotos antigas (de antes do upload ou da
+ * pasta por usuário) sem precisar reenviar.
+ */
+function conferirDonoDasFotos(urls, userId, jaAnexadas = []) {
+  const alheia = urls.find((url) => !belongsTo(url, userId) && !jaAnexadas.includes(url));
+  if (alheia) {
+    throw httpError(422, "Use fotos enviadas por você pelo app (não links externos nem fotos de outra pessoa)", {
+      code: "PHOTO_NOT_OWNED",
+    });
+  }
+}
 
 function conferirCoordenadas(latitude, longitude) {
   if ((latitude == null) !== (longitude == null)) {
@@ -193,22 +214,42 @@ export async function listUserCatches(viewerId, userId) {
  * `scope=all` abre para todo mundo (Descobrir).
  */
 export async function getFeed(viewerId, entrada) {
-  const { scope, before, limit } = feedSchema.parse(entrada);
+  const { scope, order, cursor, limit } = feedSchema.parse(entrada);
+
+  let before;
+  let offset = 0;
+  if (cursor && order === "engagement") {
+    offset = Number(cursor);
+    if (!Number.isInteger(offset) || offset < 0) throw httpError(400, "Cursor inválido");
+  } else if (cursor) {
+    before = new Date(cursor);
+    if (Number.isNaN(before.getTime())) throw httpError(400, "Cursor inválido");
+  }
+
   const capturas = await catchModel.findFeed(viewerId, {
     onlyFollowing: scope === "following",
+    order,
     before,
+    offset,
     limit,
   });
-  return {
-    items: capturas.map((c) => toCatchResponse(c, viewerId)),
-    // Cursor da próxima página; null quando acabou.
-    nextBefore: capturas.length === limit ? capturas.at(-1).createdAt : null,
-  };
+
+  // Página cheia = pode haver mais; senão acabou (null).
+  let nextCursor = null;
+  if (capturas.length === limit) {
+    nextCursor =
+      order === "engagement"
+        ? String(offset + limit)
+        : new Date(capturas.at(-1).createdAt).toISOString();
+  }
+
+  return { items: capturas.map((c) => toCatchResponse(c, viewerId)), nextCursor };
 }
 
 export async function createCatch(userId, entrada) {
   // RGN-07: o "pelo menos uma foto" está no próprio schema (photoUrls.min).
   const dados = createSchema.parse(entrada);
+  conferirDonoDasFotos(dados.photoUrls, userId);
   conferirCoordenadas(dados.latitude, dados.longitude);
 
   const especie = await especieParaCaptura(dados.speciesId);
@@ -241,6 +282,9 @@ export async function updateCatch(userId, catchId, entrada) {
   // Fotos são opcionais na edição (não mandou = não mexe), mas se mandou, a
   // lista nova segue o mesmo schema: pelo menos uma (RGN-07).
   const fotos = dados.photoUrls;
+  if (fotos) {
+    conferirDonoDasFotos(fotos, userId, atual.photos.map((p) => p.url));
+  }
 
   conferirCoordenadas(
     "latitude" in dados ? dados.latitude : atual.latitude,

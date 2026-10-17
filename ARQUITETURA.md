@@ -241,12 +241,27 @@ abre uma janela entre a conferência e o INSERT.
 - **Seed nunca sobrescreve.** O upsert usa `COALESCE(coluna, novo.coluna)`: só
   preenche o que está NULL. Corrigir um dado no `seed.js` não altera espécie que
   já está no banco — isso se faz pela rota de admin.
+- **Feed.** Padrão "Seguindo" (REQ-26), "Descobrir" com `scope=all`
+  (REQ-28). Ordem cronológica ou por engajamento (REQ-35), em que a nota é
+  curtidas + 2 × comentários (comentar dá mais trabalho que curtir), sem janela
+  de tempo — com o volume do projeto, isso basta. Paginação com um `cursor`
+  opaco: no cronológico é a data do último item (post novo no topo não
+  repete item na página seguinte); no engajamento é um offset, porque a ordem
+  muda a cada curtida e não há cursor estável.
+- **Sugestões de quem seguir (REQ-36).** Os mais seguidos, desempatando por
+  quem postou mais recentemente, e só quem tem pelo menos uma captura visível —
+  seguir um perfil vazio não resolveria o feed vazio. Ficam no estado vazio do
+  feed e na tela de busca de pessoas.
 - **Fotos em disco local — escolha deliberada de desenvolvimento.** O upload
   (`POST /api/uploads`, multer) grava em `backend/uploads/` e a própria API
   serve os arquivos em `/uploads`. Assim ninguém do grupo precisa de conta ou
   credencial em serviço externo. Fica atrás de `lib/storage.js` (`save` /
-  `getUrl` / `isStoredUrl`), no mesmo padrão do mailer: trocar de destino é
-  escrever outro driver nesse arquivo. **Em produção isso não serve**: o disco
+  `getUrl` / `belongsTo`), no mesmo padrão do mailer: trocar de destino é
+  escrever outro driver nesse arquivo. Cada usuário tem a sua pasta
+  (`uploads/<id do usuário>/`), e a captura só aceita foto cuja URL esteja na
+  pasta do próprio autor — ninguém anexa a foto de outra pessoa copiando a URL
+  do feed (`PHOTO_NOT_OWNED`). Na edição, as fotos que a captura já tinha
+  continuam aceitas, para dar para reordenar ou remover as antigas. **Em produção isso não serve**: o disco
   do servidor some a cada novo deploy, não é compartilhado entre instâncias e
   não tem backup. Produção precisaria de um armazenamento de objetos (S3,
   Cloudinary ou equivalente), de preferência atrás de uma CDN, com as
@@ -267,11 +282,15 @@ abre uma janela entre a conferência e o INSERT.
   lista, o arquivo fica em `backend/uploads/` sem nenhuma captura apontando
   para ele. O mesmo acontece ao **apagar uma captura** ou **trocar as fotos**
   dela: as linhas de `catch_photos` saem, os arquivos ficam. Hoje não há
-  limpeza. O conserto é uma tabela `uploads` (dono, data, se está em uso) e uma
-  limpeza periódica dos arquivos sem uso há mais de um dia.
-- **Foto de outro usuário.** Pelo mesmo motivo (não há registro de quem enviou
-  cada arquivo), a API confere que a foto é do nosso armazenamento, mas não que
-  foi o próprio usuário que a enviou. A tabela `uploads` resolveria também isso.
+  limpeza. **Adiado de propósito:** no disco local, arquivo órfão não custa
+  nada agora, e o tempo vai para o que o documento de requisitos exige. O
+  conserto certo, se sobrar tempo no fim, é uma tabela `uploads` (dono, data,
+  se está em uso) e uma limpeza periódica dos arquivos sem uso há mais de um
+  dia. (O dono da foto já é garantido sem essa tabela, pela pasta por usuário.)
+- **Fotos de antes da pasta por usuário.** As poucas fotos enviadas antes
+  dessa mudança ficaram na raiz de `uploads/`. Continuam aparecendo e podem
+  ser mantidas ou removidas da captura dona delas, mas não podem ser usadas
+  numa captura nova.
 
 ## Comandos
 

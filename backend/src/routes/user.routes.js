@@ -1,5 +1,7 @@
 import { Router } from "express";
 import {
+  search,
+  suggestions,
   updateMe,
   getProfile,
   listCatches,
@@ -16,6 +18,9 @@ userRoutes.use(requireAuth);
 
 // Os dados do próprio usuário são lidos em GET /api/auth/me.
 userRoutes.patch("/me", updateMe);
+// Antes do "/:id", senão "search" seria lido como um id.
+userRoutes.get("/search", search);
+userRoutes.get("/suggestions", suggestions);
 userRoutes.get("/:id", getProfile);
 userRoutes.get("/:id/catches", listCatches);
 userRoutes.get("/:id/followers", listFollowers);

@@ -36,8 +36,11 @@ function detectarFormato(buffer) {
   return null;
 }
 
-/** Recebe o arquivo do multer (em memória) e devolve `{ id, url }`. */
-export async function savePhoto(arquivo) {
+/**
+ * Recebe o arquivo do multer (em memória) e devolve `{ id, url }`. A foto
+ * fica na pasta do usuário: só ele consegue usá-la numa captura.
+ */
+export async function savePhoto(userId, arquivo) {
   if (!arquivo) {
     throw httpError(400, "Envie a foto no campo 'photo'");
   }
@@ -49,6 +52,6 @@ export async function savePhoto(arquivo) {
     });
   }
 
-  const id = await storage.save({ buffer: arquivo.buffer, extension });
+  const id = await storage.save({ buffer: arquivo.buffer, extension, ownerId: userId });
   return { id, url: storage.getUrl(id) };
 }

@@ -28,5 +28,5 @@ export function parsePhoto(req, res, next) {
 
 // POST /api/uploads  (multipart, campo "photo")  -> 201 { id, url }
 export const uploadPhoto = asyncHandler(async (req, res) => {
-  res.status(201).json(await uploadService.savePhoto(req.file));
+  res.status(201).json(await uploadService.savePhoto(req.userId, req.file));
 });

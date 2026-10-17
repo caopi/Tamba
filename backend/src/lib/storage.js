@@ -1,12 +1,17 @@
 // Armazenamento de arquivos enviados (fotos de captura).
 //
 // Por enquanto só existe o driver de disco local: os arquivos vão para
-// backend/uploads/ (fora do git) e a própria API os serve em /uploads. Escolha
-// deliberada de desenvolvimento — ninguém do grupo precisa de conta nem de
-// credencial em serviço externo. Para produção (Cloudinary, S3...), basta
-// escrever outro driver com o mesmo `save` / `getUrl` / `isStoredUrl` e
-// trocar a constante `driver`: o resto do código só conhece as funções
-// exportadas. Ver ARQUITETURA, "Decisões".
+// backend/uploads/<id do usuário>/ (fora do git) e a própria API os serve em
+// /uploads. Escolha deliberada de desenvolvimento — ninguém do grupo precisa
+// de conta nem de credencial em serviço externo. Para produção (Cloudinary,
+// S3...), basta escrever outro driver com o mesmo `save` / `getUrl` /
+// `belongsTo` e trocar a constante `driver`: o resto do código só conhece as
+// funções exportadas. Ver ARQUITETURA, "Decisões".
+//
+// Dono do arquivo: cada usuário tem a sua pasta, e o prefixo da URL diz quem
+// enviou a foto. É isso que impede alguém de anexar à própria captura a foto
+// de outra pessoa copiando a URL do feed (`belongsTo`). Sem tabela de uploads:
+// ver "Problemas conhecidos" na ARQUITETURA.
 
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -25,35 +30,45 @@ const URL_PUBLICA = (process.env.UPLOADS_PUBLIC_URL ?? "http://localhost:3333/up
   "",
 );
 
+// O id do usuário vira nome de pasta: só aceita o formato de UUID, para que
+// nada vindo de fora consiga montar um caminho ("../", "/", etc.).
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const NOME_ARQUIVO = /^[0-9a-f]{32}\.(jpg|png|webp)$/;
+
 const localDriver = {
   /**
-   * Grava o arquivo com nome gerado aqui — nunca o nome que veio do cliente,
-   * que poderia ter "../" ou caracteres que o sistema de arquivos interpreta.
+   * Grava em uploads/<ownerId>/ com nome gerado aqui — nunca o nome que veio
+   * do cliente, que poderia ter "../" ou caracteres que o sistema de arquivos
+   * interpreta. Devolve o id "<ownerId>/<nome>".
    */
-  async save({ buffer, extension }) {
-    await mkdir(UPLOADS_DIR, { recursive: true });
-    const id = `${randomBytes(16).toString("hex")}.${extension}`;
+  async save({ buffer, extension, ownerId }) {
+    if (!UUID.test(ownerId)) throw new Error("ownerId inválido para o storage");
+    const pasta = path.join(UPLOADS_DIR, ownerId);
+    await mkdir(pasta, { recursive: true });
+    const nome = `${randomBytes(16).toString("hex")}.${extension}`;
     // flag "wx": falha se o arquivo já existir, em vez de sobrescrever.
-    await writeFile(path.join(UPLOADS_DIR, id), buffer, { flag: "wx" });
-    return id;
+    await writeFile(path.join(pasta, nome), buffer, { flag: "wx" });
+    return `${ownerId}/${nome}`;
   },
 
   getUrl(id) {
     return `${URL_PUBLICA}/${id}`;
   },
 
-  /** A URL aponta para um arquivo deste armazenamento (e não para fora)? */
-  isStoredUrl(url) {
-    const prefixo = `${URL_PUBLICA}/`;
-    if (typeof url !== "string" || !url.startsWith(prefixo)) return false;
-    // Só o formato de id que o próprio save gera: 32 hex + extensão.
-    return /^[0-9a-f]{32}\.(jpg|png|webp)$/.test(url.slice(prefixo.length));
+  /** A URL é de um arquivo deste armazenamento enviado por `ownerId`? */
+  belongsTo(url, ownerId) {
+    const prefixo = `${URL_PUBLICA}/${ownerId}/`;
+    if (typeof url !== "string" || !UUID.test(ownerId) || !url.startsWith(prefixo)) {
+      return false;
+    }
+    // Só o formato de nome que o próprio save gera.
+    return NOME_ARQUIVO.test(url.slice(prefixo.length));
   },
 };
 
 const driver = localDriver;
 
-/** Grava `{ buffer, extension }` e devolve o id do arquivo. */
+/** Grava `{ buffer, extension, ownerId }` e devolve o id do arquivo. */
 export function save(arquivo) {
   return driver.save(arquivo);
 }
@@ -62,6 +77,6 @@ export function getUrl(id) {
   return driver.getUrl(id);
 }
 
-export function isStoredUrl(url) {
-  return driver.isStoredUrl(url);
+export function belongsTo(url, ownerId) {
+  return driver.belongsTo(url, ownerId);
 }

@@ -3,6 +3,16 @@ import * as catchService from "../services/catch.service.js";
 import * as socialService from "../services/social.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 
+// GET /api/users/search?q=...  -> busca por nome ou apelido (REQ-41/42)
+export const search = asyncHandler(async (req, res) => {
+  res.json(await userService.searchUsers(req.userId, req.query));
+});
+
+// GET /api/users/suggestions  -> quem seguir (REQ-36)
+export const suggestions = asyncHandler(async (req, res) => {
+  res.json(await userService.suggestUsers(req.userId));
+});
+
 // PATCH /api/users/me  -> nome, apelido, avatar, unidade, privacidade (RGN-06)
 export const updateMe = asyncHandler(async (req, res) => {
   res.json(await userService.updateMe(req.userId, req.body));

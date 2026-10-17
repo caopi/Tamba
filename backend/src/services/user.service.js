@@ -21,6 +21,22 @@ const updateMeSchema = z
   })
   .partial();
 
+const searchSchema = z.object({
+  q: z.string().trim().min(2, "Digite pelo menos 2 letras para buscar").max(60),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+/** REQ-41/42: busca usuários por nome ou apelido. */
+export async function searchUsers(viewerId, entrada) {
+  const { q, limit } = searchSchema.parse(entrada);
+  return userModel.search(viewerId, q, limit);
+}
+
+/** REQ-36: sugestões de quem seguir, para o feed vazio e a tela de busca. */
+export async function suggestUsers(viewerId) {
+  return userModel.suggestions(viewerId, 6);
+}
+
 export async function getMe(userId) {
   const user = await userModel.findById(userId);
   if (!user) throw httpError(404, "Usuário não encontrado");

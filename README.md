@@ -248,7 +248,7 @@ Com `REQUIRE_EMAIL_VERIFICATION=true` e sem SMTP configurado, o e-mail de confir
 
 | Método | Rota | Acesso | Descrição |
 | --- | --- | --- | --- |
-| `GET` | `/feed?scope=following\|all&before=&limit=` | privado | Feed. Padrão: só de quem você segue. `all` = Descobrir |
+| `GET` | `/feed?scope=following\|all&order=recent\|engagement&cursor=&limit=` | privado | Feed. Padrão: só de quem você segue, mais recentes primeiro. `all` = Descobrir; `engagement` = curtidas + comentários. Devolve `{ items, nextCursor }`; repasse o `nextCursor` como `cursor` para a próxima página |
 | `GET` | `/catches` | privado | Seu histórico (inclui as ocultas pela moderação, com `isHidden`) |
 | `GET` | `/catches/:id` | privado | Uma captura |
 | `POST` | `/uploads` | privado | Envia **uma** foto (multipart, campo `photo`; JPEG, PNG ou WebP, até 8 MB). Devolve `{ id, url }` |
@@ -281,8 +281,9 @@ Exemplo de corpo para `POST /catches`:
 
 `weight` é sempre em **kg** e `length` em **cm** (a unidade do perfil é só de
 exibição). `photoUrls` precisa de pelo menos uma foto (até 10), na ordem de exibição — a
-primeira é a capa. Cada URL tem de ter vindo do `POST /uploads`: link de imagem
-externa é recusado. Se escolher um `spotId`, a `region`
+primeira é a capa. Cada URL tem de ter vindo do `POST /uploads` **feito pelo
+próprio autor**: link externo ou foto de outra pessoa voltam 422
+`PHOTO_NOT_OWNED`. Se escolher um `spotId`, a `region`
 vem do pesqueiro. Peso ou tamanho fora da faixa da espécie volta 422
 `OUT_OF_RANGE`; reenviando com `"confirmOutOfRange": true`, a captura entra
 sinalizada para revisão.
@@ -291,6 +292,8 @@ sinalizada para revisão.
 
 | Método | Rota | Acesso | Descrição |
 | --- | --- | --- | --- |
+| `GET` | `/users/search?q=` | privado | Busca por nome ou apelido (mínimo 2 letras) |
+| `GET` | `/users/suggestions` | privado | Sugestões de quem seguir: os mais seguidos que têm captura |
 | `GET` | `/users/:id` | privado | Perfil público, com seguidores e estatísticas |
 | `GET` | `/users/:id/catches` | privado | Capturas visíveis do usuário |
 | `GET` | `/users/:id/followers` · `/following` | privado | Quem segue / quem é seguido |
@@ -329,6 +332,10 @@ sinalizada para revisão.
 | `/` | Fish Dex — grade com raridade, contador X/Y e espécies arquivadas; clicar abre a ficha (faixa plausível, curiosidades, recorde pessoal) |
 | `/registrar` | Nova captura. Medida fora da faixa da espécie abre uma confirmação antes de salvar |
 | `/perfil` | Estatísticas e histórico ordenável; capturas ocultas pela moderação aparecem "em análise" |
+| `/feed` | Feed: abas Seguindo / Descobrir, ordem por data ou engajamento, rolagem infinita, "Atualizar". Sem ninguém seguido, sugere perfis |
+| `/capturas/:id` | Detalhe da captura: todas as fotos, observações, localização (coordenada só se o autor compartilha) e comentários. É o link do "Compartilhar" |
+| `/u/:id` | Perfil público de outro usuário, com seguir e as capturas dele |
+| `/pessoas` | Busca de pessoas por nome ou apelido, com sugestões |
 
 ---
 

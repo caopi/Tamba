@@ -5,8 +5,12 @@ import { query, queryOne } from "../lib/db.js";
 // então todo SELECT já vem com os JOINs. Os aliases evitam colisão entre as
 // colunas chamadas `id` e `name`.
 //
-// O primeiro `?` é sempre o id de quem está vendo (para o `liked_by_me`): toda
-// função daqui passa `viewerId` como primeiro parâmetro.
+// O primeiro `?` é sempre o id de quem está vendo: entra uma vez só, na
+// tabela derivada `v`, e é usado por `liked_by_me` e `author_followed_by_me`.
+// Toda função daqui passa `viewerId` como primeiro parâmetro.
+//
+// `engagement` é a nota do feed "por engajamento" (REQ-35): curtidas +
+// comentários com peso 2 — comentar dá mais trabalho que curtir.
 const SELECT_COMPLETO = `
   SELECT
     c.id, c.user_id, c.species_id, c.spot_id, c.spot_name, c.region, c.weight, c.length,
@@ -28,8 +32,14 @@ const SELECT_COMPLETO = `
     u.share_exact_location   AS autor_share_exact_location,
     (SELECT COUNT(*) FROM likes    l WHERE l.catch_id = c.id) AS like_count,
     (SELECT COUNT(*) FROM comments m WHERE m.catch_id = c.id) AS comment_count,
-    EXISTS (SELECT 1 FROM likes l WHERE l.catch_id = c.id AND l.user_id = ?) AS liked_by_me
-  FROM catches c
+    (SELECT COUNT(*) FROM likes    l WHERE l.catch_id = c.id)
+      + 2 * (SELECT COUNT(*) FROM comments m WHERE m.catch_id = c.id) AS engagement,
+    EXISTS (SELECT 1 FROM likes l WHERE l.catch_id = c.id AND l.user_id = v.viewer_id)
+      AS liked_by_me,
+    EXISTS (SELECT 1 FROM follows f WHERE f.follower_id = v.viewer_id AND f.following_id = c.user_id)
+      AS author_followed_by_me
+  FROM (SELECT ? AS viewer_id) v
+  CROSS JOIN catches c
   INNER JOIN users         u ON u.id = c.user_id
   INNER JOIN fish_species  e ON e.id = c.species_id
   LEFT  JOIN fishing_spots p ON p.id = c.spot_id
@@ -88,6 +98,7 @@ function mapCatch(linha) {
       name: linha.autor_name,
       nickname: linha.autor_nickname,
       avatarUrl: linha.autor_avatar_url,
+      isFollowedByMe: Boolean(linha.author_followed_by_me),
     },
     authorIsActive: Boolean(linha.autor_is_active),
     authorSharesLocation: Boolean(linha.autor_share_exact_location),
@@ -157,7 +168,7 @@ export async function findAllByUser(userId, { viewerId = userId, includeHidden =
  *
  * RGN-12: só autores ativos e capturas não ocultas.
  */
-export async function findFeed(viewerId, { onlyFollowing, before, limit }) {
+export async function findFeed(viewerId, { onlyFollowing, order, before, offset, limit }) {
   const condicoes = ["u.is_active = TRUE", "c.is_hidden = FALSE"];
   const params = [viewerId];
 
@@ -167,16 +178,28 @@ export async function findFeed(viewerId, { onlyFollowing, before, limit }) {
     );
     params.push(viewerId);
   }
-  if (before) {
-    condicoes.push("c.created_at < ?");
-    params.push(before);
+
+  // Cronológico pagina por cursor (`before` = createdAt do último item): post
+  // novo no topo não faz a próxima página repetir item. Engajamento muda de
+  // ordem com cada curtida, então não tem cursor estável — vai por OFFSET.
+  let ordenacao;
+  if (order === "engagement") {
+    ordenacao = "ORDER BY engagement DESC, c.created_at DESC, c.id DESC LIMIT ? OFFSET ?";
+  } else {
+    if (before) {
+      condicoes.push("c.created_at < ?");
+      params.push(before);
+    }
+    ordenacao = "ORDER BY c.created_at DESC, c.id DESC LIMIT ?";
   }
-  // LIMIT vai como string: com prepared statement, o MySQL 8 recusa número
-  // aqui ("Incorrect arguments to mysqld_stmt_execute").
+
+  // LIMIT/OFFSET vão como string: com prepared statement, o MySQL 8 recusa
+  // número aqui ("Incorrect arguments to mysqld_stmt_execute").
   params.push(String(limit));
+  if (order === "engagement") params.push(String(offset ?? 0));
 
   return buscarVarias(
-    `${SELECT_COMPLETO} WHERE ${condicoes.join(" AND ")} ORDER BY c.created_at DESC LIMIT ?`,
+    `${SELECT_COMPLETO} WHERE ${condicoes.join(" AND ")} ${ordenacao}`,
     params,
   );
 }

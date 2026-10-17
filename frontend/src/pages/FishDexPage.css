@@ -1,6 +1,36 @@
 .dex-cabecalho {
-  margin-bottom: 1.25rem;
-  color: var(--texto-fraco);
+  margin-bottom: 1.5rem;
+}
+
+.dex-titulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dex-titulo h2 {
+  margin: 0;
+}
+
+.dex-contador {
+  font-size: 0.95rem;
+  color: var(--agua);
+}
+
+.dex-barra {
+  height: 8px;
+  margin-top: 0.6rem;
+  border-radius: 999px;
+  background: var(--borda);
+  overflow: hidden;
+}
+
+.dex-barra-preenchida {
+  height: 100%;
+  background: var(--agua);
+  transition: width 0.3s ease;
 }
 
 .dex-grade {
@@ -8,58 +38,222 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1rem;
 }
 
+/* O card é um <button>: precisa apagar o visual padrão de botão do global.css. */
 .dex-card {
+  width: 100%;
   background: #fff;
+  color: inherit;
   border: 1px solid var(--borda);
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.9rem;
   text-align: center;
+  font-size: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Espécie ainda não pescada aparece apagada, como numa Pokédex. */
-.dex-card.bloqueado {
-  opacity: 0.55;
-  filter: grayscale(1);
+.dex-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 92, 115, 0.15);
 }
 
-.dex-card img,
-.dex-imagem-vazia {
-  width: 100%;
+.dex-figura {
+  position: relative;
   height: 110px;
-  object-fit: cover;
   border-radius: var(--raio);
   background: var(--agua-clara);
   display: grid;
   place-items: center;
+  overflow: hidden;
+}
+
+.dex-figura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dex-imagem-vazia {
   font-size: 2.5rem;
 }
 
+/* Espécie ainda não capturada: silhueta apagada, como numa Pokédex. */
+.dex-card.bloqueado .dex-figura,
+.dex-figura.bloqueado {
+  background: #dfe6e9;
+}
+
+.dex-card.bloqueado .dex-figura img,
+.dex-card.bloqueado .dex-imagem-vazia,
+.dex-figura.bloqueado img,
+.dex-figura.bloqueado .dex-imagem-vazia {
+  filter: grayscale(1) brightness(0);
+  opacity: 0.25;
+}
+
+.dex-card.bloqueado h3,
+.dex-card.bloqueado .dex-status {
+  color: var(--texto-fraco);
+}
+
+.dex-cadeado {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.65;
+}
+
 .dex-card h3 {
-  margin-top: 0.75rem;
-  font-size: 1rem;
+  margin: 0.7rem 0 0.3rem;
+  font-size: 0.95rem;
+}
+
+.dex-status {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--agua-clara);
+  color: var(--agua);
+}
+
+.dex-card.bloqueado .dex-status {
+  background: #e9edee;
 }
 
 .dex-cientifico {
   margin: 0;
   font-style: italic;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--texto-fraco);
 }
 
-.dex-habitat {
-  font-size: 0.8rem;
-  color: var(--texto-fraco);
+/* --- Ficha da espécie (modal) --- */
+
+.dex-modal-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(15, 43, 48, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
 }
 
-.dex-status {
-  display: inline-block;
+.dex-modal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.dex-modal h2 {
+  margin: 1rem 0 0.2rem;
+}
+
+.dex-modal-fechar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.25rem 0.55rem;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--texto);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.dex-figura.grande {
+  height: 170px;
+}
+
+.dex-ficha {
+  margin: 1.2rem 0 0;
+  font-size: 0.9rem;
+}
+
+.dex-ficha dt {
   font-size: 0.75rem;
-  padding: 0.2rem 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+  margin-top: 0.9rem;
+}
+
+.dex-ficha dd {
+  margin: 0.25rem 0 0;
+}
+
+.dex-iscas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dex-isca {
+  padding: 0.15rem 0.55rem;
   border-radius: 999px;
   background: var(--agua-clara);
   color: var(--agua);
+  font-size: 0.8rem;
+}
+
+.dex-vazio {
+  color: var(--texto-fraco);
+}
+
+.dex-recorde {
+  margin-top: 1.4rem;
+  padding: 1rem;
+  border-radius: var(--raio);
+  background: var(--agua-clara);
+}
+
+.dex-recorde h3 {
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--agua);
+}
+
+.dex-recorde-numeros {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.dex-recorde-numeros span {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+}
+
+.dex-recorde-numeros strong {
+  font-size: 1.15rem;
+  color: var(--texto);
+}
+
+.dex-recorde-data {
+  margin: 0.8rem 0 0;
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.dex-bloqueado-aviso {
+  margin-top: 1.4rem;
+  padding: 0.9rem;
+  border: 1px dashed var(--borda);
+  border-radius: var(--raio);
+  font-size: 0.9rem;
+  color: var(--texto-fraco);
+  text-align: center;
 }

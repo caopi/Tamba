@@ -29,6 +29,8 @@ export interface Catch {
   userId: string;
   speciesId: string;
   spotId: string | null;
+  /** Local digitado à mão. Vale enquanto o Google Places não entra. */
+  spotName: string | null;
   /** Peso em kg. */
   weight: number;
   /** Comprimento em cm. */
@@ -45,6 +47,7 @@ export interface Catch {
 export interface CatchInput {
   speciesId: string;
   spotId?: string | null;
+  spotName?: string | null;
   weight: number;
   length: number;
   photoUrl?: string | null;

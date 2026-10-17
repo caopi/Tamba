@@ -8,6 +8,14 @@ import { httpError } from "../middlewares/errorHandler.js";
 const createSchema = z.object({
   speciesId: z.string().uuid("Espécie inválida"),
   spotId: z.string().uuid("Pesqueiro inválido").nullish(),
+  // Local digitado à mão enquanto o Google Places não entra. Campo vazio
+  // vira null para não gravar string em branco no banco.
+  spotName: z
+    .string()
+    .trim()
+    .max(180, "Nome do local muito longo")
+    .nullish()
+    .transform((valor) => valor || null),
   weight: z.coerce.number().positive("O peso precisa ser maior que zero"),
   length: z.coerce.number().positive("O comprimento precisa ser maior que zero"),
   photoUrl: z.string().url("URL da foto inválida").nullish(),

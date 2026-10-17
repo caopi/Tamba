@@ -1,10 +1,51 @@
+.captura-ajuda {
+  margin: -0.25rem 0 1.25rem;
+  color: var(--texto-fraco);
+  font-size: 0.9rem;
+}
+
 .captura-form {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  max-width: 420px;
+  gap: 1rem;
+  max-width: 460px;
   padding: 1.5rem;
   background: #fff;
   border: 1px solid var(--borda);
   border-radius: 12px;
+}
+
+/* Peso e comprimento andam juntos: cabem lado a lado. */
+.captura-dupla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.captura-form input[aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
+.campo-erro {
+  font-size: 0.78rem;
+  color: var(--erro);
+}
+
+.campo-dica {
+  font-size: 0.78rem;
+  color: var(--texto-fraco);
+}
+
+.captura-previa {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+}
+
+@media (max-width: 480px) {
+  .captura-dupla {
+    grid-template-columns: 1fr;
+  }
 }

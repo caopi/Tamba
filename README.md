@@ -133,7 +133,8 @@ Para mudar o schema, **crie um arquivo novo** em vez de editar um já aplicado:
 ```
 database/migrations/
 ├── 001_init.sql                  já aplicada — não editar
-└── 002_o_que_voce_vai_mudar.sql  a próxima
+├── 002_catch_spot_name.sql       já aplicada — não editar
+└── 003_o_que_voce_vai_mudar.sql  a próxima
 ```
 
 O `npm run migrate` roda em ordem alfabética o que ainda não rodou, e anota o que
@@ -148,7 +149,7 @@ de atualizar a função `map...()` do model correspondente, que é quem traduz
 | `users` | Contas. Guarda só o hash bcrypt da senha. |
 | `fish_species` | Catálogo fixo (a Dex). `name` é UNIQUE — é a chave do upsert do seed. |
 | `fishing_spots` | Pesqueiros. `google_place_id` fica nulo até integrar o Google Places. |
-| `catches` | Capturas. FK para as três tabelas acima. |
+| `catches` | Capturas. FK para as três tabelas acima. `spot_name` guarda o local digitado à mão. |
 
 Ao apagar: usuário leva junto as capturas dele (`CASCADE`), pesqueiro só
 desassocia (`SET NULL`), e espécie usada por alguma captura não pode ser apagada
@@ -182,6 +183,7 @@ Exemplo de corpo para `POST /catches`:
 {
   "speciesId": "uuid-da-especie",
   "spotId": "uuid-do-pesqueiro-ou-null",
+  "spotName": "Pesqueiro Recanto Azul",
   "weight": 3.4,
   "length": 52,
   "photoUrl": "https://exemplo.com/foto.jpg",
@@ -189,7 +191,9 @@ Exemplo de corpo para `POST /catches`:
 }
 ```
 
-`weight` é em **kg** e `length` em **cm**. `spotId` e `photoUrl` são opcionais.
+`weight` é em **kg** e `length` em **cm**. `spotId`, `spotName` e `photoUrl` são
+opcionais. Enquanto o Google Places não entra, o formulário manda o local como
+texto livre em `spotName` e deixa `spotId` nulo.
 
 ---
 
@@ -198,9 +202,9 @@ Exemplo de corpo para `POST /catches`:
 | Rota | Tela |
 | --- | --- |
 | `/login` | Login e cadastro |
-| `/` | Fish Dex — catálogo com as espécies já pescadas destacadas |
+| `/` | Fish Dex — catálogo com contador de progresso; clicar num peixe abre a ficha |
 | `/registrar` | Formulário de nova captura |
-| `/perfil` | Perfil e histórico de capturas |
+| `/perfil` | Perfil, estatísticas e histórico ordenável por data ou peso |
 
 ---
 

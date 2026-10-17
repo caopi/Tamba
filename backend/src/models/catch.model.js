@@ -6,7 +6,7 @@ import { query, queryOne } from "../lib/db.js";
 // chamadas `id` e as duas chamadas `name`.
 const SELECT_COMPLETO = `
   SELECT
-    c.id, c.user_id, c.species_id, c.spot_id, c.weight, c.length,
+    c.id, c.user_id, c.species_id, c.spot_id, c.spot_name, c.weight, c.length,
     c.photo_url, c.caught_at, c.created_at,
     e.id                AS especie_id,
     e.name              AS especie_name,
@@ -31,6 +31,7 @@ function mapCatch(linha) {
     userId: linha.user_id,
     speciesId: linha.species_id,
     spotId: linha.spot_id,
+    spotName: linha.spot_name,
     weight: linha.weight,
     length: linha.length,
     photoUrl: linha.photo_url,
@@ -76,13 +77,14 @@ export async function create(userId, dados) {
 
   await query(
     `INSERT INTO catches
-       (id, user_id, species_id, spot_id, weight, length, photo_url, caught_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, user_id, species_id, spot_id, spot_name, weight, length, photo_url, caught_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       userId,
       dados.speciesId,
       dados.spotId ?? null,
+      dados.spotName ?? null,
       dados.weight,
       dados.length,
       dados.photoUrl ?? null,
@@ -99,6 +101,7 @@ export async function create(userId, dados) {
 const COLUNAS_EDITAVEIS = {
   speciesId: "species_id",
   spotId: "spot_id",
+  spotName: "spot_name",
   weight: "weight",
   length: "length",
   photoUrl: "photo_url",

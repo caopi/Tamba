@@ -58,8 +58,12 @@ Tamba/
   simples separada por vírgula ('massa, milho, minhoca'), de propósito — não vale
   uma tabela só para isso.
 - **fishing_spots** — `google_place_id` fica nulo até integrarmos o Google Places.
-- **catches** — registro central. `spot_id` e `photo_url` são opcionais.
-  `weight` em **kg**, `length` em **cm**.
+- **catches** — registro central. `spot_id`, `spot_name` e `photo_url` são opcionais.
+  `weight` em **kg**, `length` em **cm**. `spot_name` é o local digitado à mão no
+  formulário: até o Google Places entrar, o usuário só escreve o nome do lugar, e
+  gravar isso na captura evita encher `fishing_spots` de linha órfã a cada erro de
+  digitação. As duas colunas convivem — a tela mostra o `spot` do catálogo quando
+  existe e cai no `spot_name` quando não.
 
 Deleção: apagar usuário apaga as capturas (`Cascade`); apagar pesqueiro só zera o
 `spotId` (`SetNull`); espécie usada por alguma captura não pode ser apagada (`Restrict`).

@@ -1,57 +1,168 @@
 .perfil-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.5rem;
   color: var(--texto-fraco);
 }
 
-.perfil-cabecalho p {
-  margin: 0.2rem 0;
+.perfil-cabecalho h2 {
+  margin: 0;
+  color: var(--texto);
 }
 
-.perfil-lista {
+.perfil-cabecalho p {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+}
+
+.perfil-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--agua);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.perfil-desde {
+  font-size: 0.8rem;
+}
+
+/* --- Números do topo --- */
+
+.perfil-numeros {
   list-style: none;
-  margin: 0;
+  margin: 0 0 2rem;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.75rem;
 }
 
-.perfil-item {
+.perfil-numeros li {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.9rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem;
   background: #fff;
   border: 1px solid var(--borda);
   border-radius: 12px;
 }
 
-.perfil-item img {
-  width: 72px;
-  height: 72px;
+.perfil-numeros strong {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.perfil-numeros small {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--texto-fraco);
+}
+
+.perfil-numeros span {
+  font-size: 0.78rem;
+  color: var(--texto-fraco);
+}
+
+/* --- Histórico --- */
+
+.perfil-subtitulo {
+  margin-bottom: 0.75rem;
+}
+
+.perfil-vazio {
+  padding: 2rem;
+  text-align: center;
+  color: var(--texto-fraco);
+  background: #fff;
+  border: 1px dashed var(--borda);
+  border-radius: 12px;
+}
+
+/* A tabela rola sozinha na horizontal em tela estreita. */
+.perfil-tabela-rolagem {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.perfil-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.perfil-tabela th,
+.perfil-tabela td {
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.perfil-tabela thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+  border-bottom: 1px solid var(--borda);
+}
+
+/* Cabeçalho ordenável: é um <button>, então apaga o visual do global.css. */
+.perfil-tabela thead button {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+
+.perfil-tabela thead button:hover {
+  color: var(--agua);
+}
+
+.perfil-tabela tbody tr + tr td {
+  border-top: 1px solid var(--borda);
+}
+
+.perfil-especie {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.perfil-especie img {
+  width: 36px;
+  height: 36px;
   object-fit: cover;
   border-radius: var(--raio);
 }
 
-.perfil-item-dados {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  font-size: 0.9rem;
+.perfil-vazio-celula {
   color: var(--texto-fraco);
 }
 
-.perfil-item-dados strong {
-  color: var(--texto);
-  font-size: 1rem;
-}
-
-.perfil-data {
-  font-size: 0.8rem;
-}
-
-.perfil-item button {
+.perfil-excluir {
+  padding: 0.3rem 0.7rem;
   background: none;
   color: var(--erro);
   border: 1px solid var(--borda);
+  font-size: 0.8rem;
+}
+
+/* Cabeçalho da coluna de ações: existe para o leitor de tela, não para a vista. */
+.perfil-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }

@@ -141,14 +141,4 @@ export async function update(id, dados) {
   await query(`UPDATE users SET ${atribuicoes.join(", ")} WHERE id = ?`, valores);
 }
 
-/** Promove a admin pelo e-mail. Devolve se achou a conta. Usado pelo seed. */
-export async function promoteToAdminByEmail(email, conn) {
-  const resultado = await query(
-    "UPDATE users SET role = 'admin' WHERE email = ?",
-    [email],
-    conn,
-  );
-  return resultado.affectedRows > 0 || (await findByEmail(email)) !== null;
-}
-
 export { mapUser, mapPublicUser };

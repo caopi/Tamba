@@ -56,6 +56,7 @@ Abra o `backend/.env` e preencha:
 | `FRONTEND_URL` | Para onde o link de confirmação de e-mail redireciona. Sem ela, o link responde JSON. |
 | `EMAIL_VERIFICATION_URL` | Endereço do link que vai no e-mail (a rota `/auth/verify-email` da API). |
 | `REPORT_HIDE_THRESHOLD` | Quantas denúncias de usuários distintos ocultam uma captura. Padrão `3`. |
+| `ADMIN_EMAIL` | Conta que o `npm run seed` promove a admin (ver "Primeiro admin" abaixo). |
 
 Para gerar um `JWT_SECRET` decente:
 
@@ -71,7 +72,24 @@ npm run seed       # insere as 34 espécies e 3 pesqueiros de exemplo
 ```
 
 Os dois comandos podem ser rodados quantas vezes você quiser: o `migrate` pula
-o que já foi aplicado e o `seed` atualiza em vez de duplicar.
+o que já foi aplicado, e o `seed` só preenche o que está vazio — nunca duplica
+espécie nem desfaz uma edição feita pelo admin no app.
+
+#### Primeiro admin
+
+Não existe rota para virar admin: quem promove é o seed, a partir do
+`ADMIN_EMAIL` do `.env`. **A ordem importa**, porque o seed só promove uma conta
+que já existe — ele não cria conta:
+
+1. Suba o backend e o frontend e **cadastre-se pelo app** com o e-mail que será
+   admin.
+2. Confirme o e-mail (o link aparece no terminal da API).
+3. Coloque esse e-mail em `ADMIN_EMAIL` no `backend/.env`.
+4. Rode `npm run seed` de novo. Deve aparecer `... promovido a admin.`
+
+Se aparecer `AVISO: ADMIN_EMAIL=..., mas nenhuma conta usa esse e-mail`, o
+passo 1 não foi feito (ou o e-mail está digitado diferente). A API reconhece o
+papel novo na hora; se a tela não mostrar as opções de admin, recarregue a página.
 
 ### 3. Frontend
 

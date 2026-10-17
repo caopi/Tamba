@@ -53,6 +53,10 @@ export async function hasCatches(id) {
 }
 
 // Whitelist campo da API -> coluna. Vale para o INSERT e para o UPDATE.
+//
+// RGN-11: `create` e `update` daqui são o único caminho do código da API que
+// grava em fish_species — `rarity` incluída — e só o species.service os
+// chama, sempre depois do assertAdmin. Nenhuma outra tabela tem raridade.
 const COLUNAS = {
   name: "name",
   scientificName: "scientific_name",

@@ -116,6 +116,7 @@ Para achar: `grep -rn "RGN-08" backend/`.
 | RGN-08 | `catch.service` — `createSchema`, `avaliarFaixa` | Peso/tamanho > 0; fora da faixa só com `confirmOutOfRange`, e fica sinalizada |
 | RGN-09 | `catch.service` — `updateCatch`, `deleteCatch` | Só o autor edita/apaga; estatísticas e Dex se recalculam sozinhas (ver Decisões) |
 | RGN-10 | `dex.service`; `species.model.findDexForUser` | Espécie conta como capturada a partir da primeira captura não oculta |
+| RGN-11 | `species.service` — `createSpecies`, `updateSpecies`; whitelist de `species.model` | Raridade só é gravada pelas rotas de admin; `rarity` no corpo de qualquer outra rota é descartado pelo Zod |
 | RGN-12 | `catch.service.findVisibleCatch`; `catch.model.findFeed` | Feed e capturas de terceiros: só autor ativo e captura não oculta |
 | RGN-13 | `catch.service.toCatchResponse` | Coordenada só sai para terceiros com `share_exact_location`; senão só `region` |
 | RGN-14 | `report.service.reportCatch` | N denúncias pendentes de usuários distintos ocultam a captura (`REPORT_HIDE_THRESHOLD`, padrão 3) |
@@ -166,7 +167,10 @@ schemas Zod no topo do arquivo e lança `httpError(status, msg)` para os casos d
 erro — o `errorHandler` converte tudo em JSON. Uma regra, uma camada: o RGN-xx
 fica num lugar só, com o ID em comentário. Quando o frontend precisa reagir a um
 erro específico, vai um `code` no terceiro argumento:
-`httpError(422, msg, { code: "OUT_OF_RANGE" })`. Nunca use `try/catch` só para
+`httpError(422, msg, { code: "OUT_OF_RANGE" })`. O `z.object` **descarta**
+campo que não está no schema — é isso que garante, por exemplo, que `rarity` no
+corpo de uma captura seja ignorado (RGN-11). Não use `.passthrough()` nem
+espalhe `req.body` direto num model. Nunca use `try/catch` só para
 responder 500. Operação que grava em mais de uma tabela usa `withTransaction`
 (de `lib/db.js`) e passa o `conn` para cada função do model.
 

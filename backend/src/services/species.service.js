@@ -1,4 +1,10 @@
-// Catálogo de espécies (RGN-16, RGN-17).
+// Catálogo de espécies (RGN-11, RGN-16, RGN-17).
+//
+// RGN-11: a raridade é definida pelo admin, nunca pelo usuário. Ela só é
+// gravada por createSpecies/updateSpecies, que exigem admin. Nos schemas das
+// rotas de usuário (captura, perfil, comentário...) `rarity` não existe, e o
+// z.object descarta campo desconhecido: mandar `rarity` no corpo dessas rotas
+// é ignorado, não aceito.
 
 import { z } from "zod";
 import * as speciesModel from "../models/species.model.js";
@@ -21,7 +27,8 @@ const createSchema = z.object({
   habitat: z.string().trim().min(2, "Descreva o habitat"),
   imageUrl: z.string().trim().url("URL da imagem inválida").nullish(),
   recommendedBaits: z.string().trim().max(255).nullish(),
-  // Obrigatória: raridade faz parte da definição da espécie.
+  // Obrigatória: raridade faz parte da definição da espécie. Este é o único
+  // schema da API que aceita `rarity` (RGN-11).
   rarity: z.enum(RARIDADES, { message: "Raridade inválida" }),
   // Faixas opcionais: espécie sem faixa conhecida nunca sinaliza captura (RGN-08).
   minWeight: peso.nullish(),
@@ -78,7 +85,7 @@ export async function getSpecies(speciesId) {
   return especie;
 }
 
-/** RGN-16: só admin cadastra espécie. */
+/** RGN-16: só admin cadastra espécie. RGN-11: inclusive a raridade dela. */
 export async function createSpecies(actor, entrada) {
   assertAdmin(actor);
   const dados = createSchema.parse(entrada);
@@ -94,7 +101,7 @@ export async function createSpecies(actor, entrada) {
   }
 }
 
-/** RGN-16: só admin edita espécie. */
+/** RGN-16: só admin edita espécie. RGN-11: inclusive a raridade dela. */
 export async function updateSpecies(actor, speciesId, entrada) {
   assertAdmin(actor);
   const dados = updateSchema.parse(entrada);

@@ -89,8 +89,7 @@ export interface Catch {
   weight: number;
   /** Comprimento em cm. */
   length: number;
-  /** Legado: igual a photos[0].url. */
-  photoUrl: string | null;
+  /** Em ordem; a primeira (posição 0) é a capa. */
   photos: CatchPhoto[];
   notes: string | null;
   /** Só vêm para o autor, ou se o autor compartilha a localização exata. */

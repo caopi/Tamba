@@ -190,8 +190,12 @@ export function ProfilePage() {
                     <tr key={captura.id} className={captura.isHidden ? "perfil-linha-oculta" : undefined}>
                       <td>
                         <div className="perfil-especie">
-                          {captura.photoUrl && (
-                            <img src={captura.photoUrl} alt={captura.species.name} />
+                          {/* photos[0] é a capa. */}
+                          {captura.photos[0] && (
+                            <img src={captura.photos[0].url} alt={captura.species.name} />
+                          )}
+                          {captura.photos.length > 1 && (
+                            <span className="perfil-mais-fotos">+{captura.photos.length - 1}</span>
                           )}
                           <span>{captura.species.name}</span>
                           {captura.isHidden && (

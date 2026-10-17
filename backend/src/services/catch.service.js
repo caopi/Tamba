@@ -10,6 +10,7 @@ import * as speciesModel from "../models/species.model.js";
 import * as spotModel from "../models/spot.model.js";
 import * as userModel from "../models/user.model.js";
 import { withTransaction } from "../lib/db.js";
+import { isStoredUrl } from "../lib/storage.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
 // Folga para relógio de celular um pouco adiantado: sem ela, quem registra a
@@ -24,6 +25,11 @@ const textoOpcional = (max, mensagem) =>
     .nullish()
     // Campo vazio vira null para não gravar string em branco no banco.
     .transform((valor) => valor || null);
+
+const fotoEnviada = z
+  .string()
+  .trim()
+  .refine(isStoredUrl, "A foto precisa ser enviada pelo app (upload), não um link externo");
 
 const createSchema = z.object({
   // RGN-07: toda captura tem espécie.
@@ -44,12 +50,14 @@ const createSchema = z.object({
   latitude: z.number().min(-90).max(90).nullish(),
   longitude: z.number().min(-180).max(180).nullish(),
   // RGN-07: pelo menos uma foto (conferido em `fotosDaEntrada`).
+  // REQ-15: só fotos enviadas pelo upload do app (POST /api/uploads) — colar
+  // o link de uma imagem qualquer da internet não vale.
   photoUrls: z
-    .array(z.string().trim().url("URL da foto inválida"))
+    .array(fotoEnviada)
     .max(10, "No máximo 10 fotos por captura")
     .optional(),
   // Formato antigo, de uma foto só, que o formulário atual ainda manda.
-  photoUrl: z.string().trim().url("URL da foto inválida").nullish(),
+  photoUrl: fotoEnviada.nullish(),
   // RGN-08: o usuário confirmou que o peso/tamanho fora da faixa está certo.
   confirmOutOfRange: z.boolean().default(false),
 });

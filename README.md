@@ -58,6 +58,7 @@ Abra o `backend/.env` e preencha:
 | `REPORT_HIDE_THRESHOLD` | Quantas denúncias de usuários distintos ocultam uma captura. Padrão `3`. |
 | `ADMIN_EMAIL` | Conta que o `npm run seed` promove a admin (ver "Primeiro admin" abaixo). |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` liga a confirmação de e-mail no cadastro (RGN-01). Padrão `false`: o cadastro já entra logado. |
+| `UPLOADS_PUBLIC_URL` | Endereço público das fotos enviadas. Padrão `http://localhost:3333/uploads` (a própria API). |
 | `SEED_DEV_USERS` | `true` faz o `npm run seed` criar as contas de desenvolvimento (ver abaixo). Ignorado com `NODE_ENV=production`. |
 
 Para gerar um `JWT_SECRET` decente:
@@ -250,6 +251,7 @@ Com `REQUIRE_EMAIL_VERIFICATION=true` e sem SMTP configurado, o e-mail de confir
 | `GET` | `/feed?scope=following\|all&before=&limit=` | privado | Feed. Padrão: só de quem você segue. `all` = Descobrir |
 | `GET` | `/catches` | privado | Seu histórico (inclui as ocultas pela moderação, com `isHidden`) |
 | `GET` | `/catches/:id` | privado | Uma captura |
+| `POST` | `/uploads` | privado | Envia **uma** foto (multipart, campo `photo`; JPEG, PNG ou WebP, até 8 MB). Devolve `{ id, url }` |
 | `POST` | `/catches` | privado | Registra uma captura |
 | `PUT` | `/catches/:id` | privado | Edita (só o autor) |
 | `DELETE` | `/catches/:id` | privado | Apaga (só o autor) |
@@ -268,7 +270,7 @@ Exemplo de corpo para `POST /catches`:
   "region": "Salto, SP",
   "weight": 3.4,
   "length": 52,
-  "photoUrls": ["https://exemplo.com/foto.jpg"],
+  "photoUrls": ["http://localhost:3333/uploads/9f2c…e1.jpg"],
   "notes": "Nublado, massa de milho, vara de 2,10 m",
   "latitude": -23.2,
   "longitude": -47.29,
@@ -278,8 +280,9 @@ Exemplo de corpo para `POST /catches`:
 ```
 
 `weight` é sempre em **kg** e `length` em **cm** (a unidade do perfil é só de
-exibição). `photoUrls` precisa de pelo menos uma foto — o formato antigo,
-`photoUrl` com uma URL só, ainda é aceito. Se escolher um `spotId`, a `region`
+exibição). `photoUrls` precisa de pelo menos uma foto (até 10), na ordem de exibição — a
+primeira é a capa. Cada URL tem de ter vindo do `POST /uploads`: link de imagem
+externa é recusado. O formato antigo, `photoUrl` com uma URL só, ainda é aceito. Se escolher um `spotId`, a `region`
 vem do pesqueiro. Peso ou tamanho fora da faixa da espécie volta 422
 `OUT_OF_RANGE`; reenviando com `"confirmOutOfRange": true`, a captura entra
 sinalizada para revisão.

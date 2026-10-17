@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3333/api";
+export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3333/api";
 
 const TOKEN_KEY = "tamba:token";
 

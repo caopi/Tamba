@@ -9,6 +9,9 @@ node_modules/
 dist/
 build/
 
+# Fotos enviadas pelos usuários (driver de disco local do lib/storage.js)
+backend/uploads/
+
 # Logs
 *.log
 npm-debug.log*

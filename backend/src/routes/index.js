@@ -5,6 +5,7 @@ import { catchRoutes } from "./catch.routes.js";
 import { speciesRoutes } from "./species.routes.js";
 import { spotRoutes } from "./spot.routes.js";
 import { adminRoutes } from "./admin.routes.js";
+import { uploadRoutes } from "./upload.routes.js";
 import {
   feedRoutes,
   dexRoutes,
@@ -28,3 +29,4 @@ routes.use("/notifications", notificationRoutes);
 routes.use("/species", speciesRoutes);
 routes.use("/spots", spotRoutes);
 routes.use("/admin", adminRoutes);
+routes.use("/uploads", uploadRoutes);

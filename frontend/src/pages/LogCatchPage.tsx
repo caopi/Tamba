@@ -4,6 +4,7 @@ import { speciesApi, spotsApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { ApiError } from "../api/client";
 import { formatarFaixa } from "../format";
+import { PhotoPicker, type FotoItem } from "../components/PhotoPicker";
 import type { CatchInput, FishSpecies, FishingSpot, OutOfRangeDetail } from "../types";
 import "./LogCatchPage.css";
 
@@ -41,7 +42,7 @@ function normalizar(texto: string) {
     .replace(/[̀-ͯ]/g, "");
 }
 
-type Campo = "especie" | "weight" | "length" | "caughtAt" | "photoUrl";
+type Campo = "especie" | "weight" | "length" | "caughtAt" | "fotos";
 type Erros = Partial<Record<Campo, string>>;
 
 /** Tentativa recusada por medida fora da faixa, à espera da confirmação. */
@@ -64,7 +65,13 @@ export function LogCatchPage() {
   const [spotName, setSpotName] = useState("");
   const [region, setRegion] = useState("");
   const [caughtAt, setCaughtAt] = useState(hoje);
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [fotos, setFotos] = useState<FotoItem[]>([]);
+  // O erro das fotos ("aguarde o envio", "alguma falhou") fica velho assim
+  // que a lista muda — senão continuaria vermelho depois do reenvio dar certo.
+  const atualizarFotos: typeof setFotos = (mudanca) => {
+    setFotos(mudanca);
+    setErros((atuais) => (atuais.fotos ? { ...atuais, fotos: undefined } : atuais));
+  };
   const [notes, setNotes] = useState("");
 
   const [erros, setErros] = useState<Erros>({});
@@ -124,11 +131,14 @@ export function LogCatchPage() {
       encontrados.caughtAt = "A data não pode estar no futuro";
     }
 
-    // RGN-07: foto obrigatória. O backend exige URL válida (Zod .url()).
-    if (!photoUrl.trim()) {
-      encontrados.photoUrl = "A foto é obrigatória";
-    } else if (!URL.canParse(photoUrl.trim())) {
-      encontrados.photoUrl = "URL inválida (comece com https://)";
+    // RGN-07: pelo menos uma foto. As fotos sobem assim que são escolhidas;
+    // na hora de salvar, todas precisam ter terminado de subir.
+    if (fotos.length === 0) {
+      encontrados.fotos = "Adicione pelo menos uma foto";
+    } else if (fotos.some((f) => f.status === "comprimindo" || f.status === "enviando")) {
+      encontrados.fotos = "Aguarde o envio das fotos terminar";
+    } else if (fotos.some((f) => f.status === "erro")) {
+      encontrados.fotos = "Alguma foto não foi enviada: tente de novo ou remova";
     }
 
     return encontrados;
@@ -170,7 +180,8 @@ export function LogCatchPage() {
         region: spotId ? null : region.trim() || null,
         weight: Number(weight),
         length: Number(length),
-        photoUrls: [photoUrl.trim()],
+        // A ordem da lista é a ordem das fotos: a primeira é a capa.
+        photoUrls: fotos.map((f) => f.url!),
         notes: notes.trim() || null,
         // O <input type="date"> só dá o dia. Fixando meio-dia local, a conversão
         // para UTC não empurra o registro para o dia anterior ou seguinte.
@@ -304,21 +315,13 @@ export function LogCatchPage() {
           {erros.caughtAt && <span className="campo-erro">{erros.caughtAt}</span>}
         </label>
 
-        <label>
-          Foto (URL) *
-          <input
-            type="url"
-            placeholder="https://…"
-            value={photoUrl}
-            onChange={(e) => setPhotoUrl(e.target.value)}
-            aria-invalid={Boolean(erros.photoUrl)}
-          />
-          {erros.photoUrl && <span className="campo-erro">{erros.photoUrl}</span>}
-        </label>
-
-        {photoUrl.trim() && !erros.photoUrl && URL.canParse(photoUrl.trim()) && (
-          <img className="captura-previa" src={photoUrl.trim()} alt="Prévia da foto" />
-        )}
+        {/* <fieldset> e não <label>: dentro de um label, clicar em qualquer
+            botão das miniaturas "clicaria" também o primeiro input. */}
+        <fieldset className="captura-fotos">
+          <legend>Fotos * (a primeira é a capa)</legend>
+          <PhotoPicker fotos={fotos} setFotos={atualizarFotos} invalido={Boolean(erros.fotos)} />
+          {erros.fotos && <span className="campo-erro">{erros.fotos}</span>}
+        </fieldset>
 
         <label>
           Observações

@@ -205,3 +205,8 @@
   font-size: 0.75rem;
   color: var(--texto-fraco);
 }
+
+.perfil-mais-fotos {
+  font-size: 0.7rem;
+  color: var(--texto-fraco);
+}

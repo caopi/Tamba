@@ -32,6 +32,7 @@ Tamba/
 │   │   ├── migrate.js     Roda os .sql em ordem, controla schema_migrations
 │   │   ├── setup.sql      Preparação do MySQL (banco, usuário, grant), roda como root
 │   │   └── seed.js        Catálogo de espécies + pesqueiros de exemplo
+│   ├── uploads/           Fotos enviadas (driver local do storage). Fora do git
 │   └── src/
 │       ├── server.js      Sobe o HTTP (só isso)
 │       ├── app.js         Monta o Express: cors, json, rotas, erros
@@ -40,7 +41,7 @@ Tamba/
 │       ├── services/      Regras de negócio (RGN-xx) + validação Zod
 │       ├── models/        Acesso ao banco: SQL cru via mysql2
 │       ├── middlewares/   requireAuth, requireAdmin, errorHandler
-│       └── lib/           db.js (pool, transação), jwt.js, mailer.js, authz.js, asyncHandler.js
+│       └── lib/           db.js (pool, transação), jwt.js, mailer.js, storage.js, authz.js, asyncHandler.js
 └── frontend/src/
     ├── api/               Cliente HTTP: client.ts + um arquivo por recurso
     ├── context/           AuthContext (usuário logado + token)
@@ -86,7 +87,9 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   `location` do pesqueiro do catálogo ou é digitada, e é o que os outros veem
   quando o autor não compartilha `latitude`/`longitude`. `is_flagged_for_review`
   marca medida fora da faixa da espécie (RGN-08); `is_hidden` é a moderação (RGN-14).
-- **catch_photos** — 1..10 fotos por captura, ordenadas por `position`.
+- **catch_photos** — 1..10 fotos por captura, ordenadas por `position`; a de
+  posição 0 é a capa. `url` aponta para o armazenamento do `lib/storage.js` — a
+  API só aceita foto enviada por `POST /api/uploads` (REQ-15), não link externo.
   **`catches.photo_url` é legado:** espelha a foto de posição 0 enquanto o
   frontend antigo lê só ela, e o model mantém as duas em sincronia
   (`replacePhotos`). Vai sair numa migration própria depois que o frontend
@@ -239,6 +242,37 @@ abre uma janela entre a conferência e o INSERT.
 - **Seed nunca sobrescreve.** O upsert usa `COALESCE(coluna, novo.coluna)`: só
   preenche o que está NULL. Corrigir um dado no `seed.js` não altera espécie que
   já está no banco — isso se faz pela rota de admin.
+- **Fotos em disco local — escolha deliberada de desenvolvimento.** O upload
+  (`POST /api/uploads`, multer) grava em `backend/uploads/` e a própria API
+  serve os arquivos em `/uploads`. Assim ninguém do grupo precisa de conta ou
+  credencial em serviço externo. Fica atrás de `lib/storage.js` (`save` /
+  `getUrl` / `isStoredUrl`), no mesmo padrão do mailer: trocar de destino é
+  escrever outro driver nesse arquivo. **Em produção isso não serve**: o disco
+  do servidor some a cada novo deploy, não é compartilhado entre instâncias e
+  não tem backup. Produção precisaria de um armazenamento de objetos (S3,
+  Cloudinary ou equivalente), de preferência atrás de uma CDN, com as
+  credenciais no ambiente do servidor — e de `UPLOADS_PUBLIC_URL` apontando
+  para lá.
+- **Validação do upload pelo conteúdo.** O tipo do arquivo é decidido pelos
+  primeiros bytes (JPEG, PNG ou WebP), nunca pelo MIME nem pela extensão que o
+  cliente manda. O nome do arquivo é gerado no servidor (32 hex aleatórios); o
+  nome original nunca entra no caminho. Máximo de 8 MB por foto.
+- **Compressão no aparelho (RNF-09).** O frontend redimensiona para 1600 px e
+  reencoda em JPEG antes de enviar (`src/imageCompression.ts`). Isso também
+  descarta o EXIF, inclusive o GPS que o celular grava na foto.
+
+## Problemas conhecidos
+
+- **Fotos órfãs.** Cada foto sobe assim que o usuário a escolhe, antes de a
+  captura ser salva. Se ele desistir do formulário, ou remover a foto da
+  lista, o arquivo fica em `backend/uploads/` sem nenhuma captura apontando
+  para ele. O mesmo acontece ao **apagar uma captura** ou **trocar as fotos**
+  dela: as linhas de `catch_photos` saem, os arquivos ficam. Hoje não há
+  limpeza. O conserto é uma tabela `uploads` (dono, data, se está em uso) e uma
+  limpeza periódica dos arquivos sem uso há mais de um dia.
+- **Foto de outro usuário.** Pelo mesmo motivo (não há registro de quem enviou
+  cada arquivo), a API confere que a foto é do nosso armazenamento, mas não que
+  foi o próprio usuário que a enviou. A tabela `uploads` resolveria também isso.
 
 ## Comandos
 

@@ -1,0 +1,176 @@
+.post {
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.post-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.post-autor {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.post-autor-textos {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.post-apelido {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.post-galeria {
+  position: relative;
+  background: #0d1b20;
+}
+
+.post-galeria img {
+  display: block;
+  width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+}
+
+.post-sem-foto {
+  display: grid;
+  place-items: center;
+  height: 180px;
+  background: var(--agua-clara);
+  font-size: 3rem;
+}
+
+.post-seta {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.2rem 0.6rem;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.post-seta.esquerda {
+  left: 0.5rem;
+}
+
+.post-seta.direita {
+  right: 0.5rem;
+}
+
+.post-contador {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.post-corpo {
+  padding: 0.75rem 0.9rem 0.25rem;
+}
+
+.post-especie {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.post-especie a {
+  color: inherit;
+}
+
+.post-selo-analise {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #fde2e0;
+  color: #8a1f17;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.post-medidas {
+  margin: 0.35rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.post-local {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+}
+
+.post-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem 0.6rem 0.7rem;
+}
+
+.post-acao {
+  padding: 0.35rem 0.65rem;
+  background: none;
+  color: var(--texto);
+  font-size: 0.85rem;
+  border-radius: var(--raio);
+  text-decoration: none;
+}
+
+.post-acao:hover {
+  background: var(--agua-clara);
+}
+
+.post-acao.ativa {
+  color: var(--erro);
+  font-weight: 600;
+}
+
+.post-denunciar {
+  margin-left: auto;
+  color: var(--texto-fraco);
+}
+
+.post-aviso {
+  margin: 0 0.9rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--agua);
+  word-break: break-all;
+}
+
+/* Denúncia: opções em lista. */
+.denuncia-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.denuncia-opcao {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--texto);
+}
+
+.denuncia-opcao input {
+  width: auto;
+}

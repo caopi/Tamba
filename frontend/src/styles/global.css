@@ -99,3 +99,29 @@ button.secundario {
   color: var(--agua);
   border: 1px solid var(--agua);
 }
+
+/* Diálogo modal genérico (denúncia e afins). */
+.dialogo-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(15, 43, 48, 0.55);
+}
+
+.dialogo {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.dialogo-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}

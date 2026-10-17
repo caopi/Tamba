@@ -1,0 +1,13 @@
+.avatar {
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-inicial {
+  display: inline-grid;
+  place-items: center;
+  background: var(--agua);
+  color: #fff;
+  font-weight: 700;
+}

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { ResendVerification } from "../components/ResendVerification";
@@ -19,6 +19,8 @@ export function LoginPage() {
 
   const { login, signup } = useAuth();
   const navigate = useNavigate();
+  // Veio de uma rota privada (ex.: link compartilhado)? Volta para lá depois.
+  const destino = (useLocation().state as { from?: string } | null)?.from ?? "/";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -29,7 +31,7 @@ export function LoginPage() {
     try {
       if (modo === "login") {
         await login(email, password);
-        navigate("/");
+        navigate(destino);
       } else {
         // Com a confirmação de e-mail ligada no backend, o cadastro não loga
         // e vai para "confirme seu e-mail"; desligada, já entra direto.
@@ -37,7 +39,7 @@ export function LoginPage() {
         if (requiresVerification) {
           navigate("/confirme-email", { state: { email: email.trim() } });
         } else {
-          navigate("/");
+          navigate(destino);
         }
       }
     } catch (e) {

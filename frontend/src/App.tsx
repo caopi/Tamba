@@ -8,6 +8,10 @@ import { VerificationPage } from "./pages/VerificationPage";
 import { FishDexPage } from "./pages/FishDexPage";
 import { LogCatchPage } from "./pages/LogCatchPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { FeedPage } from "./pages/FeedPage";
+import { CatchDetailPage } from "./pages/CatchDetailPage";
+import { PublicProfilePage } from "./pages/PublicProfilePage";
+import { PeopleSearchPage } from "./pages/PeopleSearchPage";
 
 export default function App() {
   return (
@@ -24,8 +28,12 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<FishDexPage />} />
+              <Route path="/feed" element={<FeedPage />} />
               <Route path="/registrar" element={<LogCatchPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
+              <Route path="/capturas/:id" element={<CatchDetailPage />} />
+              <Route path="/u/:id" element={<PublicProfilePage />} />
+              <Route path="/pessoas" element={<PeopleSearchPage />} />
             </Route>
           </Route>
 

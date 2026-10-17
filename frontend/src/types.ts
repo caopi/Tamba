@@ -107,7 +107,49 @@ export interface Catch {
   likedByMe: boolean;
   species: Pick<FishSpecies, "id" | "name" | "scientificName" | "imageUrl" | "rarity">;
   spot: FishingSpot | null;
-  author: { id: string; name: string; nickname: string; avatarUrl: string | null };
+  author: PublicUser & { isFollowedByMe: boolean };
+}
+
+/** O que os outros veem de um usuário. */
+export interface PublicUser {
+  id: string;
+  name: string;
+  nickname: string;
+  avatarUrl: string | null;
+  createdAt?: string;
+}
+
+/** Pessoa na busca e nas sugestões de quem seguir. */
+export interface UserCard extends PublicUser {
+  followers: number;
+  catchCount: number;
+  lastCatchAt: string | null;
+  isFollowedByMe: boolean;
+}
+
+/** GET /users/:id. */
+export interface PublicProfile extends PublicUser {
+  followers: number;
+  following: number;
+  stats: Stats;
+  isFollowedByMe: boolean;
+}
+
+export type FeedScope = "following" | "all";
+export type FeedOrder = "recent" | "engagement";
+
+export interface FeedPage {
+  items: Catch[];
+  /** Repassar como `cursor` para a próxima página; null = acabou. */
+  nextCursor: string | null;
+}
+
+export interface Comment {
+  id: string;
+  catchId: string;
+  body: string;
+  createdAt: string;
+  author: PublicUser;
 }
 
 /** Corpo aceito por POST/PUT /catches. */
@@ -120,6 +162,8 @@ export interface CatchInput {
   length: number;
   photoUrls: string[];
   notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   caughtAt: string;
   /** Reenviar com true depois que o usuário confirma a medida fora da faixa. */
   confirmOutOfRange?: boolean;

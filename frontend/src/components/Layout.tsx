@@ -14,8 +14,12 @@ export function Layout() {
         </Link>
 
         <nav className="layout-nav">
-          <NavLink to="/">Dex</NavLink>
+          <NavLink to="/feed">Feed</NavLink>
+          <NavLink to="/" end>
+            Dex
+          </NavLink>
           <NavLink to="/registrar">Registrar captura</NavLink>
+          <NavLink to="/pessoas">Pessoas</NavLink>
           <NavLink to="/perfil">Perfil</NavLink>
         </nav>
 

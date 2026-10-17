@@ -73,6 +73,34 @@ export function LogCatchPage() {
     setErros((atuais) => (atuais.fotos ? { ...atuais, fotos: undefined } : atuais));
   };
   const [notes, setNotes] = useState("");
+  // Coordenada exata, opcional (RGN-13: os outros só a veem se o autor ligar
+  // "compartilhar localização exata"; senão veem só a região).
+  const [coordenada, setCoordenada] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [localizando, setLocalizando] = useState(false);
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
+
+  function usarMinhaLocalizacao() {
+    if (!navigator.geolocation) {
+      setErroLocal("Este navegador não informa a localização");
+      return;
+    }
+    setLocalizando(true);
+    setErroLocal(null);
+    navigator.geolocation.getCurrentPosition(
+      (posicao) => {
+        setCoordenada({
+          latitude: Number(posicao.coords.latitude.toFixed(6)),
+          longitude: Number(posicao.coords.longitude.toFixed(6)),
+        });
+        setLocalizando(false);
+      },
+      () => {
+        setErroLocal("Não foi possível obter a localização (permissão negada?)");
+        setLocalizando(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  }
 
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -183,6 +211,8 @@ export function LogCatchPage() {
         // A ordem da lista é a ordem das fotos: a primeira é a capa.
         photoUrls: fotos.map((f) => f.url!),
         notes: notes.trim() || null,
+        latitude: coordenada?.latitude ?? null,
+        longitude: coordenada?.longitude ?? null,
         // O <input type="date"> só dá o dia. Fixando meio-dia local, a conversão
         // para UTC não empurra o registro para o dia anterior ou seguinte.
         caughtAt: new Date(`${caughtAt}T12:00:00`).toISOString(),
@@ -302,6 +332,25 @@ export function LogCatchPage() {
             </label>
           </div>
         )}
+
+        <div className="captura-coordenada">
+          {coordenada ? (
+            <p className="campo-dica">
+              📍 {coordenada.latitude}, {coordenada.longitude}{" "}
+              <button type="button" className="link" onClick={() => setCoordenada(null)}>
+                remover
+              </button>
+              <br />
+              Só você vê a coordenada exata; os outros veem só a região, a menos que
+              você ative "compartilhar localização exata" no perfil.
+            </p>
+          ) : (
+            <button type="button" className="secundario" onClick={usarMinhaLocalizacao} disabled={localizando}>
+              {localizando ? "Localizando…" : "📍 Usar minha localização atual (opcional)"}
+            </button>
+          )}
+          {erroLocal && <span className="campo-erro">{erroLocal}</span>}
+        </div>
 
         <label>
           Data da captura *

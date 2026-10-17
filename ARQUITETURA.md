@@ -65,10 +65,13 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
 - **fish_species** — catálogo da Dex. O seed popula; depois disso só **admin**
   cria e edita (RGN-16). `name` é UNIQUE: é a chave do upsert do seed.
   `recommended_baits` é uma string simples separada por vírgula ('massa, milho,
-  minhoca'), de propósito — não vale uma tabela só para isso. `rarity`,
-  faixas plausíveis (`min/max_weight` em kg, `min/max_length` em cm, todas
-  opcionais: faixa nula nunca sinaliza captura) e `curiosities`. Espécie nunca é
-  apagada se tiver captura, só desativada (`is_active`, RGN-17).
+  minhoca'), de propósito — não vale uma tabela só para isso. `rarity` é
+  obrigatória (NOT NULL desde a migration 008); o critério — frequência de
+  estocagem em pesqueiro — está no topo do `seed.js`. Faixas plausíveis
+  (`min/max_weight` em kg, `min/max_length` em cm) são opcionais: faixa nula
+  nunca sinaliza captura; as do seed são largas de propósito (o porquê também
+  está no `seed.js`). Espécie nunca é apagada se tiver captura, só desativada
+  (`is_active`, RGN-17).
 - **fishing_spots** — `google_place_id` fica nulo até integrarmos o Google Places.
 - **catches** — registro central, e **é também o post do feed**: curtida,
   comentário e denúncia apontam direto para a captura, não existe tabela de posts.
@@ -218,6 +221,11 @@ abre uma janela entre a conferência e o INSERT.
 - **E-mail só no console.** `lib/mailer.js` tem um driver que imprime o e-mail no
   terminal da API. Não há credencial SMTP no repositório; para enviar de verdade,
   troca-se só o driver nesse arquivo.
+- **Primeiro admin pelo `.env`.** O `npm run seed` promove a conta de
+  `ADMIN_EMAIL`, se ela já existir (não cria conta). Não há rota para virar admin.
+- **Seed nunca sobrescreve.** O upsert usa `COALESCE(coluna, novo.coluna)`: só
+  preenche o que está NULL. Corrigir um dado no `seed.js` não altera espécie que
+  já está no banco — isso se faz pela rota de admin.
 
 ## Comandos
 

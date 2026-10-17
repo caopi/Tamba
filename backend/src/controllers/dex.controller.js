@@ -3,7 +3,8 @@ import { asyncHandler } from "../lib/asyncHandler.js";
 
 // GET /api/dex  -> { total, captured, species[] } do usuário logado
 export const getDex = asyncHandler(async (req, res) => {
-  res.json(await dexService.getDex(req.userId));
+  // Admin também recebe as espécies desativadas (UC010).
+  res.json(await dexService.getDex(req.userId, { isAdmin: req.user.role === "admin" }));
 });
 
 // GET /api/dex/stats

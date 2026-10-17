@@ -239,7 +239,7 @@ a um caso específico, vem também um `code` (ex.: `OUT_OF_RANGE`,
 | `POST` | `/auth/resend-verification` | público | Gera um link novo. `{ "email" }` |
 | `POST` | `/auth/login` | público | Devolve `{ user, token }`. Conta não confirmada: 403 `EMAIL_NOT_VERIFIED` |
 | `GET` | `/auth/me` | privado | Dados do usuário logado |
-| `PATCH` | `/users/me` | privado | Nome, apelido, avatar, `measurementUnit`, `shareExactLocation` |
+| `PATCH` | `/users/me` | privado | Nome, apelido, avatar (foto enviada pelo próprio usuário), `measurementUnit` (`kg` = métrico, `lb` = imperial), `shareExactLocation`, `notifyLikes`/`notifyComments`/`notifyFollows` |
 
 Com `REQUIRE_EMAIL_VERIFICATION=true` e sem SMTP configurado, o e-mail de confirmação é **impresso no terminal da API**
 — copie o link de lá.
@@ -319,6 +319,12 @@ sinalizada para revisão.
 | `DELETE` | `/admin/species/:id` | Apaga — só se não tiver capturas; senão 409 |
 | `GET` | `/admin/reports` | Denúncias pendentes, agrupadas por captura |
 | `POST` | `/admin/catches/:id/review` | Decide: `{ "hide": true }` mantém oculta, `false` libera |
+| `GET` | `/admin/catches/:id/reports` | Denúncias de uma captura: `{ isHidden, pendingCount, reports[] }` |
+| `PATCH` | `/admin/users/:id/active` | Desativa/reativa uma conta (`{ "isActive": false }`). Não vale para a própria conta |
+| `GET` | `/feed?scope=reported` | Capturas com denúncia pendente, ocultas ou não |
+
+Não há área de admin no app: essas ações aparecem dentro das telas normais
+(post, perfil público, Dex) só para quem tem `role = 'admin'`.
 
 ---
 
@@ -336,6 +342,7 @@ sinalizada para revisão.
 | `/capturas/:id` | Detalhe da captura: todas as fotos, observações, localização (coordenada só se o autor compartilha) e comentários. É o link do "Compartilhar" |
 | `/u/:id` | Perfil público de outro usuário, com seguir e as capturas dele |
 | `/pessoas` | Busca de pessoas por nome ou apelido, com sugestões |
+| `/configuracoes` | Perfil (nome, apelido, foto), unidades, privacidade da localização e notificações. Abre clicando no seu @apelido no topo |
 
 ---
 

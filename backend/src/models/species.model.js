@@ -118,7 +118,11 @@ export async function remove(id) {
  * Só capturas não ocultas entram na conta (RGN-10; regra no dex.service).
  * Espécie desativada some do catálogo, mas continua na Dex de quem já a pescou.
  */
-export async function findDexForUser(userId) {
+export async function findDexForUser(userId, { incluirInativas = false } = {}) {
+  // Para o admin, a Dex lista também as espécies desativadas que ele não
+  // pescou, para poder reativá-las (UC010). Isso não mexe no X/Y: o
+  // dex.service só conta as ativas.
+  const filtro = incluirInativas ? "" : "HAVING e.is_active = TRUE OR COUNT(c.id) > 0";
   const linhas = await query(
     `SELECT
        e.*,
@@ -132,7 +136,7 @@ export async function findDexForUser(userId) {
      LEFT JOIN catches c
        ON c.species_id = e.id AND c.user_id = ? AND c.is_hidden = FALSE
      GROUP BY e.id
-     HAVING e.is_active = TRUE OR COUNT(c.id) > 0
+     ${filtro}
      ORDER BY e.name ASC`,
     [userId, userId],
   );

@@ -128,8 +128,8 @@ export async function unlikeCatch(userId, catchId) {
 
 // --- comments ---
 
-export async function listComments(viewerId, catchId) {
-  await findVisibleCatch(viewerId, catchId);
+export async function listComments(viewerId, catchId, { isAdmin = false } = {}) {
+  await findVisibleCatch(viewerId, catchId, { isAdmin });
   return commentModel.listByCatch(catchId);
 }
 

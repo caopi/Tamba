@@ -66,7 +66,9 @@ const feedSchema = z.object({
   // REQ-26: o feed é "capturas de quem o usuário segue" — por isso é o padrão
   // (e é o que faz o estado vazio do REQ-36 aparecer para quem não segue
   // ninguém). `all` é o modo "Descobrir" do REQ-28, sempre pedido explicitamente.
-  scope: z.enum(["following", "all"]).default("following"),
+  // `reported`: só admin — capturas com denúncia pendente, ocultas ou não,
+  // para a moderação achar o que precisa analisar (UC011).
+  scope: z.enum(["following", "all", "reported"]).default("following"),
   // REQ-35: cronológico (padrão) ou por engajamento (curtidas + comentários).
   order: z.enum(["recent", "engagement"]).default("recent"),
   // Cursor opaco devolvido em `nextCursor`: uma data no cronológico, um
@@ -175,17 +177,19 @@ export function toCatchResponse(captura, viewerId) {
  *
  * RGN-12: captura oculta ou de autor inativo só aparece para o próprio autor.
  */
-export async function findVisibleCatch(viewerId, catchId) {
+export async function findVisibleCatch(viewerId, catchId, { isAdmin = false } = {}) {
   const captura = await catchModel.findById(viewerId, catchId);
+  // O admin enxerga também a oculta e a de conta desativada: é o único jeito
+  // de moderar (UC011) — reexibir uma captura ou ler as denúncias dela.
   const visivel =
     captura &&
-    (captura.userId === viewerId || (!captura.isHidden && captura.authorIsActive));
+    (isAdmin || captura.userId === viewerId || (!captura.isHidden && captura.authorIsActive));
   if (!visivel) throw httpError(404, "Captura não encontrada");
   return captura;
 }
 
-export async function getCatch(viewerId, catchId) {
-  return toCatchResponse(await findVisibleCatch(viewerId, catchId), viewerId);
+export async function getCatch(viewerId, catchId, { isAdmin = false } = {}) {
+  return toCatchResponse(await findVisibleCatch(viewerId, catchId, { isAdmin }), viewerId);
 }
 
 /**
@@ -199,12 +203,15 @@ export async function listMyCatches(userId) {
 }
 
 /** Capturas de outro usuário, no perfil dele: sem ocultas (RGN-12). */
-export async function listUserCatches(viewerId, userId) {
+export async function listUserCatches(viewerId, userId, { isAdmin = false } = {}) {
   if (viewerId === userId) return listMyCatches(userId);
-  if (!(await userModel.findActivePublicById(userId))) {
-    throw httpError(404, "Usuário não encontrado");
-  }
-  const capturas = await catchModel.findAllByUser(userId, { viewerId });
+  // Admin vê o perfil de conta desativada e as capturas ocultas (com
+  // isHidden), para poder moderar; os demais, só conta ativa e visíveis.
+  const existe = isAdmin
+    ? await userModel.findPublicByIdForAdmin(userId)
+    : await userModel.findActivePublicById(userId);
+  if (!existe) throw httpError(404, "Usuário não encontrado");
+  const capturas = await catchModel.findAllByUser(userId, { viewerId, includeHidden: isAdmin });
   return capturas.map((c) => toCatchResponse(c, viewerId));
 }
 
@@ -213,8 +220,11 @@ export async function listUserCatches(viewerId, userId) {
  * está em catchModel.findFeed). Por padrão só de quem o usuário segue;
  * `scope=all` abre para todo mundo (Descobrir).
  */
-export async function getFeed(viewerId, entrada) {
+export async function getFeed(viewerId, entrada, { isAdmin = false } = {}) {
   const { scope, order, cursor, limit } = feedSchema.parse(entrada);
+  if (scope === "reported" && !isAdmin) {
+    throw httpError(403, "Apenas administradores podem fazer isso");
+  }
 
   let before;
   let offset = 0;
@@ -228,6 +238,7 @@ export async function getFeed(viewerId, entrada) {
 
   const capturas = await catchModel.findFeed(viewerId, {
     onlyFollowing: scope === "following",
+    onlyReported: scope === "reported",
     order,
     before,
     offset,

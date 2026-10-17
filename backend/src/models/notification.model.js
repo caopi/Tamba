@@ -17,11 +17,28 @@ function mapNotification(linha) {
   };
 }
 
-/** `type`: 'like' | 'comment' | 'follow'. `catchId` é null para 'follow'. */
+// Tipo da notificação -> coluna de preferência do destinatário (UC007).
+// Whitelist: o nome da coluna nunca vem de fora.
+const PREFERENCIA = {
+  like: "notify_likes",
+  comment: "notify_comments",
+  follow: "notify_follows",
+};
+
+/**
+ * `type`: 'like' | 'comment' | 'follow'. `catchId` é null para 'follow'.
+ *
+ * Só grava se o destinatário quer esse tipo de aviso: o INSERT ... SELECT
+ * não devolve linha quando a preferência está desligada. Como é o único
+ * lugar que cria notificação, a preferência vale para todo o app.
+ */
 export async function create({ userId, type, actorId, catchId = null }, conn) {
+  const coluna = PREFERENCIA[type];
+  if (!coluna) throw new Error(`Tipo de notificação desconhecido: ${type}`);
   await query(
-    "INSERT INTO notifications (id, user_id, type, actor_id, catch_id) VALUES (?, ?, ?, ?, ?)",
-    [randomUUID(), userId, type, actorId, catchId],
+    `INSERT INTO notifications (id, user_id, type, actor_id, catch_id)
+     SELECT ?, id, ?, ?, ? FROM users WHERE id = ? AND ${coluna} = TRUE`,
+    [randomUUID(), type, actorId, catchId, userId],
     conn,
   );
 }

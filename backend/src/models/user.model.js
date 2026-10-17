@@ -16,6 +16,9 @@ function mapUser(linha) {
     role: linha.role,
     measurementUnit: linha.measurement_unit,
     shareExactLocation: Boolean(linha.share_exact_location),
+    notifyLikes: Boolean(linha.notify_likes),
+    notifyComments: Boolean(linha.notify_comments),
+    notifyFollows: Boolean(linha.notify_follows),
     createdAt: linha.created_at,
   };
 }
@@ -33,7 +36,7 @@ function mapPublicUser(linha) {
 }
 
 const COLUNAS_PROPRIAS = `id, name, nickname, email, avatar_url, role, measurement_unit,
-  share_exact_location, created_at`;
+  share_exact_location, notify_likes, notify_comments, notify_follows, created_at`;
 
 /** Busca por e-mail. Traz a linha inteira porque o login compara o hash. */
 export async function findByEmail(email) {
@@ -55,6 +58,33 @@ export async function findAccess(id) {
 export async function findActivePublicById(id) {
   return mapPublicUser(
     await queryOne("SELECT * FROM users WHERE id = ? AND is_active = TRUE", [id]),
+  );
+}
+
+/**
+ * Perfil público mesmo de conta inativa, com `isActive` junto. Só para o
+ * admin, que precisa abrir o perfil de quem desativou para poder reativar.
+ */
+export async function findPublicByIdForAdmin(id) {
+  const linha = await queryOne("SELECT * FROM users WHERE id = ?", [id]);
+  return linha && { ...mapPublicUser(linha), isActive: Boolean(linha.is_active), role: linha.role };
+}
+
+/**
+ * Desativação/reativação pelo admin (UC002, lado admin). Desativar também
+ * apaga o token de confirmação pendente: assim "inativa SEM token" passa a
+ * significar sempre "desativada por admin", e "inativa COM token" sempre
+ * "cadastro esperando confirmar o e-mail" — é essa diferença que o login e o
+ * reenvio do link usam (auth.service). Sem coluna nova de status.
+ */
+export async function setActiveByAdmin(id, ativo) {
+  await query(
+    ativo
+      ? "UPDATE users SET is_active = TRUE WHERE id = ?"
+      : `UPDATE users
+         SET is_active = FALSE, email_verification_token = NULL, email_verification_expires_at = NULL
+         WHERE id = ?`,
+    [id],
   );
 }
 
@@ -190,6 +220,9 @@ const COLUNAS_EDITAVEIS = {
   avatarUrl: "avatar_url",
   measurementUnit: "measurement_unit",
   shareExactLocation: "share_exact_location",
+  notifyLikes: "notify_likes",
+  notifyComments: "notify_comments",
+  notifyFollows: "notify_follows",
 };
 
 export async function update(id, dados) {

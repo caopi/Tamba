@@ -168,8 +168,12 @@ export async function findAllByUser(userId, { viewerId = userId, includeHidden =
  *
  * RGN-12: só autores ativos e capturas não ocultas.
  */
-export async function findFeed(viewerId, { onlyFollowing, order, before, offset, limit }) {
-  const condicoes = ["u.is_active = TRUE", "c.is_hidden = FALSE"];
+export async function findFeed(viewerId, { onlyFollowing, onlyReported, order, before, offset, limit }) {
+  // RGN-12 no feed normal. A fila de moderação (só admin, conferido no
+  // service) mostra também ocultas e de conta inativa: é ali que se decide.
+  const condicoes = onlyReported
+    ? ["EXISTS (SELECT 1 FROM reports r WHERE r.catch_id = c.id AND r.status = 'pendente')"]
+    : ["u.is_active = TRUE", "c.is_hidden = FALSE"];
   const params = [viewerId];
 
   if (onlyFollowing) {

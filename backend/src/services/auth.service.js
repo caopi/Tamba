@@ -140,7 +140,10 @@ export async function resendVerification(entrada) {
   const { email } = emailSchema.parse(entrada);
 
   const linha = await userModel.findByEmail(email);
-  if (!linha || linha.is_active) return;
+  // Só conta com confirmação PENDENTE (inativa e com token). Conta inativa
+  // sem token foi desativada por um admin: dar um link novo a ela seria um
+  // jeito de se reativar sozinha.
+  if (!linha || linha.is_active || !linha.email_verification_token) return;
 
   const { token, expiresAt } = novoTokenDeConfirmacao();
   await userModel.setVerificationToken(linha.id, token, expiresAt);
@@ -157,18 +160,27 @@ export async function login(entrada) {
   if (!senhaOk) throw httpError(401, "E-mail ou senha incorretos");
 
   // RGN-04: só usuário ativo entra. Conferido depois da senha, para que só
-  // quem sabe a senha descubra que a conta existe e está pendente.
+  // quem sabe a senha descubra que a conta existe e como ela está.
+  //
+  // Conta inativa tem dois significados, e o token de confirmação separa os
+  // dois sem coluna nova (ver userModel.setActiveByAdmin):
+  //   - COM token pendente: cadastro esperando confirmar o e-mail;
+  //   - SEM token: desativada por um admin (UC002).
   if (!linha.is_active) {
+    if (!linha.email_verification_token) {
+      throw httpError(403, "Esta conta foi desativada por um administrador", {
+        code: "ACCOUNT_DISABLED",
+      });
+    }
     if (EXIGIR_CONFIRMACAO) {
       throw httpError(403, "Confirme seu e-mail antes de entrar", {
         code: "EMAIL_NOT_VERIFIED",
       });
     }
     // Confirmação desligada, mas a conta foi criada quando ela estava ligada
-    // e nunca confirmou. Sem exigência de confirmação, "ativa" é só "existe":
-    // ativa aqui, senão o requireAuth e o feed (RGN-12) continuariam tratando
-    // a conta como inativa. Seguro porque hoje is_active só significa "e-mail
-    // confirmado" — nada mais desativa usuário.
+    // e nunca confirmou: sem exigência de confirmação, "ativa" é só "existe",
+    // então ativa aqui. Só chega aqui conta com token pendente — conta
+    // desativada por admin parou no `if` de cima e continua fora.
     await userModel.activate(linha.id);
   }
 

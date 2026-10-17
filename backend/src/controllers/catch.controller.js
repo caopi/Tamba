@@ -8,14 +8,15 @@ export const listMyCatches = asyncHandler(async (req, res) => {
   res.json(await catchService.listMyCatches(req.userId));
 });
 
-// GET /api/feed?scope=following|all&before=<createdAt>&limit=20
+// GET /api/feed?scope=following|all|reported&order=recent|engagement&cursor=&limit=
+// (reported: só admin)
 export const getFeed = asyncHandler(async (req, res) => {
-  res.json(await catchService.getFeed(req.userId, req.query));
+  res.json(await catchService.getFeed(req.userId, req.query, { isAdmin: req.user.role === "admin" }));
 });
 
 // GET /api/catches/:id
 export const getCatch = asyncHandler(async (req, res) => {
-  res.json(await catchService.getCatch(req.userId, req.params.id));
+  res.json(await catchService.getCatch(req.userId, req.params.id, { isAdmin: req.user.role === "admin" }));
 });
 
 // POST /api/catches
@@ -46,7 +47,7 @@ export const unlike = asyncHandler(async (req, res) => {
 
 // GET /api/catches/:id/comments
 export const listComments = asyncHandler(async (req, res) => {
-  res.json(await socialService.listComments(req.userId, req.params.id));
+  res.json(await socialService.listComments(req.userId, req.params.id, { isAdmin: req.user.role === "admin" }));
 });
 
 // POST /api/catches/:id/comments  { body }

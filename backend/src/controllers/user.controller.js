@@ -20,12 +20,12 @@ export const updateMe = asyncHandler(async (req, res) => {
 
 // GET /api/users/:id  -> perfil público, com seguidores e estatísticas
 export const getProfile = asyncHandler(async (req, res) => {
-  res.json(await userService.getPublicProfile(req.userId, req.params.id));
+  res.json(await userService.getPublicProfile(req.user, req.params.id));
 });
 
 // GET /api/users/:id/catches
 export const listCatches = asyncHandler(async (req, res) => {
-  res.json(await catchService.listUserCatches(req.userId, req.params.id));
+  res.json(await catchService.listUserCatches(req.userId, req.params.id, { isAdmin: req.user.role === "admin" }));
 });
 
 // GET /api/users/:id/followers

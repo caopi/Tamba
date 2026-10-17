@@ -23,8 +23,8 @@ import { httpError } from "../middlewares/errorHandler.js";
  * uma espécie mudaria em silêncio o percentual de todo mundo, ou deixaria
  * alguém com mais de 100%.
  */
-export async function getDex(userId) {
-  const especies = await speciesModel.findDexForUser(userId);
+export async function getDex(userId, { isAdmin = false } = {}) {
+  const especies = await speciesModel.findDexForUser(userId, { incluirInativas: isAdmin });
   const ativas = especies.filter((e) => e.isActive);
   return {
     total: ativas.length,

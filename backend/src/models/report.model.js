@@ -41,6 +41,26 @@ export async function listPending() {
   }));
 }
 
+/** Todas as denúncias de uma captura (pendentes primeiro), para o painel do admin. */
+export async function listByCatch(catchId) {
+  const linhas = await query(
+    `SELECT r.id, r.reason, r.status, r.created_at,
+            u.id AS denunciante_id, u.nickname AS denunciante_nickname
+     FROM reports r
+     INNER JOIN users u ON u.id = r.reporter_id
+     WHERE r.catch_id = ?
+     ORDER BY r.status = 'pendente' DESC, r.created_at ASC`,
+    [catchId],
+  );
+  return linhas.map((linha) => ({
+    id: linha.id,
+    reason: linha.reason,
+    status: linha.status,
+    createdAt: linha.created_at,
+    reporter: { id: linha.denunciante_id, nickname: linha.denunciante_nickname },
+  }));
+}
+
 export async function markReviewed(catchId, conn) {
   await query(
     "UPDATE reports SET status = 'analisado' WHERE catch_id = ? AND status = 'pendente'",

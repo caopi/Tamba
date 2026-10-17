@@ -1,8 +1,11 @@
-// Rotas de admin: gestão do catálogo (RGN-16/17) e moderação (RGN-14).
+// Rotas de admin: gestão do catálogo (UC010, RGN-16/17), moderação
+// (UC011, RGN-14) e desativação de conta (UC002, lado admin). Não existe área
+// de admin no frontend: estas ações aparecem dentro das telas normais.
 // Todas passam por requireAuth + requireAdmin (routes/admin.routes.js).
 
 import * as speciesService from "../services/species.service.js";
 import * as reportService from "../services/report.service.js";
+import * as userService from "../services/user.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 
 // GET /api/admin/species  -> inclui as desativadas
@@ -34,6 +37,16 @@ export const deleteSpecies = asyncHandler(async (req, res) => {
 // GET /api/admin/reports  -> fila de denúncias pendentes, agrupada por captura
 export const listReports = asyncHandler(async (req, res) => {
   res.json(await reportService.listPendingReports(req.user));
+});
+
+// GET /api/admin/catches/:id/reports  -> { isHidden, pendingCount, reports[] }
+export const catchReports = asyncHandler(async (req, res) => {
+  res.json(await reportService.listCatchReports(req.user, req.params.id));
+});
+
+// PATCH /api/admin/users/:id/active  { isActive }  (UC002, lado admin)
+export const setUserActive = asyncHandler(async (req, res) => {
+  res.json(await userService.setUserActive(req.user, req.params.id, req.body));
 });
 
 // POST /api/admin/catches/:id/review  { hide }

@@ -7,6 +7,8 @@ import {
   deleteSpecies,
   listReports,
   reviewCatch,
+  catchReports,
+  setUserActive,
 } from "../controllers/admin.controller.js";
 import { requireAuth, requireAdmin } from "../middlewares/auth.js";
 
@@ -22,4 +24,6 @@ adminRoutes.patch("/species/:id/active", setSpeciesActive);
 adminRoutes.delete("/species/:id", deleteSpecies);
 
 adminRoutes.get("/reports", listReports);
+adminRoutes.get("/catches/:id/reports", catchReports);
 adminRoutes.post("/catches/:id/review", reviewCatch);
+adminRoutes.patch("/users/:id/active", setUserActive);

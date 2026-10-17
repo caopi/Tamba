@@ -87,6 +87,23 @@ export async function listPendingReports(actor) {
 }
 
 /**
+ * Painel de moderação de uma captura (UC011): todas as denúncias, quantas
+ * estão pendentes e se a captura está oculta agora.
+ */
+export async function listCatchReports(actor, catchId) {
+  assertAdmin(actor);
+  const captura = await catchModel.findById(actor.id, catchId);
+  if (!captura) throw httpError(404, "Captura não encontrada");
+  const reports = await reportModel.listByCatch(catchId);
+  return {
+    catchId,
+    isHidden: captura.isHidden,
+    pendingCount: reports.filter((r) => r.status === "pendente").length,
+    reports,
+  };
+}
+
+/**
  * Decisão do admin sobre uma captura: ocultar (`hide: true`) ou liberar
  * (`hide: false`). Marca as denúncias pendentes como analisadas. Também
  * serve para ocultar uma captura que nem foi denunciada.

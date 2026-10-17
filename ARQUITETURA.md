@@ -59,10 +59,15 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
 
 - **users** — `password_hash` e o token de confirmação nunca saem da API (o
   `mapUser`/`mapPublicUser` do model escolhe os campos). `nickname` é UNIQUE e,
-  pela collation, não diferencia maiúscula. `is_active` nasce FALSE e só vira TRUE
-  ao confirmar o e-mail — as contas criadas antes da migration 003 foram ativadas
-  por ela (ver o comentário lá). `role` é `user` ou `admin`. `measurement_unit` é
-  só preferência de exibição; `share_exact_location` controla o RGN-13.
+  pela collation, não diferencia maiúscula. `is_active` FALSE tem dois
+  significados, separados pelo token de confirmação: **com** token pendente é
+  cadastro esperando confirmar o e-mail; **sem** token é conta desativada por um
+  admin (desativar apaga o token — ver Decisões). As contas criadas antes da
+  migration 003 foram ativadas por ela (ver o comentário lá). `role` é `user` ou
+  `admin`. `measurement_unit` é só preferência de exibição (`kg` = métrico,
+  `lb` = imperial); `share_exact_location` controla o RGN-13; `notify_likes`,
+  `notify_comments` e `notify_follows` são as preferências de notificação
+  (migration 012).
 - **fish_species** — catálogo da Dex. O seed popula; depois disso só **admin**
   cria e edita (RGN-16). `name` é UNIQUE: é a chave do upsert do seed.
   `recommended_baits` é uma string simples separada por vírgula ('massa, milho,
@@ -117,7 +122,7 @@ Para achar: `grep -rn "RGN-08" backend/`.
 | RGN-01 | `auth.service` — `signupSchema`, `signup`, `verifyEmail`, `EXIGIR_CONFIRMACAO` | E-mail válido e único; conta só ativa após confirmar o e-mail (link de 24h, reenviável). **A metade da confirmação é ligada por configuração**: vale com `REQUIRE_EMAIL_VERIFICATION=true` no `.env` (desligada por padrão no desenvolvimento). E-mail válido e único vale sempre |
 | RGN-02 | `auth.service` — `signupSchema`, `signup`; `user.service.updateMe` | Apelido único (sem diferenciar maiúscula) |
 | RGN-03 | `auth.service` — `signupSchema` | Senha com no mínimo 8 caracteres |
-| RGN-04 | `auth.service.login`; `requireAuth` | Só usuário ativo entra (403 `EMAIL_NOT_VERIFIED`). Com a confirmação desligada, toda conta é ativa |
+| RGN-04 | `auth.service.login`; `requireAuth` | Só usuário ativo entra: conta pendente leva 403 `EMAIL_NOT_VERIFIED` (ou se ativa, com a confirmação desligada); conta desativada por admin leva 403 `ACCOUNT_DISABLED` sempre |
 | RGN-05 | `auth.service.login` | Credencial inválida barra a entrada (401) |
 | RGN-06 | `user.service.updateMe` | Só o próprio usuário autenticado edita seus dados — o id sai do token |
 | RGN-07 | `catch.service` — `createSchema`, `createCatch`, `updateCatch` | Espécie, ao menos uma foto, data não futura |
@@ -131,6 +136,22 @@ Para achar: `grep -rn "RGN-08" backend/`.
 | RGN-15 | PK de `follows`/`likes`; trigger da migration 007; `social.service` | Não seguir a si mesmo; uma curtida por usuário por captura |
 | RGN-16 | `species.service` — `createSpecies`, `updateSpecies` | Só admin cria/edita espécie |
 | RGN-17 | `species.service.deleteSpecies`; FK `fk_catches_species` | Espécie com captura só é desativada, nunca apagada |
+
+## Casos de uso
+
+Onde cada caso de uso do documento está no app. Os de admin não têm área
+própria: aparecem dentro das telas normais, só para quem tem `role = 'admin'`,
+e a API recusa (403) para os demais de qualquer jeito.
+
+| Caso de uso | Tela | API |
+| --- | --- | --- |
+| UC002 (lado admin) — desativar/reativar conta | Perfil público (`/u/:id`): faixa "🛡 Conta ativa / desativada" | `PATCH /admin/users/:id/active` → `user.service.setUserActive` |
+| UC005 — feed | `/feed`: Seguindo, Descobrir, ordem, rolagem infinita | `GET /feed` → `catch.service.getFeed` |
+| UC006 — interagir com captura | Post (`CatchCard`) e detalhe (`/capturas/:id`) | `/catches/:id/like`, `/comments`, `/reports` → `social.service`, `report.service` |
+| UC007 — perfil e configurações | `/configuracoes` | `PATCH /users/me` → `user.service.updateMe` |
+| UC008 — seguir | Post, perfil público, `/pessoas` | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
+| UC010 — catálogo de espécies | Dex (`/`): "+ Nova espécie"; ficha da espécie: "Editar espécie", "Desativar/Reativar" | `/admin/species` → `species.service` |
+| UC011 — moderação | Post: "🛡 Moderar" (denúncias, ocultar/reexibir); feed: aba "🛡 Denunciadas" | `GET /admin/catches/:id/reports`, `POST /admin/catches/:id/review`, `GET /feed?scope=reported` → `report.service` |
 
 ## Convenções
 
@@ -231,8 +252,29 @@ abre uma janela entre a conferência e o INSERT.
   conta pendente — e ativa a conta, porque hoje `is_active` só significa
   "e-mail confirmado". Ligada, vale o fluxo completo do RGN-01. Rota de
   confirmação, reenvio e colunas de token existem e funcionam nos dois modos.
-  Se um dia `is_active` passar a servir também para banir usuário, essa
-  ativação no login precisa ser revista.
+  Essa ativação no login só vale para conta com token pendente: conta
+  desativada por admin não tem token e continua fora.
+- **Desativação em vez de banimento — simplificação deliberada.** O admin
+  desativa uma conta (`is_active = FALSE`) e pode reativá-la; não há motivo,
+  prazo, histórico nem status de moderação. Sem coluna nova: desativar apaga o
+  token de confirmação, e "inativa sem token" passa a significar "desativada
+  por admin". O efeito vem do que já existia: some do feed e da busca (RGN-12),
+  toda request é recusada no `requireAuth`, e nem o login (com a confirmação
+  desligada) nem o reenvio do link a reativam. O admin não desativa a si mesmo.
+- **Sem área de admin.** As ações de admin (UC002, UC010, UC011) aparecem como
+  controles dentro das telas normais, só para admin — ver "Casos de uso". Para
+  achar o que foi denunciado, inclusive o que já sumiu do feed por denúncias, o
+  admin tem uma aba "🛡 Denunciadas" no próprio feed. O admin também enxerga
+  captura oculta e perfil de conta desativada (para poder reverter), e a Dex
+  dele lista as espécies desativadas.
+- **Unidades.** A API e o banco falam sempre kg e cm; a preferência do usuário
+  (`kg` = métrico, `lb` = libras e polegadas) só muda o que a tela mostra e o
+  que se digita — `src/units.ts` converte nos dois sentidos, e nenhuma tela tem
+  "kg" fixo. Exceção: o formulário de espécie do admin edita o catálogo em
+  kg/cm, para não acumular erro de arredondamento.
+- **Preferências de notificação no ponto de criação.** `notification.model.create`
+  é o único lugar que grava notificação, e só grava se o destinatário quer
+  aquele tipo (`INSERT ... SELECT` com a coluna da preferência).
 - **Contas de desenvolvimento no seed.** Com `SEED_DEV_USERS=true` (e nunca
   com `NODE_ENV=production`), o seed cria `admin@tamba.local` e três usuários
   comuns, senha `admin123`. São descartáveis e só existem para testar local.

@@ -1,13 +1,14 @@
 import { api } from "./client";
-import type { AuthResponse, SignupInput, User } from "../types";
+import type { AuthResponse, SignupInput, SignupResponse, User } from "../types";
 
 export const authApi = {
-  /** Cria a conta inativa. Não devolve token: o login só depois de confirmar. */
+  /**
+   * Cria a conta. Com a confirmação de e-mail ligada no backend
+   * (REQUIRE_EMAIL_VERIFICATION), vem `token: null` e `requiresVerification:
+   * true`; desligada, a conta já vem ativa e com token.
+   */
   signup: (data: SignupInput) =>
-    api<{ user: User; message: string }>("/auth/signup", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    api<SignupResponse>("/auth/signup", { method: "POST", body: JSON.stringify(data) }),
 
   login: (data: { email: string; password: string }) =>
     api<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),

@@ -2,12 +2,16 @@ import * as authService from "../services/auth.service.js";
 import * as userService from "../services/user.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 
-// POST /api/auth/signup  -> cria a conta inativa; o login só depois de confirmar
+// POST /api/auth/signup  -> { user, token, requiresVerification, message }
+// Com REQUIRE_EMAIL_VERIFICATION=true a conta nasce inativa e `token` vem
+// null (o login só depois de confirmar); senão já vem logada.
 export const signup = asyncHandler(async (req, res) => {
-  const user = await authService.signup(req.body);
+  const resultado = await authService.signup(req.body);
   res.status(201).json({
-    user,
-    message: "Conta criada. Enviamos um link de confirmação para o seu e-mail.",
+    ...resultado,
+    message: resultado.requiresVerification
+      ? "Conta criada. Enviamos um link de confirmação para o seu e-mail."
+      : "Conta criada.",
   });
 });
 

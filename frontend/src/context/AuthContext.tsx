@@ -1,15 +1,17 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { authApi } from "../api/auth";
 import { tokenStorage } from "../api/client";
-import type { User } from "../types";
+import type { SignupInput, User } from "../types";
 
-// O cadastro não está aqui de propósito: ele não loga ninguém (a conta nasce
-// inativa até confirmar o e-mail), então não mexe no estado de autenticação.
-// A tela de cadastro chama `authApi.signup` direto.
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  /**
+   * Cadastra. Se o backend não exige confirmação de e-mail, já deixa o
+   * usuário logado. Devolve se a confirmação é exigida (aí ninguém é logado).
+   */
+  signup: (data: SignupInput) => Promise<{ requiresVerification: boolean }>;
   logout: () => void;
 }
 
@@ -38,13 +40,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   }
 
+  async function signup(data: SignupInput) {
+    const { user, token, requiresVerification } = await authApi.signup(data);
+    if (token) {
+      tokenStorage.set(token);
+      setUser(user);
+    }
+    return { requiresVerification };
+  }
+
   function logout() {
     tokenStorage.clear();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

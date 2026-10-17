@@ -1,5 +1,6 @@
-// Popula o catálogo de espécies, alguns pesqueiros de exemplo e promove o
-// primeiro admin. Rode com: npm run seed
+// Popula o catálogo de espécies, alguns pesqueiros de exemplo, promove o
+// primeiro admin e (só em desenvolvimento, com SEED_DEV_USERS=true) cria
+// contas de teste. Rode com: npm run seed
 //
 // É idempotente: usa INSERT ... ON DUPLICATE KEY UPDATE com `name` como chave
 // (UNIQUE em fish_species.name), então rodar de novo não duplica nada.
@@ -53,6 +54,7 @@
 // fonte sólida: estimativa alargada de propósito, a conferir.
 
 import { randomUUID } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { pool, query, queryOne } from "../src/lib/db.js";
 
 // image_url fica NULL de propósito: as fotos entram depois.
@@ -516,6 +518,66 @@ if (total === 0) {
 }
 
 console.log(`Seed concluído: ${especies.length} espécies e ${pesqueiros.length} pesqueiros.`);
+
+// ---------------------------------------------------------------------------
+// Contas de DESENVOLVIMENTO: credenciais descartáveis, só para testar local.
+//
+// Dupla trava: só roda com SEED_DEV_USERS=true no .env (opt-in explícito) e
+// nunca com NODE_ENV=production. O NODE_ENV sozinho não bastaria — nada no
+// projeto define essa variável, então as contas sairiam em qualquer máquina.
+//
+// A cada execução o seed garante senha, conta ativa e papel: as credenciais
+// do README sempre funcionam, mesmo que alguém tenha mexido nelas.
+// Independente do ADMIN_EMAIL, que continua sendo como se promove conta real.
+const SENHA_DEV = "admin123"; // 8 caracteres: atende o RGN-03
+const contasDev = [
+  { email: "admin@tamba.local", nickname: "admin", name: "Admin (dev)", role: "admin" },
+  { email: "ana@tamba.local", nickname: "ana", name: "Ana (dev)", role: "user" },
+  { email: "bruno@tamba.local", nickname: "bruno", name: "Bruno (dev)", role: "user" },
+  { email: "carla@tamba.local", nickname: "carla", name: "Carla (dev)", role: "user" },
+];
+
+if (process.env.SEED_DEV_USERS === "true") {
+  if (process.env.NODE_ENV === "production") {
+    console.warn("\nAVISO: SEED_DEV_USERS ignorado — NODE_ENV=production. Contas de dev não criadas.");
+  } else {
+    const hash = await bcrypt.hash(SENHA_DEV, 10);
+    const criadas = [];
+
+    for (const conta of contasDev) {
+      try {
+        await query(
+          `INSERT INTO users (id, email, password_hash, name, nickname, is_active, role)
+           VALUES (?, ?, ?, ?, ?, TRUE, ?) AS novo
+           ON DUPLICATE KEY UPDATE
+             password_hash = novo.password_hash,
+             is_active     = TRUE,
+             role          = novo.role,
+             email_verification_token      = NULL,
+             email_verification_expires_at = NULL`,
+          [randomUUID(), conta.email, hash, conta.name, conta.nickname, conta.role],
+        );
+        criadas.push(conta);
+      } catch (err) {
+        // O UNIQUE que bateu foi o do apelido: uma conta de verdade já usa
+        // esse nickname. Não mexemos nela.
+        if (err.code === "ER_DUP_ENTRY") {
+          console.warn(`AVISO: apelido "${conta.nickname}" já é de outra conta; ${conta.email} não foi criada.`);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    const linha = "!".repeat(64);
+    console.warn(
+      `\n${linha}\n  CONTAS DE DESENVOLVIMENTO (SEED_DEV_USERS=true) — NÃO são contas reais.\n` +
+        `  Senha de todas: ${SENHA_DEV}\n` +
+        criadas.map((c) => `    ${c.email.padEnd(20)} @${c.nickname.padEnd(7)} ${c.role}`).join("\n") +
+        `\n  Nunca use em produção. Para desligar: SEED_DEV_USERS=false no .env.\n${linha}`,
+    );
+  }
+}
 
 // Primeiro admin: promove a conta de ADMIN_EMAIL, se ela já existir. O seed
 // NÃO cria a conta — cadastre-se pelo app primeiro (e confirme o e-mail),

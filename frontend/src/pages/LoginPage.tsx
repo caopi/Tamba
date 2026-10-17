@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi } from "../api/auth";
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { ResendVerification } from "../components/ResendVerification";
@@ -18,7 +17,7 @@ export function LoginPage() {
   const [naoConfirmada, setNaoConfirmada] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(event: FormEvent) {
@@ -32,9 +31,14 @@ export function LoginPage() {
         await login(email, password);
         navigate("/");
       } else {
-        // O cadastro não loga: a conta só ativa depois de confirmar o e-mail.
-        await authApi.signup({ name, nickname, email, password });
-        navigate("/confirme-email", { state: { email: email.trim() } });
+        // Com a confirmação de e-mail ligada no backend, o cadastro não loga
+        // e vai para "confirme seu e-mail"; desligada, já entra direto.
+        const { requiresVerification } = await signup({ name, nickname, email, password });
+        if (requiresVerification) {
+          navigate("/confirme-email", { state: { email: email.trim() } });
+        } else {
+          navigate("/");
+        }
       }
     } catch (e) {
       if (e instanceof ApiError && e.code === "EMAIL_NOT_VERIFIED") {

@@ -57,6 +57,8 @@ Abra o `backend/.env` e preencha:
 | `EMAIL_VERIFICATION_URL` | Endereço do link que vai no e-mail (a rota `/auth/verify-email` da API). |
 | `REPORT_HIDE_THRESHOLD` | Quantas denúncias de usuários distintos ocultam uma captura. Padrão `3`. |
 | `ADMIN_EMAIL` | Conta que o `npm run seed` promove a admin (ver "Primeiro admin" abaixo). |
+| `REQUIRE_EMAIL_VERIFICATION` | `true` liga a confirmação de e-mail no cadastro (RGN-01). Padrão `false`: o cadastro já entra logado. |
+| `SEED_DEV_USERS` | `true` faz o `npm run seed` criar as contas de desenvolvimento (ver abaixo). Ignorado com `NODE_ENV=production`. |
 
 Para gerar um `JWT_SECRET` decente:
 
@@ -75,15 +77,45 @@ Os dois comandos podem ser rodados quantas vezes você quiser: o `migrate` pula
 o que já foi aplicado, e o `seed` só preenche o que está vazio — nunca duplica
 espécie nem desfaz uma edição feita pelo admin no app.
 
+#### Contas de desenvolvimento
+
+Com `SEED_DEV_USERS=true` (já vem assim no `.env.example`), o `npm run seed`
+cria estas contas, já ativas:
+
+| E-mail | Apelido | Papel |
+| --- | --- | --- |
+| `admin@tamba.local` | `admin` | admin |
+| `ana@tamba.local` | `ana` | usuário |
+| `bruno@tamba.local` | `bruno` | usuário |
+| `carla@tamba.local` | `carla` | usuário |
+
+Senha de todas: **`admin123`**.
+
+> ⚠️ **São credenciais descartáveis, só para testar na sua máquina.** A senha
+> está escrita aqui no README de propósito — não use essas contas para nada
+> real. O seed se recusa a criá-las com `NODE_ENV=production`, e reseta senha,
+> papel e ativação delas a cada execução. Para não criá-las, use
+> `SEED_DEV_USERS=false`.
+
+#### Confirmação de e-mail
+
+Por padrão (`REQUIRE_EMAIL_VERIFICATION=false`) o cadastro já entra logado, sem
+confirmação — é o modo de desenvolvimento. Para testar o fluxo completo do
+RGN-01, coloque `REQUIRE_EMAIL_VERIFICATION=true` no `backend/.env` e reinicie
+a API: a conta nasce inativa, o link de confirmação aparece no terminal da API
+e o login só funciona depois de abrir o link.
+
 #### Primeiro admin
 
-Não existe rota para virar admin: quem promove é o seed, a partir do
-`ADMIN_EMAIL` do `.env`. **A ordem importa**, porque o seed só promove uma conta
-que já existe — ele não cria conta:
+Para desenvolver, a conta `admin@tamba.local` acima já basta. Para promover uma
+**conta de verdade**, use o `ADMIN_EMAIL` do `.env` — não existe rota para virar
+admin. **A ordem importa**, porque o seed só promove uma conta que já existe —
+ele não cria conta:
 
 1. Suba o backend e o frontend e **cadastre-se pelo app** com o e-mail que será
    admin.
-2. Confirme o e-mail (o link aparece no terminal da API).
+2. Se a confirmação estiver ligada, confirme o e-mail (o link aparece no
+   terminal da API).
 3. Coloque esse e-mail em `ADMIN_EMAIL` no `backend/.env`.
 4. Rode `npm run seed` de novo. Deve aparecer `... promovido a admin.`
 
@@ -116,7 +148,8 @@ cd backend && npm run dev      # API em http://localhost:3333/api
 cd frontend && npm run dev     # app em http://localhost:5173
 ```
 
-Abra <http://localhost:5173>, crie uma conta e registre a primeira captura.
+Abra <http://localhost:5173> e entre com `admin@tamba.local` / `admin123` (ou
+crie uma conta) e registre a primeira captura.
 
 Para conferir se a API subiu: <http://localhost:3333/api/health>
 
@@ -200,14 +233,14 @@ a um caso específico, vem também um `code` (ex.: `OUT_OF_RANGE`,
 | Método | Rota | Acesso | Descrição |
 | --- | --- | --- | --- |
 | `GET` | `/health` | público | Checagem rápida |
-| `POST` | `/auth/signup` | público | Cria a conta **inativa** e manda o link de confirmação (não devolve token) |
+| `POST` | `/auth/signup` | público | Cria a conta. Padrão: já ativa, devolve `{ user, token }`. Com `REQUIRE_EMAIL_VERIFICATION=true`: inativa, manda o link e `token` vem `null` |
 | `GET` | `/auth/verify-email?token=` | público | Link do e-mail. Redireciona para `FRONTEND_URL/verificacao?status=ok\|expired\|invalid` |
 | `POST` | `/auth/resend-verification` | público | Gera um link novo. `{ "email" }` |
 | `POST` | `/auth/login` | público | Devolve `{ user, token }`. Conta não confirmada: 403 `EMAIL_NOT_VERIFIED` |
 | `GET` | `/auth/me` | privado | Dados do usuário logado |
 | `PATCH` | `/users/me` | privado | Nome, apelido, avatar, `measurementUnit`, `shareExactLocation` |
 
-Sem SMTP configurado, o e-mail de confirmação é **impresso no terminal da API**
+Com `REQUIRE_EMAIL_VERIFICATION=true` e sem SMTP configurado, o e-mail de confirmação é **impresso no terminal da API**
 — copie o link de lá.
 
 ### Capturas e feed

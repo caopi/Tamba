@@ -11,6 +11,16 @@ import { httpError } from "../middlewares/errorHandler.js";
 
 const VALIDADE_LINK_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * RGN-01, metade "conta só ativa após confirmar o e-mail": ligada por
+ * configuração. Com REQUIRE_EMAIL_VERIFICATION=true vale o fluxo completo
+ * (conta inativa, link no e-mail, login barrado até confirmar). Desligada — o
+ * padrão, para não travar o desenvolvimento —, o cadastro já nasce ativo e
+ * loga direto. A rota de confirmação, o reenvio e as colunas de token
+ * continuam funcionando nos dois casos.
+ */
+const EXIGIR_CONFIRMACAO = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+
 // Para onde o link do e-mail aponta. O token vai na query string.
 const URL_CONFIRMACAO =
   process.env.EMAIL_VERIFICATION_URL ?? "http://localhost:3333/api/auth/verify-email";
@@ -54,8 +64,12 @@ function linkDeConfirmacao(token) {
 }
 
 /**
- * RGN-01: cria a conta INATIVA e manda o link de confirmação. Não devolve
- * token de acesso: só dá para entrar depois de confirmar o e-mail (RGN-04).
+ * RGN-01: com a confirmação ligada, cria a conta INATIVA, manda o link e não
+ * devolve token — só dá para entrar depois de confirmar (RGN-04). Com a
+ * confirmação desligada, cria a conta ativa e já devolve o token de acesso.
+ *
+ * Devolve `{ user, token, requiresVerification }`; `token` é null quando a
+ * confirmação é exigida.
  */
 export async function signup(entrada) {
   const dados = signupSchema.parse(entrada);
@@ -77,8 +91,9 @@ export async function signup(entrada) {
       nickname: dados.nickname,
       email: dados.email,
       passwordHash: await bcrypt.hash(dados.password, 10),
-      verificationToken: token,
-      verificationExpiresAt: expiresAt,
+      isActive: !EXIGIR_CONFIRMACAO,
+      verificationToken: EXIGIR_CONFIRMACAO ? token : null,
+      verificationExpiresAt: EXIGIR_CONFIRMACAO ? expiresAt : null,
     });
   } catch (err) {
     if (isDuplicateKey(err, "uk_users_email")) {
@@ -90,8 +105,12 @@ export async function signup(entrada) {
     throw err;
   }
 
+  if (!EXIGIR_CONFIRMACAO) {
+    return { user, token: signToken(user.id), requiresVerification: false };
+  }
+
   await sendVerificationEmail(user.email, linkDeConfirmacao(token));
-  return user;
+  return { user, token: null, requiresVerification: true };
 }
 
 /**
@@ -140,7 +159,17 @@ export async function login(entrada) {
   // RGN-04: só usuário ativo entra. Conferido depois da senha, para que só
   // quem sabe a senha descubra que a conta existe e está pendente.
   if (!linha.is_active) {
-    throw httpError(403, "Confirme seu e-mail antes de entrar", { code: "EMAIL_NOT_VERIFIED" });
+    if (EXIGIR_CONFIRMACAO) {
+      throw httpError(403, "Confirme seu e-mail antes de entrar", {
+        code: "EMAIL_NOT_VERIFIED",
+      });
+    }
+    // Confirmação desligada, mas a conta foi criada quando ela estava ligada
+    // e nunca confirmou. Sem exigência de confirmação, "ativa" é só "existe":
+    // ativa aqui, senão o requireAuth e o feed (RGN-12) continuariam tratando
+    // a conta como inativa. Seguro porque hoje is_active só significa "e-mail
+    // confirmado" — nada mais desativa usuário.
+    await userModel.activate(linha.id);
   }
 
   return { user: userModel.mapUser(linha), token: signToken(linha.id) };

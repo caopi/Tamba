@@ -112,10 +112,10 @@ Para achar: `grep -rn "RGN-08" backend/`.
 
 | Regra | Onde | O quê |
 | --- | --- | --- |
-| RGN-01 | `auth.service` — `signupSchema`, `signup`, `verifyEmail` | E-mail válido e único; conta só ativa após confirmar o e-mail (link de 24h, reenviável) |
+| RGN-01 | `auth.service` — `signupSchema`, `signup`, `verifyEmail`, `EXIGIR_CONFIRMACAO` | E-mail válido e único; conta só ativa após confirmar o e-mail (link de 24h, reenviável). **A metade da confirmação é ligada por configuração**: vale com `REQUIRE_EMAIL_VERIFICATION=true` no `.env` (desligada por padrão no desenvolvimento). E-mail válido e único vale sempre |
 | RGN-02 | `auth.service` — `signupSchema`, `signup`; `user.service.updateMe` | Apelido único (sem diferenciar maiúscula) |
 | RGN-03 | `auth.service` — `signupSchema` | Senha com no mínimo 8 caracteres |
-| RGN-04 | `auth.service.login` | Só usuário ativo entra (403 `EMAIL_NOT_VERIFIED`) |
+| RGN-04 | `auth.service.login`; `requireAuth` | Só usuário ativo entra (403 `EMAIL_NOT_VERIFIED`). Com a confirmação desligada, toda conta é ativa |
 | RGN-05 | `auth.service.login` | Credencial inválida barra a entrada (401) |
 | RGN-06 | `user.service.updateMe` | Só o próprio usuário autenticado edita seus dados — o id sai do token |
 | RGN-07 | `catch.service` — `createSchema`, `createCatch`, `updateCatch` | Espécie, ao menos uma foto, data não futura |
@@ -224,6 +224,16 @@ abre uma janela entre a conferência e o INSERT.
 - **E-mail só no console.** `lib/mailer.js` tem um driver que imprime o e-mail no
   terminal da API. Não há credencial SMTP no repositório; para enviar de verdade,
   troca-se só o driver nesse arquivo.
+- **Confirmação de e-mail atrás de flag.** `REQUIRE_EMAIL_VERIFICATION`
+  (padrão `false`): desligada, o cadastro já entra logado e o login não barra
+  conta pendente — e ativa a conta, porque hoje `is_active` só significa
+  "e-mail confirmado". Ligada, vale o fluxo completo do RGN-01. Rota de
+  confirmação, reenvio e colunas de token existem e funcionam nos dois modos.
+  Se um dia `is_active` passar a servir também para banir usuário, essa
+  ativação no login precisa ser revista.
+- **Contas de desenvolvimento no seed.** Com `SEED_DEV_USERS=true` (e nunca
+  com `NODE_ENV=production`), o seed cria `admin@tamba.local` e três usuários
+  comuns, senha `admin123`. São descartáveis e só existem para testar local.
 - **Primeiro admin pelo `.env`.** O `npm run seed` promove a conta de
   `ADMIN_EMAIL`, se ela já existir (não cria conta). Não há rota para virar admin.
 - **Seed nunca sobrescreve.** O upsert usa `COALESCE(coluna, novo.coluna)`: só

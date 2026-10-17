@@ -72,21 +72,25 @@ export async function create({
   nickname,
   email,
   passwordHash,
+  isActive = false,
+  role = "user",
   verificationToken,
   verificationExpiresAt,
 }) {
   const id = randomUUID();
   await query(
     `INSERT INTO users
-       (id, email, password_hash, name, nickname,
+       (id, email, password_hash, name, nickname, is_active, role,
         email_verification_token, email_verification_expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       email,
       passwordHash,
       name,
       nickname ?? null,
+      isActive,
+      role,
       verificationToken ?? null,
       verificationExpiresAt ?? null,
     ],

@@ -138,6 +138,14 @@ export interface AuthResponse {
   token: string;
 }
 
+/** POST /auth/signup. `token` é null quando o backend exige confirmação de e-mail. */
+export interface SignupResponse {
+  user: User;
+  token: string | null;
+  requiresVerification: boolean;
+  message: string;
+}
+
 export interface SignupInput {
   name: string;
   nickname: string;

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { usersApi } from "../api/social";
+import { adminApi } from "../api/admin";
 import { useAuth } from "../context/AuthContext";
 import { Avatar } from "../components/Avatar";
 import { CatchCard } from "../components/CatchCard";
 import { FollowButton } from "../components/FollowButton";
 import { formatarData } from "../format";
+import { useUnidades } from "../units";
 import type { Catch, PublicProfile } from "../types";
 import "./PublicProfilePage.css";
 
@@ -17,6 +19,7 @@ import "./PublicProfilePage.css";
 export function PublicProfilePage() {
   const { id = "" } = useParams();
   const { user } = useAuth();
+  const unidades = useUnidades();
   // Tudo que veio da API fica marcado com o id do perfil: trocar de perfil
   // (ex.: clicar num seguidor) mostra "carregando" até chegar o novo, sem
   // precisar zerar o estado à mão.
@@ -71,6 +74,14 @@ export function PublicProfilePage() {
         />
       </header>
 
+      {/* UC002, lado admin: só aparece para admin; a API recusa os demais. */}
+      {user?.role === "admin" && (
+        <AdminConta
+          perfil={perfil}
+          aoMudar={(novo) => setPerfil((p) => ({ ...p, isActive: novo.isActive }))}
+        />
+      )}
+
       <ul className="perfil-publico-numeros">
         <li>
           <strong>{perfil.followers}</strong> {perfil.followers === 1 ? "seguidor" : "seguidores"}
@@ -87,7 +98,7 @@ export function PublicProfilePage() {
         </li>
         {perfil.stats.heaviestWeight !== null && (
           <li>
-            maior: <strong>{perfil.stats.heaviestWeight.toLocaleString("pt-BR")} kg</strong>
+            maior: <strong>{unidades.peso(perfil.stats.heaviestWeight)}</strong>
           </li>
         )}
       </ul>
@@ -108,5 +119,49 @@ export function PublicProfilePage() {
         </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * Desativar/reativar a conta (só admin). Desativar não apaga nada: a pessoa
+ * some do feed e da busca, não consegue mais entrar, e o admin pode reativar
+ * daqui mesmo — o perfil de conta desativada continua abrindo para ele.
+ */
+function AdminConta({
+  perfil,
+  aoMudar,
+}: {
+  perfil: PublicProfile;
+  aoMudar: (novo: PublicProfile) => void;
+}) {
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const ativa = perfil.isActive !== false;
+
+  async function alternar() {
+    if (ativa && !confirm(`Desativar a conta de @${perfil.nickname}? Ela some do app e não consegue mais entrar.`)) {
+      return;
+    }
+    setEnviando(true);
+    setErro(null);
+    try {
+      aoMudar(await adminApi.setUserActive(perfil.id, !ativa));
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível alterar a conta");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className={ativa ? "admin-conta" : "admin-conta desativada"}>
+      <span>
+        🛡 {ativa ? "Conta ativa" : <strong>Conta desativada por um administrador</strong>}
+      </span>
+      <button type="button" className={ativa ? "perigo" : undefined} onClick={alternar} disabled={enviando}>
+        {ativa ? "Desativar conta" : "Reativar conta"}
+      </button>
+      {erro && <span className="campo-erro">{erro}</span>}
+    </div>
   );
 }

@@ -1,0 +1,33 @@
+.moderacao {
+  margin: 0 0.9rem 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed #c9a227;
+  border-radius: var(--raio);
+  background: #fffbea;
+  font-size: 0.88rem;
+}
+
+.moderacao-status {
+  margin: 0 0 0.5rem;
+}
+
+.moderacao-denuncias {
+  margin: 0 0 0.6rem;
+  padding-left: 1.1rem;
+  line-height: 1.45;
+}
+
+.moderacao-denuncias .analisada {
+  color: var(--texto-fraco);
+}
+
+.moderacao-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.moderacao-botoes button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82rem;
+}

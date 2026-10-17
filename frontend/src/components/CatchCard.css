@@ -174,3 +174,11 @@
 .denuncia-opcao input {
   width: auto;
 }
+
+.post-moderar {
+  color: #8a6d00;
+}
+
+.post-moderar.ativa {
+  background: #fffbea;
+}

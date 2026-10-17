@@ -210,3 +210,8 @@
   font-size: 0.7rem;
   color: var(--texto-fraco);
 }
+
+.perfil-editar {
+  font-size: 0.85rem;
+  color: var(--agua);
+}

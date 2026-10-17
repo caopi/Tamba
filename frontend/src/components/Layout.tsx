@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { Avatar } from "./Avatar";
 import "./Layout.css";
 
 //place holder 
@@ -24,7 +25,11 @@ export function Layout() {
         </nav>
 
         <div className="layout-user">
-          <span title={user?.name}>@{user?.nickname}</span>
+          <Link to="/configuracoes" className="layout-config" title="Configurações">
+            {user && <Avatar name={user.name} avatarUrl={user.avatarUrl} tamanho={28} />}
+            <span>@{user?.nickname}</span>
+            {user?.role === "admin" && <span className="layout-admin">admin</span>}
+          </Link>
           <button type="button" onClick={logout}>
             Sair
           </button>

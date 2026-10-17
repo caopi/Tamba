@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { AuthResponse, SignupInput, SignupResponse, User } from "../types";
+import type { AuthResponse, ProfileUpdate, SignupInput, SignupResponse, User } from "../types";
 
 export const authApi = {
   /**
@@ -21,4 +21,8 @@ export const authApi = {
     }),
 
   me: () => api<User>("/auth/me"),
+
+  /** Perfil e configurações do próprio usuário (UC007). */
+  updateMe: (data: ProfileUpdate) =>
+    api<User>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
 };

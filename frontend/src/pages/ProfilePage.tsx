@@ -3,6 +3,9 @@ import { catchesApi } from "../api/catches";
 import { dexApi } from "../api/species";
 import { useAuth } from "../context/AuthContext";
 import { formatarData } from "../format";
+import { useUnidades } from "../units";
+import { Link } from "react-router-dom";
+import { Avatar } from "../components/Avatar";
 import type { Catch, Dex, Stats } from "../types";
 import "./ProfilePage.css";
 
@@ -22,6 +25,7 @@ type Direcao = "asc" | "desc";
 
 export function ProfilePage() {
   const { user } = useAuth();
+  const unidades = useUnidades();
   const [capturas, setCapturas] = useState<Catch[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [dex, setDex] = useState<Dex | null>(null);
@@ -101,15 +105,14 @@ export function ProfilePage() {
   return (
     <section>
       <header className="perfil-cabecalho">
-        <div className="perfil-avatar" aria-hidden="true">
-          {user?.name.charAt(0).toUpperCase()}
-        </div>
+        {user && <Avatar name={user.name} avatarUrl={user.avatarUrl} tamanho={64} />}
         <div>
           <h2>{user?.name}</h2>
           <p>
             @{user?.nickname} · {user?.email}
           </p>
           {user && <p className="perfil-desde">Pescando desde {formatarData(user.createdAt)}</p>}
+          <Link to="/configuracoes" className="perfil-editar">Editar perfil e configurações</Link>
         </div>
       </header>
 
@@ -132,14 +135,14 @@ export function ProfilePage() {
             </li>
             <li>
               <strong>
-                {stats.heaviestWeight !== null ? `${stats.heaviestWeight.toFixed(2)} kg` : "—"}
+                {stats.heaviestWeight !== null ? unidades.peso(stats.heaviestWeight) : "—"}
               </strong>
               <span>
                 {extras.maior ? `maior captura · ${extras.maior.species.name}` : "maior captura"}
               </span>
             </li>
             <li>
-              <strong>{extras.pesoTotal.toFixed(2)} kg</strong>
+              <strong>{unidades.peso(extras.pesoTotal)}</strong>
               <span>peso acumulado</span>
             </li>
           </ul>
@@ -217,8 +220,8 @@ export function ProfilePage() {
                         </div>
                       </td>
                       <td>{formatarData(captura.caughtAt)}</td>
-                      <td>{captura.weight.toFixed(2)} kg</td>
-                      <td>{captura.length.toFixed(0)} cm</td>
+                      <td>{unidades.peso(captura.weight)}</td>
+                      <td>{unidades.comprimento(captura.length)}</td>
                       {/* spot é o pesqueiro do catálogo; spotName é o texto livre. */}
                       <td>
                         {captura.spot?.name ?? captura.spotName ?? (

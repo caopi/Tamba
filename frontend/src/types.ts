@@ -12,11 +12,32 @@ export interface User {
   email: string;
   avatarUrl: string | null;
   role: Role;
-  /** Só preferência de exibição: a API fala sempre em kg. */
+  /**
+   * Só preferência de exibição: a API fala sempre em kg e cm. "kg" = sistema
+   * métrico (kg, cm); "lb" = imperial (libras, polegadas). Ver src/units.ts.
+   */
   measurementUnit: MeasurementUnit;
   shareExactLocation: boolean;
+  notifyLikes: boolean;
+  notifyComments: boolean;
+  notifyFollows: boolean;
   createdAt: string;
 }
+
+/** PATCH /users/me: tudo opcional. */
+export type ProfileUpdate = Partial<
+  Pick<
+    User,
+    | "name"
+    | "nickname"
+    | "avatarUrl"
+    | "measurementUnit"
+    | "shareExactLocation"
+    | "notifyLikes"
+    | "notifyComments"
+    | "notifyFollows"
+  >
+>;
 
 export interface FishSpecies {
   id: string;
@@ -133,9 +154,41 @@ export interface PublicProfile extends PublicUser {
   following: number;
   stats: Stats;
   isFollowedByMe: boolean;
+  /** Só vem para admin (que vê também conta desativada). */
+  isActive?: boolean;
+  role?: Role;
 }
 
-export type FeedScope = "following" | "all";
+/** GET /admin/catches/:id/reports. */
+export interface CatchReports {
+  catchId: string;
+  isHidden: boolean;
+  pendingCount: number;
+  reports: {
+    id: string;
+    reason: string;
+    status: "pendente" | "analisado";
+    createdAt: string;
+    reporter: { id: string; nickname: string };
+  }[];
+}
+
+/** Corpo do cadastro/edição de espécie pelo admin (kg e cm). */
+export interface SpeciesInput {
+  name: string;
+  scientificName: string;
+  habitat: string;
+  recommendedBaits: string | null;
+  rarity: Rarity;
+  minWeight: number | null;
+  maxWeight: number | null;
+  minLength: number | null;
+  maxLength: number | null;
+  curiosities: string | null;
+}
+
+/** `reported`: só admin — capturas com denúncia pendente. */
+export type FeedScope = "following" | "all" | "reported";
 export type FeedOrder = "recent" | "engagement";
 
 export interface FeedPage {

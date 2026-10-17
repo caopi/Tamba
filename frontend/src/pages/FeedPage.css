@@ -80,3 +80,7 @@
   font-size: 0.85rem;
   color: var(--texto-fraco);
 }
+
+.feed-aba-admin {
+  color: #8a6d00;
+}

@@ -1,0 +1,22 @@
+.especie-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.especie-form p {
+  margin: 0.3rem 0 -0.3rem;
+}
+
+.especie-faixas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.especie-form-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}

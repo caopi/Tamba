@@ -13,6 +13,8 @@ interface AuthContextValue {
    */
   signup: (data: SignupInput) => Promise<{ requiresVerification: boolean }>;
   logout: () => void;
+  /** Troca o usuário guardado depois de editar o perfil/configurações. */
+  atualizarUsuario: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, atualizarUsuario: setUser }}>
       {children}
     </AuthContext.Provider>
   );

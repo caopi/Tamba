@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { dexApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { RarityBadge } from "../components/RarityBadge";
-import { formatarData, formatarFaixa } from "../format";
+import { formatarData } from "../format";
+import { useUnidades } from "../units";
+import { useAuth } from "../context/AuthContext";
+import { adminApi } from "../api/admin";
+import { SpeciesForm } from "../components/SpeciesForm";
 import type { Catch, Dex, DexSpecies } from "../types";
 import "./FishDexPage.css";
 
@@ -37,6 +41,11 @@ export function FishDexPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [selecionada, setSelecionada] = useState<DexSpecies | null>(null);
+  const unidades = useUnidades();
+  const { user } = useAuth();
+  // UC010: o admin edita o catálogo daqui mesmo (não há área de admin).
+  const ehAdmin = user?.role === "admin";
+  const [criando, setCriando] = useState(false);
 
   useEffect(() => {
     Promise.all([dexApi.get(), catchesApi.list()])
@@ -47,6 +56,13 @@ export function FishDexPage() {
       .catch((e) => setErro(e instanceof Error ? e.message : "Erro ao carregar a Dex"))
       .finally(() => setCarregando(false));
   }, []);
+
+  /** Depois de uma ação de admin: recarrega a Dex e a ficha aberta. */
+  async function recarregarDex() {
+    const nova = await dexApi.get();
+    setDex(nova);
+    setSelecionada((atual) => (atual ? (nova.species.find((e) => e.id === atual.id) ?? null) : null));
+  }
 
   // Um passe pelas capturas monta o recorde de cada espécie pescada. As
   // ocultas pela moderação ficam de fora, igual à contagem da Dex (RGN-10).
@@ -80,6 +96,11 @@ export function FishDexPage() {
       <header className="dex-cabecalho">
         <div className="dex-titulo">
           <h2>Fish Dex</h2>
+          {ehAdmin && (
+            <button type="button" className="secundario dex-nova" onClick={() => setCriando(true)}>
+              + Nova espécie
+            </button>
+          )}
           <strong className="dex-contador">
             {dex.captured}/{dex.total} espécies capturadas
           </strong>
@@ -122,10 +143,12 @@ export function FishDexPage() {
                 <h3>{especie.name}</h3>
                 <RarityBadge rarity={especie.rarity} />
                 <span className="dex-status">
-                  {especie.archived
+                  {especie.archived && !especie.captured
+                    ? "Desativada · só admin vê"
+                    : especie.archived
                     ? "Arquivada · fora da contagem"
                     : recorde
-                      ? `Recorde: ${recorde.melhorPeso.toFixed(2)} kg`
+                      ? `Recorde: ${unidades.peso(recorde.melhorPeso)}`
                       : "Ainda não capturado"}
                 </span>
               </button>
@@ -139,7 +162,30 @@ export function FishDexPage() {
           especie={selecionada}
           recorde={recordes.get(selecionada.id)}
           aoFechar={() => setSelecionada(null)}
+          ehAdmin={ehAdmin}
+          aoAtualizar={recarregarDex}
         />
+      )}
+
+      {criando && (
+        <div className="dex-modal-fundo" onClick={() => setCriando(false)}>
+          <article
+            className="dex-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Nova espécie"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <h2>Nova espécie</h2>
+            <SpeciesForm
+              aoCancelar={() => setCriando(false)}
+              aoSalvar={async () => {
+                setCriando(false);
+                await recarregarDex();
+              }}
+            />
+          </article>
+        </div>
       )}
     </section>
   );
@@ -150,11 +196,36 @@ function DetalheEspecie({
   especie,
   recorde,
   aoFechar,
+  ehAdmin,
+  aoAtualizar,
 }: {
   especie: DexSpecies;
   recorde: Recorde | undefined;
   aoFechar: () => void;
+  ehAdmin: boolean;
+  aoAtualizar: () => Promise<void>;
 }) {
+  const [editando, setEditando] = useState(false);
+  const [mudandoAtivo, setMudandoAtivo] = useState(false);
+  const [erroAdmin, setErroAdmin] = useState<string | null>(null);
+
+  /** RGN-17: tirar do catálogo é desativar; apagar não existe nesta tela. */
+  async function alternarAtivo() {
+    if (especie.isActive && !confirm(`Desativar ${especie.name}? Ela sai do catálogo e da contagem da Dex; as capturas antigas ficam.`)) {
+      return;
+    }
+    setMudandoAtivo(true);
+    setErroAdmin(null);
+    try {
+      await adminApi.setSpeciesActive(especie.id, !especie.isActive);
+      await aoAtualizar();
+    } catch (e) {
+      setErroAdmin(e instanceof Error ? e.message : "Não foi possível alterar a espécie");
+    } finally {
+      setMudandoAtivo(false);
+    }
+  }
+
   // Fechar no Esc: é o que se espera de qualquer modal.
   useEffect(() => {
     const aoTeclar = (evento: KeyboardEvent) => {
@@ -165,8 +236,9 @@ function DetalheEspecie({
   }, [aoFechar]);
 
   const iscas = separarIscas(especie.recommendedBaits);
-  const faixaPeso = formatarFaixa(especie.minWeight, especie.maxWeight, "kg");
-  const faixaTamanho = formatarFaixa(especie.minLength, especie.maxLength, "cm");
+  const unidades = useUnidades();
+  const faixaPeso = unidades.faixaPeso(especie.minWeight, especie.maxWeight);
+  const faixaTamanho = unidades.faixaComprimento(especie.minLength, especie.maxLength);
 
   return (
     // Clique no fundo escuro fecha; o clique dentro do cartão não sobe.
@@ -199,73 +271,105 @@ function DetalheEspecie({
 
         {especie.archived && (
           <p className="dex-arquivada-aviso">
-            Esta espécie saiu do catálogo. Suas capturas continuam aqui, mas ela não
-            entra mais na contagem da Dex.
+            {especie.captured
+              ? "Esta espécie saiu do catálogo. Suas capturas continuam aqui, mas ela não entra mais na contagem da Dex."
+              : "Espécie desativada: fora do catálogo e da Dex dos usuários. Só administradores a veem aqui."}
           </p>
         )}
 
-        <dl className="dex-ficha">
-          <dt>Habitat</dt>
-          <dd>{especie.habitat}</dd>
-
-          <dt>Iscas recomendadas</dt>
-          <dd>
-            {iscas.length === 0 ? (
-              <span className="dex-vazio">Não informadas</span>
-            ) : (
-              <span className="dex-iscas">
-                {iscas.map((isca) => (
-                  <span key={isca} className="dex-isca">
-                    {isca}
-                  </span>
-                ))}
-              </span>
-            )}
-          </dd>
-
-          <dt>Faixa plausível</dt>
-          <dd>
-            {faixaPeso || faixaTamanho ? (
-              <>
-                {faixaPeso && <div>Peso: {faixaPeso}</div>}
-                {faixaTamanho && <div>Comprimento: {faixaTamanho}</div>}
-              </>
-            ) : (
-              <span className="dex-vazio">Não cadastrada</span>
-            )}
-          </dd>
-
-          {especie.curiosities && (
-            <>
-              <dt>Curiosidades</dt>
-              <dd>{especie.curiosities}</dd>
-            </>
-          )}
-        </dl>
-
-        {recorde ? (
-          <div className="dex-recorde">
-            <h3>Seu recorde pessoal</h3>
-            <div className="dex-recorde-numeros">
-              <span>
-                <strong>{recorde.melhorPeso.toFixed(2)} kg</strong>maior peso
-              </span>
-              <span>
-                <strong>{recorde.maiorComprimento.toFixed(0)} cm</strong>maior tamanho
-              </span>
-              <span>
-                <strong>{recorde.total}</strong>
-                {recorde.total === 1 ? "captura" : "capturas"}
-              </span>
-            </div>
-            <p className="dex-recorde-data">
-              Última captura em {formatarData(recorde.ultimaCaptura)}
-            </p>
+        {ehAdmin && !editando && (
+          <div className="dex-admin">
+            <span>🛡 Admin</span>
+            <button type="button" className="secundario" onClick={() => setEditando(true)}>
+              ✏️ Editar espécie
+            </button>
+            <button
+              type="button"
+              className={especie.isActive ? "perigo" : undefined}
+              onClick={alternarAtivo}
+              disabled={mudandoAtivo}
+            >
+              {especie.isActive ? "Desativar" : "Reativar"}
+            </button>
+            {erroAdmin && <span className="campo-erro">{erroAdmin}</span>}
           </div>
+        )}
+
+        {editando ? (
+          <SpeciesForm
+            especie={especie}
+            aoCancelar={() => setEditando(false)}
+            aoSalvar={async () => {
+              setEditando(false);
+              await aoAtualizar();
+            }}
+          />
         ) : (
-          <p className="dex-bloqueado-aviso">
-            🔒 Você ainda não registrou nenhum <strong>{especie.name}</strong>.
-          </p>
+          <>
+          <dl className="dex-ficha">
+            <dt>Habitat</dt>
+            <dd>{especie.habitat}</dd>
+
+            <dt>Iscas recomendadas</dt>
+            <dd>
+              {iscas.length === 0 ? (
+                <span className="dex-vazio">Não informadas</span>
+              ) : (
+                <span className="dex-iscas">
+                  {iscas.map((isca) => (
+                    <span key={isca} className="dex-isca">
+                      {isca}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </dd>
+
+            <dt>Faixa plausível</dt>
+            <dd>
+              {faixaPeso || faixaTamanho ? (
+                <>
+                  {faixaPeso && <div>Peso: {faixaPeso}</div>}
+                  {faixaTamanho && <div>Comprimento: {faixaTamanho}</div>}
+                </>
+              ) : (
+                <span className="dex-vazio">Não cadastrada</span>
+              )}
+            </dd>
+
+            {especie.curiosities && (
+              <>
+                <dt>Curiosidades</dt>
+                <dd>{especie.curiosities}</dd>
+              </>
+            )}
+          </dl>
+
+          {recorde ? (
+            <div className="dex-recorde">
+              <h3>Seu recorde pessoal</h3>
+              <div className="dex-recorde-numeros">
+                <span>
+                  <strong>{unidades.peso(recorde.melhorPeso)}</strong>maior peso
+                </span>
+                <span>
+                  <strong>{unidades.comprimento(recorde.maiorComprimento)}</strong>maior tamanho
+                </span>
+                <span>
+                  <strong>{recorde.total}</strong>
+                  {recorde.total === 1 ? "captura" : "capturas"}
+                </span>
+              </div>
+              <p className="dex-recorde-data">
+                Última captura em {formatarData(recorde.ultimaCaptura)}
+              </p>
+            </div>
+          ) : (
+            <p className="dex-bloqueado-aviso">
+              🔒 Você ainda não registrou nenhum <strong>{especie.name}</strong>.
+            </p>
+          )}
+          </>
         )}
       </article>
     </div>

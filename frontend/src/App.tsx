@@ -12,6 +12,7 @@ import { FeedPage } from "./pages/FeedPage";
 import { CatchDetailPage } from "./pages/CatchDetailPage";
 import { PublicProfilePage } from "./pages/PublicProfilePage";
 import { PeopleSearchPage } from "./pages/PeopleSearchPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/capturas/:id" element={<CatchDetailPage />} />
               <Route path="/u/:id" element={<PublicProfilePage />} />
               <Route path="/pessoas" element={<PeopleSearchPage />} />
+              <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
           </Route>
 

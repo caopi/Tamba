@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { speciesApi, spotsApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { ApiError } from "../api/client";
-import { formatarFaixa } from "../format";
+import { useUnidades } from "../units";
 import { PhotoPicker, type FotoItem } from "../components/PhotoPicker";
 import type { CatchInput, FishSpecies, FishingSpot, OutOfRangeDetail } from "../types";
 import "./LogCatchPage.css";
@@ -107,6 +107,7 @@ export function LogCatchPage() {
   const [enviando, setEnviando] = useState(false);
   const [foraDaFaixa, setForaDaFaixa] = useState<ForaDaFaixa | null>(null);
   const navigate = useNavigate();
+  const unidades = useUnidades();
 
   useEffect(() => {
     Promise.all([speciesApi.list(), spotsApi.list()])
@@ -206,8 +207,9 @@ export function LogCatchPage() {
         spotId: spotId || null,
         spotName: spotId ? null : spotName.trim() || null,
         region: spotId ? null : region.trim() || null,
-        weight: Number(weight),
-        length: Number(length),
+        // Digitado na unidade do usuário; a API recebe sempre kg e cm.
+        weight: unidades.pesoParaKg(Number(weight)),
+        length: unidades.comprimentoParaCm(Number(length)),
         // A ordem da lista é a ordem das fotos: a primeira é a capa.
         photoUrls: fotos.map((f) => f.url!),
         notes: notes.trim() || null,
@@ -222,10 +224,10 @@ export function LogCatchPage() {
   }
 
   const faixaPeso = especieEscolhida
-    ? formatarFaixa(especieEscolhida.minWeight, especieEscolhida.maxWeight, "kg")
+    ? unidades.faixaPeso(especieEscolhida.minWeight, especieEscolhida.maxWeight)
     : null;
   const faixaTamanho = especieEscolhida
-    ? formatarFaixa(especieEscolhida.minLength, especieEscolhida.maxLength, "cm")
+    ? unidades.faixaComprimento(especieEscolhida.minLength, especieEscolhida.maxLength)
     : null;
 
   return (
@@ -266,7 +268,7 @@ export function LogCatchPage() {
 
         <div className="captura-dupla">
           <label>
-            Peso (kg) *
+            Peso ({unidades.rotuloPeso}) *
             <input
               type="number"
               step="0.01"
@@ -281,7 +283,7 @@ export function LogCatchPage() {
           </label>
 
           <label>
-            Comprimento (cm) *
+            Comprimento ({unidades.rotuloComprimento}) *
             <input
               type="number"
               step="0.1"
@@ -407,7 +409,6 @@ export function LogCatchPage() {
 }
 
 const NOMES_CAMPO = { weight: "peso", length: "comprimento" } as const;
-const UNIDADES = { weight: "kg", length: "cm" } as const;
 
 /** Diálogo do RGN-08: a medida está fora da faixa plausível da espécie. */
 function ConfirmacaoForaDaFaixa({
@@ -422,6 +423,12 @@ function ConfirmacaoForaDaFaixa({
   aoConfirmar: () => void;
 }) {
   const { corpo, especie, detalhes } = tentativa;
+  // O corpo e a faixa vêm em kg/cm (da API); a tela mostra na unidade do usuário.
+  const unidades = useUnidades();
+  const valor = (d: OutOfRangeDetail) =>
+    d.campo === "weight" ? unidades.peso(corpo.weight) : unidades.comprimento(corpo.length);
+  const faixa = (d: OutOfRangeDetail) =>
+    d.campo === "weight" ? unidades.faixaPeso(d.min, d.max) : unidades.faixaComprimento(d.min, d.max);
 
   return (
     <div className="captura-dialogo-fundo">
@@ -431,11 +438,8 @@ function ConfirmacaoForaDaFaixa({
           {detalhes.map((d) => (
             <li key={d.campo}>
               O {NOMES_CAMPO[d.campo]} informado,{" "}
-              <strong>
-                {corpo[d.campo].toLocaleString("pt-BR")} {UNIDADES[d.campo]}
-              </strong>
-              , está fora da faixa plausível para <strong>{especie.name}</strong> (
-              {formatarFaixa(d.min, d.max, UNIDADES[d.campo])}).
+              <strong>{valor(d)}</strong>, está fora da faixa plausível para{" "}
+              <strong>{especie.name}</strong> ({faixa(d)}).
             </li>
           ))}
         </ul>

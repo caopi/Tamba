@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { postApi } from "../api/social";
 import { useAuth } from "../context/AuthContext";
 import { formatarData } from "../format";
+import { useUnidades } from "../units";
 import type { Catch } from "../types";
 import { Avatar } from "./Avatar";
 import { FollowButton } from "./FollowButton";
 import { RarityBadge } from "./RarityBadge";
 import { ReportDialog } from "./ReportDialog";
+import { ModerationPanel } from "./ModerationPanel";
 import "./CatchCard.css";
 
 /**
@@ -32,9 +34,12 @@ export function CatchCard({
   linkParaDetalhe?: boolean;
 }) {
   const { user } = useAuth();
+  const unidades = useUnidades();
   const minha = captura.userId === user?.id;
   const [curtindo, setCurtindo] = useState(false);
   const [denunciando, setDenunciando] = useState(false);
+  const [moderando, setModerando] = useState(false);
+  const ehAdmin = user?.role === "admin";
   const [aviso, setAviso] = useState<string | null>(null);
 
   const linkAutor = minha ? "/perfil" : `/u/${captura.author.id}`;
@@ -105,10 +110,14 @@ export function CatchCard({
             <strong>{captura.species.name}</strong>
           )}
           <RarityBadge rarity={captura.species.rarity} />
-          {captura.isHidden && <span className="post-selo-analise">em análise</span>}
+          {/* O autor vê "em análise"; o admin (único outro que enxerga uma
+              captura oculta) vê o estado de moderação, "oculta". */}
+          {captura.isHidden && (
+            <span className="post-selo-analise">{minha ? "em análise" : "oculta"}</span>
+          )}
         </div>
         <p className="post-medidas">
-          {captura.weight.toLocaleString("pt-BR")} kg · {captura.length.toLocaleString("pt-BR")} cm
+          {unidades.peso(captura.weight)} · {unidades.comprimento(captura.length)}
         </p>
         <p className="post-local">
           {[local, regiao].filter(Boolean).join(" · ") || "Local não informado"} ·{" "}
@@ -132,6 +141,16 @@ export function CatchCard({
         <button type="button" className="post-acao" onClick={compartilhar}>
           ↗ Compartilhar
         </button>
+        {ehAdmin && (
+          <button
+            type="button"
+            className={moderando ? "post-acao post-moderar ativa" : "post-acao post-moderar"}
+            onClick={() => setModerando((m) => !m)}
+            aria-expanded={moderando}
+          >
+            🛡 Moderar
+          </button>
+        )}
         {!minha && (
           <button type="button" className="post-acao post-denunciar" onClick={() => setDenunciando(true)}>
             ⚑ Denunciar
@@ -139,6 +158,8 @@ export function CatchCard({
         )}
       </footer>
       {aviso && <p className="post-aviso">{aviso}</p>}
+      {/* UC011: só admin vê; a API recusa para os demais de qualquer jeito. */}
+      {ehAdmin && moderando && <ModerationPanel captura={captura} aoMudar={aoMudar} />}
 
       {denunciando && <ReportDialog catchId={captura.id} aoFechar={() => setDenunciando(false)} />}
     </article>

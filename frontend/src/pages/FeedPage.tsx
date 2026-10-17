@@ -126,6 +126,20 @@ export function FeedPage() {
           >
             Descobrir
           </button>
+          {/* Fila de moderação (UC011): só admin. Sem área de admin separada,
+              é por aqui que ele acha o que foi denunciado — inclusive o que
+              já sumiu do feed por denúncias (RGN-14). */}
+          {user?.role === "admin" && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={scope === "reported"}
+              className={scope === "reported" ? "feed-aba ativa feed-aba-admin" : "feed-aba feed-aba-admin"}
+              onClick={() => setScope("reported")}
+            >
+              🛡 Denunciadas
+            </button>
+          )}
         </div>
 
         <div className="feed-controles">
@@ -177,7 +191,9 @@ export function FeedPage() {
           )}
         </div>
       ) : vazio ? (
-        <p className="feed-vazio">Nenhuma captura por aqui ainda.</p>
+        <p className="feed-vazio">
+          {scope === "reported" ? "Nenhuma denúncia pendente. 🎉" : "Nenhuma captura por aqui ainda."}
+        </p>
       ) : (
         <ul className="feed-lista">
           {itens.map((captura) => (

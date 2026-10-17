@@ -301,3 +301,28 @@
   color: #6b5640;
   font-size: 0.85rem;
 }
+
+/* --- Ações de admin na ficha (UC010) --- */
+
+.dex-nova {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.dex-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed #c9a227;
+  border-radius: var(--raio);
+  background: #fffbea;
+  font-size: 0.85rem;
+}
+
+.dex-admin button {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}

@@ -38,16 +38,16 @@ function carregarImagem(arquivo: File): Promise<HTMLImageElement> {
  * JPEG: esse é o formato em que a câmera grava o EXIF com GPS, então sempre
  * passa pelo canvas, mesmo que não fique menor.
  */
-export async function compressImage(arquivo: File): Promise<Blob> {
-  const comprimida = await reencodar(arquivo);
+export async function compressImage(arquivo: File, ladoMaximo = LADO_MAXIMO): Promise<Blob> {
+  const comprimida = await reencodar(arquivo, ladoMaximo);
   const ehJpeg = arquivo.type === "image/jpeg";
   return !ehJpeg && comprimida.size >= arquivo.size ? arquivo : comprimida;
 }
 
-async function reencodar(arquivo: File): Promise<Blob> {
+async function reencodar(arquivo: File, ladoMaximo: number): Promise<Blob> {
   const img = await carregarImagem(arquivo);
 
-  const escala = Math.min(1, LADO_MAXIMO / Math.max(img.naturalWidth, img.naturalHeight));
+  const escala = Math.min(1, ladoMaximo / Math.max(img.naturalWidth, img.naturalHeight));
   const largura = Math.round(img.naturalWidth * escala);
   const altura = Math.round(img.naturalHeight * escala);
 

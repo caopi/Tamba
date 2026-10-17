@@ -33,6 +33,10 @@ const createSchema = z.object({
 
 const updateSchema = createSchema.partial();
 
+const activeSchema = z.object({
+  isActive: z.boolean({ required_error: "Informe isActive (true ou false)" }),
+});
+
 const listSchema = z.object({
   includeInactive: z
     .enum(["true", "false"])
@@ -115,12 +119,13 @@ export async function updateSpecies(actor, speciesId, entrada) {
  * Ela some da listagem e de capturas novas, mas as capturas antigas e a Dex
  * de quem já pescou continuam intactas.
  */
-export async function setSpeciesActive(actor, speciesId, isActive) {
+export async function setSpeciesActive(actor, speciesId, entrada) {
   assertAdmin(actor);
+  const { isActive } = activeSchema.parse(entrada);
   if (!(await speciesModel.exists(speciesId))) {
     throw httpError(404, "Espécie não encontrada");
   }
-  await speciesModel.update(speciesId, { isActive: Boolean(isActive) });
+  await speciesModel.update(speciesId, { isActive });
   return speciesModel.findById(speciesId);
 }
 

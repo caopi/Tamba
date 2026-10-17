@@ -1,79 +1,61 @@
-import { z } from "zod";
-import * as catchModel from "../models/catch.model.js";
-import * as speciesModel from "../models/species.model.js";
-import * as spotModel from "../models/spot.model.js";
+import * as catchService from "../services/catch.service.js";
+import * as socialService from "../services/social.service.js";
+import * as reportService from "../services/report.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { httpError } from "../middlewares/errorHandler.js";
 
-const createSchema = z.object({
-  speciesId: z.string().uuid("Espécie inválida"),
-  spotId: z.string().uuid("Pesqueiro inválido").nullish(),
-  // Local digitado à mão enquanto o Google Places não entra. Campo vazio
-  // vira null para não gravar string em branco no banco.
-  spotName: z
-    .string()
-    .trim()
-    .max(180, "Nome do local muito longo")
-    .nullish()
-    .transform((valor) => valor || null),
-  weight: z.coerce.number().positive("O peso precisa ser maior que zero"),
-  length: z.coerce.number().positive("O comprimento precisa ser maior que zero"),
-  photoUrl: z.string().url("URL da foto inválida").nullish(),
-  caughtAt: z.coerce.date(),
+// GET /api/catches  -> histórico do usuário logado (inclui as ocultas, com isHidden)
+export const listMyCatches = asyncHandler(async (req, res) => {
+  res.json(await catchService.listMyCatches(req.userId));
 });
 
-// Na edição todos os campos são opcionais, mas as regras continuam valendo.
-const updateSchema = createSchema.partial();
-
-/** As FKs do banco já barram id inválido, mas assim devolvemos 422 com mensagem. */
-async function validarRelacoes({ speciesId, spotId }) {
-  if (speciesId && !(await speciesModel.exists(speciesId))) {
-    throw httpError(422, "Espécie não existe no catálogo");
-  }
-  if (spotId && !(await spotModel.exists(spotId))) {
-    throw httpError(422, "Pesqueiro não existe");
-  }
-}
-
-// GET /api/catches  -> capturas do usuário logado, da mais recente para a mais antiga
-export const listMyCatches = asyncHandler(async (req, res) => {
-  res.json(await catchModel.findAllByUser(req.userId));
+// GET /api/feed?scope=following|all&before=<createdAt>&limit=20
+export const getFeed = asyncHandler(async (req, res) => {
+  res.json(await catchService.getFeed(req.userId, req.query));
 });
 
 // GET /api/catches/:id
 export const getCatch = asyncHandler(async (req, res) => {
-  const captura = await catchModel.findByIdForUser(req.params.id, req.userId);
-  if (!captura) throw httpError(404, "Captura não encontrada");
-  res.json(captura);
+  res.json(await catchService.getCatch(req.userId, req.params.id));
 });
 
 // POST /api/catches
 export const createCatch = asyncHandler(async (req, res) => {
-  const dados = createSchema.parse(req.body);
-  await validarRelacoes(dados);
-
-  res.status(201).json(await catchModel.create(req.userId, dados));
+  res.status(201).json(await catchService.createCatch(req.userId, req.body));
 });
 
 // PUT /api/catches/:id
 export const updateCatch = asyncHandler(async (req, res) => {
-  const dados = updateSchema.parse(req.body);
-
-  // Conferir antes de atualizar resolve duas coisas de uma vez: garante que a
-  // captura é do usuário logado e evita depender de affectedRows, que no MySQL
-  // vem 0 quando o valor enviado é igual ao que já estava gravado.
-  if (!(await catchModel.findByIdForUser(req.params.id, req.userId))) {
-    throw httpError(404, "Captura não encontrada");
-  }
-  await validarRelacoes(dados);
-
-  await catchModel.updateForUser(req.params.id, req.userId, dados);
-  res.json(await catchModel.findByIdForUser(req.params.id, req.userId));
+  res.json(await catchService.updateCatch(req.userId, req.params.id, req.body));
 });
 
 // DELETE /api/catches/:id
 export const deleteCatch = asyncHandler(async (req, res) => {
-  const apagadas = await catchModel.deleteForUser(req.params.id, req.userId);
-  if (apagadas === 0) throw httpError(404, "Captura não encontrada");
+  await catchService.deleteCatch(req.userId, req.params.id);
   res.status(204).send();
+});
+
+// POST /api/catches/:id/like  -> idempotente; devolve { liked, likeCount }
+export const like = asyncHandler(async (req, res) => {
+  res.json(await socialService.likeCatch(req.userId, req.params.id));
+});
+
+// DELETE /api/catches/:id/like  -> idempotente; devolve { liked, likeCount }
+export const unlike = asyncHandler(async (req, res) => {
+  res.json(await socialService.unlikeCatch(req.userId, req.params.id));
+});
+
+// GET /api/catches/:id/comments
+export const listComments = asyncHandler(async (req, res) => {
+  res.json(await socialService.listComments(req.userId, req.params.id));
+});
+
+// POST /api/catches/:id/comments  { body }
+export const addComment = asyncHandler(async (req, res) => {
+  res.status(201).json(await socialService.addComment(req.userId, req.params.id, req.body));
+});
+
+// POST /api/catches/:id/reports  { reason }
+export const report = asyncHandler(async (req, res) => {
+  await reportService.reportCatch(req.userId, req.params.id, req.body);
+  res.status(201).json({ message: "Denúncia registrada. Obrigado por avisar." });
 });

@@ -53,6 +53,9 @@ Abra o `backend/.env` e preencha:
 | `JWT_EXPIRES_IN` | Validade do token. Padrão `7d`. |
 | `PORT` | Porta da API. Padrão `3333`. |
 | `CORS_ORIGIN` | Endereço do frontend. Padrão `http://localhost:5173`. |
+| `FRONTEND_URL` | Para onde o link de confirmação de e-mail redireciona. Sem ela, o link responde JSON. |
+| `EMAIL_VERIFICATION_URL` | Endereço do link que vai no e-mail (a rota `/auth/verify-email` da API). |
+| `REPORT_HIDE_THRESHOLD` | Quantas denúncias de usuários distintos ocultam uma captura. Padrão `3`. |
 
 Para gerar um `JWT_SECRET` decente:
 
@@ -147,36 +150,62 @@ de atualizar a função `map...()` do model correspondente, que é quem traduz
 
 | Tabela | Papel |
 | --- | --- |
-| `users` | Contas. Guarda só o hash bcrypt da senha. |
-| `fish_species` | Catálogo fixo (a Dex). `name` é UNIQUE — é a chave do upsert do seed. |
+| `users` | Contas. Hash bcrypt da senha, apelido único, `role` (`user`/`admin`), ativação por e-mail. |
+| `fish_species` | Catálogo (a Dex): raridade, faixas plausíveis de peso/tamanho, curiosidades. Só admin edita. |
 | `fishing_spots` | Pesqueiros. `google_place_id` fica nulo até integrar o Google Places. |
-| `catches` | Capturas. FK para as três tabelas acima. `spot_name` guarda o local digitado à mão. |
+| `catches` | Capturas — e também os posts do feed. `spot_name` é o local digitado à mão, `region` a cidade/estado. |
+| `catch_photos` | Fotos da captura (1 a 10). |
+| `follows`, `likes`, `user_favorite_species` | Pares únicos (seguir, curtir, favoritar). |
+| `comments`, `reports`, `notifications` | Comentários, denúncias e notificações. |
 
-Ao apagar: usuário leva junto as capturas dele (`CASCADE`), pesqueiro só
-desassocia (`SET NULL`), e espécie usada por alguma captura não pode ser apagada
-(`RESTRICT`).
+Ao apagar: usuário leva junto tudo dele (`CASCADE`), captura leva fotos,
+curtidas, comentários e denúncias, pesqueiro só desassocia (`SET NULL`), e
+espécie usada por alguma captura não pode ser apagada (`RESTRICT`) — só
+desativada.
+
+As regras de negócio (RGN-01 a RGN-17) e onde cada uma está no código ficam na
+tabela de [ARQUITETURA.md](ARQUITETURA.md#regras-de-negócio).
 
 ---
 
 ## Endpoints da API
 
 Base: `http://localhost:3333/api`. As rotas privadas exigem o header
-`Authorization: Bearer <token>`.
+`Authorization: Bearer <token>`; as de admin exigem também `role = 'admin'`.
+
+Erros vêm sempre como `{ "error": "mensagem" }`. Quando a tela precisa reagir
+a um caso específico, vem também um `code` (ex.: `OUT_OF_RANGE`,
+`EMAIL_NOT_VERIFIED`). Erro de validação vem com `details` por campo.
+
+### Conta
 
 | Método | Rota | Acesso | Descrição |
 | --- | --- | --- | --- |
 | `GET` | `/health` | público | Checagem rápida |
-| `POST` | `/auth/signup` | público | Cria conta e já devolve o token |
-| `POST` | `/auth/login` | público | Faz login e devolve o token |
+| `POST` | `/auth/signup` | público | Cria a conta **inativa** e manda o link de confirmação (não devolve token) |
+| `GET` | `/auth/verify-email?token=` | público | Link do e-mail. Redireciona para `FRONTEND_URL/verificacao?status=ok\|expired\|invalid` |
+| `POST` | `/auth/resend-verification` | público | Gera um link novo. `{ "email" }` |
+| `POST` | `/auth/login` | público | Devolve `{ user, token }`. Conta não confirmada: 403 `EMAIL_NOT_VERIFIED` |
 | `GET` | `/auth/me` | privado | Dados do usuário logado |
-| `GET` | `/species` | público | Catálogo completo de espécies |
-| `GET` | `/species/:id` | público | Uma espécie |
-| `GET` | `/spots` | público | Lista de pesqueiros |
-| `GET` | `/catches` | privado | Capturas do usuário logado |
+| `PATCH` | `/users/me` | privado | Nome, apelido, avatar, `measurementUnit`, `shareExactLocation` |
+
+Sem SMTP configurado, o e-mail de confirmação é **impresso no terminal da API**
+— copie o link de lá.
+
+### Capturas e feed
+
+| Método | Rota | Acesso | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/feed?scope=following\|all&before=&limit=` | privado | Feed. Padrão: só de quem você segue. `all` = Descobrir |
+| `GET` | `/catches` | privado | Seu histórico (inclui as ocultas pela moderação, com `isHidden`) |
 | `GET` | `/catches/:id` | privado | Uma captura |
 | `POST` | `/catches` | privado | Registra uma captura |
-| `PUT` | `/catches/:id` | privado | Edita uma captura |
-| `DELETE` | `/catches/:id` | privado | Apaga uma captura |
+| `PUT` | `/catches/:id` | privado | Edita (só o autor) |
+| `DELETE` | `/catches/:id` | privado | Apaga (só o autor) |
+| `POST` / `DELETE` | `/catches/:id/like` | privado | Curte / descurte. Idempotente; devolve `{ liked, likeCount }` |
+| `GET` / `POST` | `/catches/:id/comments` | privado | Lista / cria comentário (`{ "body" }`) |
+| `DELETE` | `/comments/:id` | privado | Apaga o próprio comentário |
+| `POST` | `/catches/:id/reports` | privado | Denuncia (`{ "reason" }`) |
 
 Exemplo de corpo para `POST /catches`:
 
@@ -185,16 +214,54 @@ Exemplo de corpo para `POST /catches`:
   "speciesId": "uuid-da-especie",
   "spotId": "uuid-do-pesqueiro-ou-null",
   "spotName": "Pesqueiro Recanto Azul",
+  "region": "Salto, SP",
   "weight": 3.4,
   "length": 52,
-  "photoUrl": "https://exemplo.com/foto.jpg",
-  "caughtAt": "2026-09-01T08:30:00.000Z"
+  "photoUrls": ["https://exemplo.com/foto.jpg"],
+  "notes": "Nublado, massa de milho, vara de 2,10 m",
+  "latitude": -23.2,
+  "longitude": -47.29,
+  "caughtAt": "2026-09-01T08:30:00.000Z",
+  "confirmOutOfRange": false
 }
 ```
 
-`weight` é em **kg** e `length` em **cm**. `spotId`, `spotName` e `photoUrl` são
-opcionais. Enquanto o Google Places não entra, o formulário manda o local como
-texto livre em `spotName` e deixa `spotId` nulo.
+`weight` é sempre em **kg** e `length` em **cm** (a unidade do perfil é só de
+exibição). `photoUrls` precisa de pelo menos uma foto — o formato antigo,
+`photoUrl` com uma URL só, ainda é aceito. Se escolher um `spotId`, a `region`
+vem do pesqueiro. Peso ou tamanho fora da faixa da espécie volta 422
+`OUT_OF_RANGE`; reenviando com `"confirmOutOfRange": true`, a captura entra
+sinalizada para revisão.
+
+### Pessoas, Dex e notificações
+
+| Método | Rota | Acesso | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/users/:id` | privado | Perfil público, com seguidores e estatísticas |
+| `GET` | `/users/:id/catches` | privado | Capturas visíveis do usuário |
+| `GET` | `/users/:id/followers` · `/following` | privado | Quem segue / quem é seguido |
+| `POST` / `DELETE` | `/users/:id/follow` | privado | Segue / deixa de seguir. Idempotente; devolve `{ following, followers }` |
+| `GET` | `/dex` | privado | Sua Dex: `{ total, captured, species[] }` |
+| `GET` | `/dex/stats` | privado | Suas estatísticas |
+| `GET` | `/favorites` | privado | Espécies favoritas |
+| `POST` / `DELETE` | `/favorites/:speciesId` | privado | Favorita / desfavorita. Idempotente |
+| `GET` | `/notifications?unreadOnly=&limit=` | privado | `{ items, unreadCount }` |
+| `PATCH` | `/notifications/:id/read` | privado | Marca uma como lida |
+| `POST` | `/notifications/read-all` | privado | Marca todas como lidas |
+| `GET` | `/species` · `/species/:id` | público | Catálogo ativo / uma espécie |
+| `GET` | `/spots` | público | Lista de pesqueiros |
+
+### Admin
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/admin/species` | Catálogo incluindo as desativadas |
+| `POST` | `/admin/species` | Cadastra espécie (`rarity` obrigatória) |
+| `PUT` | `/admin/species/:id` | Edita espécie |
+| `PATCH` | `/admin/species/:id/active` | Ativa/desativa (`{ "isActive": false }`) |
+| `DELETE` | `/admin/species/:id` | Apaga — só se não tiver capturas; senão 409 |
+| `GET` | `/admin/reports` | Denúncias pendentes, agrupadas por captura |
+| `POST` | `/admin/catches/:id/review` | Decide: `{ "hide": true }` mantém oculta, `false` libera |
 
 ---
 

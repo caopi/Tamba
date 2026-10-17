@@ -1,0 +1,7 @@
+# Normaliza fim de linha no repositório (LF), seja qual for o sistema de quem
+# commita. Sem isso, cada máquina Windows/Linux/macOS gera diff fantasma.
+* text=auto
+
+# O npm sempre reescreve o lockfile com LF; forçar LF na cópia de trabalho
+# evita que ele apareça como modificado depois de todo `npm install` no Windows.
+package-lock.json text eol=lf

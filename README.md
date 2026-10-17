@@ -23,17 +23,18 @@ Projeto semestral do IFSP.
 
 ### 1. Banco de dados
 
-Crie o banco e um usuário só para o projeto:
+Uma vez por máquina, **como root**, rode o
+[`backend/database/setup.sql`](backend/database/setup.sql) (antes, troque a senha
+dentro dele):
 
-```sql
-CREATE DATABASE tamba CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-CREATE USER 'tamba'@'localhost' IDENTIFIED BY 'troque-essa-senha';
-GRANT ALL PRIVILEGES ON tamba.* TO 'tamba'@'localhost';
-FLUSH PRIVILEGES;
+```bash
+mysql -u root -p < backend/database/setup.sql
 ```
 
-Rode no MySQL Workbench ou pelo terminal (`mysql -u root -p`). Usar um usuário
-dedicado em vez do `root` evita colocar a senha do root no `.env`.
+Ou abra o arquivo no MySQL Workbench conectado como root e execute. Ele cria o
+banco `tamba`, o usuário `tamba` e libera a criação de triggers
+(`log_bin_trust_function_creators`, necessária para a migration 007). Dali em
+diante o projeto só usa o usuário `tamba` — **a senha do root nunca vai no `.env`**.
 
 ### 2. Backend
 
@@ -47,7 +48,7 @@ Abra o `backend/.env` e preencha:
 
 | Variável | Para que serve |
 | --- | --- |
-| `DATABASE_URL` | Conexão com o MySQL. Formato: `mysql://usuario:senha@localhost:3306/tamba` |
+| `DATABASE_URL` | Conexão com o MySQL. Formato: `mysql://tamba:senha-do-setup.sql@localhost:3306/tamba` |
 | `JWT_SECRET` | Segredo que assina os tokens. **Troque por um valor aleatório.** |
 | `JWT_EXPIRES_IN` | Validade do token. Padrão `7d`. |
 | `PORT` | Porta da API. Padrão `3333`. |

@@ -305,17 +305,20 @@ export async function lockById(id, conn) {
 
 /**
  * Estatísticas do usuário, calculadas na hora. Ocultas não contam (RGN-10).
+ * `species_captured` só conta espécies ativas, igual ao numerador da Dex
+ * (REQ-09): senão o perfil e a Dex mostrariam números diferentes.
  */
 export async function statsForUser(userId) {
   const linha = await queryOne(
     `SELECT
-       COUNT(*)                   AS total_catches,
-       COUNT(DISTINCT species_id) AS species_captured,
-       MAX(weight)                AS heaviest_weight,
-       MAX(length)                AS longest_length,
-       MAX(caught_at)             AS last_caught_at
-     FROM catches
-     WHERE user_id = ? AND is_hidden = FALSE`,
+       COUNT(*)                                                    AS total_catches,
+       COUNT(DISTINCT CASE WHEN e.is_active THEN c.species_id END) AS species_captured,
+       MAX(c.weight)                                               AS heaviest_weight,
+       MAX(c.length)                                               AS longest_length,
+       MAX(c.caught_at)                                            AS last_caught_at
+     FROM catches c
+     INNER JOIN fish_species e ON e.id = c.species_id
+     WHERE c.user_id = ? AND c.is_hidden = FALSE`,
     [userId],
   );
   return {

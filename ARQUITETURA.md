@@ -66,8 +66,11 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   cria e edita (RGN-16). `name` é UNIQUE: é a chave do upsert do seed.
   `recommended_baits` é uma string simples separada por vírgula ('massa, milho,
   minhoca'), de propósito — não vale uma tabela só para isso. `rarity` é
-  obrigatória (NOT NULL desde a migration 008); o critério — frequência de
-  estocagem em pesqueiro — está no topo do `seed.js`. Faixas plausíveis
+  obrigatória: `VARCHAR NOT NULL` + CHECK com os quatro valores, e não ENUM —
+  o ENUM grava o primeiro valor quando a coluna é omitida (ver migration 009).
+  O critério — frequência de estocagem em pesqueiro — está no topo do
+  `seed.js`. Correção de dado que precisa chegar a todos os bancos vira
+  migration de dados (ex.: 010), porque o seed não sobrescreve. Faixas plausíveis
   (`min/max_weight` em kg, `min/max_length` em cm) são opcionais: faixa nula
   nunca sinaliza captura; as do seed são largas de propósito (o porquê também
   está no `seed.js`). Espécie nunca é apagada se tiver captura, só desativada

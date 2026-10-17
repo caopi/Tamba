@@ -8,7 +8,9 @@
 // COALESCE(coluna, novo.coluna). Rodar de novo só completa o que está NULL
 // (ex.: uma coluna nova vinda de migration) e deixa em paz o que o admin
 // editou pelo app. Consequência: corrigir um dado AQUI não altera uma espécie
-// que já está no banco — para isso, edite pela rota de admin.
+// que já está no banco. Correção que precisa chegar a todos os bancos do grupo
+// vira uma migration de dados (ex.: 010_dourado_incomum.sql), que roda uma
+// vez em cada banco; correção pontual num banco só se faz pela rota de admin.
 //
 // ---------------------------------------------------------------------------
 // RARIDADE — critério: frequência com que a espécie é estocada (ou aparece)
@@ -18,9 +20,9 @@
 //                carpas, traíra; também as nativas que aparecem sozinhas em
 //                quase toda água, como lambari e cará).
 //   incomum    — difundida, mas não está em todo lugar (tambaqui, tucunaré,
-//                matrinxã).
+//                matrinxã, dourado).
 //   raro       — espécies grandes ou "premium", estocadas em menos lugares
-//                (pirarara, pintado, surubim, dourado).
+//                (pirarara, pintado, surubim).
 //   muito_raro — peixes-troféu (pirarucu, piraíba).
 //
 // Nativas que não são estocadas (mandi, jundiá, jacundá, piau, curimbatá)
@@ -131,7 +133,8 @@ const especies = [
     scientificName: "Salminus brasiliensis",
     habitat: "Corredeiras e rios de médio a grande porte; predador de superfície.",
     recommendedBaits: "isca artificial, lambari vivo, tuvira",
-    rarity: "raro",
+    // Era "raro" até a migration 010, que corrige os bancos já populados.
+    rarity: "incomum",
     minWeight: 0.2, maxWeight: 35, minLength: 20, maxLength: 130,
     curiosities:
       "Chamado de \"rei do rio\", dá saltos espetaculares quando fisgado. A pesca é restrita ou proibida em alguns estados — confira a legislação local.",

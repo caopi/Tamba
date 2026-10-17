@@ -1,8 +1,15 @@
 import { api } from "./client";
-import type { FishSpecies, FishingSpot } from "../types";
+import type { Dex, FishSpecies, FishingSpot, Stats } from "../types";
 
 export const speciesApi = {
+  /** Catálogo ativo. */
   list: () => api<FishSpecies[]>("/species"),
+};
+
+export const dexApi = {
+  /** Dex do usuário logado: { total, captured, species[] }. */
+  get: () => api<Dex>("/dex"),
+  stats: () => api<Stats>("/dex/stats"),
 };
 
 export const spotsApi = {

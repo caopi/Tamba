@@ -8,13 +8,23 @@ export const tokenStorage = {
   clear: () => localStorage.removeItem(TOKEN_KEY),
 };
 
-/** Erro de API com o status HTTP junto, para as telas tratarem 401 etc. */
+/**
+ * Erro de API com o status HTTP junto, para as telas tratarem 401 etc.
+ *
+ * `code` e `details` vêm quando a tela precisa reagir a um caso específico,
+ * não só mostrar a mensagem — ex.: `OUT_OF_RANGE` abre a confirmação de peso
+ * fora da faixa, `EMAIL_NOT_VERIFIED` oferece reenviar o link.
+ */
 export class ApiError extends Error {
   status: number;
+  code?: string;
+  details?: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string, details?: unknown) {
     super(message);
     this.status = status;
+    this.code = code;
+    this.details = details;
   }
 }
 
@@ -39,7 +49,14 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new ApiError(body?.error ?? "Erro ao falar com o servidor", response.status);
+    throw new ApiError(
+      // Erro de validação vem com `details` por campo: mostra o primeiro, que
+      // é mais útil que o genérico "Dados inválidos".
+      body?.details?.[0]?.mensagem ?? body?.error ?? "Erro ao falar com o servidor",
+      response.status,
+      body?.code,
+      body?.details,
+    );
   }
 
   return body as T;

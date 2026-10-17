@@ -2,6 +2,7 @@ import { api } from "./client";
 import type { Catch, CatchInput } from "../types";
 
 export const catchesApi = {
+  /** Histórico do usuário logado, incluindo as ocultas (com isHidden). */
   list: () => api<Catch[]>("/catches"),
 
   create: (data: CatchInput) =>

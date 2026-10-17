@@ -22,18 +22,9 @@
   gap: 1rem;
 }
 
-.captura-form input[aria-invalid="true"] {
+.captura-form input[aria-invalid="true"],
+.captura-form select[aria-invalid="true"] {
   border-color: var(--erro);
-}
-
-.campo-erro {
-  font-size: 0.78rem;
-  color: var(--erro);
-}
-
-.campo-dica {
-  font-size: 0.78rem;
-  color: var(--texto-fraco);
 }
 
 .captura-previa {
@@ -48,4 +39,37 @@
   .captura-dupla {
     grid-template-columns: 1fr;
   }
+}
+
+/* --- Confirmação de medida fora da faixa (RGN-08) --- */
+
+.captura-dialogo-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(15, 43, 48, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.captura-dialogo {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.captura-dialogo ul {
+  margin: 0.75rem 0;
+  padding-left: 1.1rem;
+  line-height: 1.5;
+}
+
+.captura-dialogo-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
 }

@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { catchesApi } from "../api/catches";
-import { speciesApi } from "../api/species";
+import { dexApi } from "../api/species";
 import { useAuth } from "../context/AuthContext";
-import type { Catch } from "../types";
+import { formatarData } from "../format";
+import type { Catch, Dex, Stats } from "../types";
 import "./ProfilePage.css";
 
 /**
  * Perfil do usuário: dados da conta, números gerais e o histórico completo de
- * capturas, ordenável por data ou peso. As estatísticas saem do próprio
- * `GET /catches` — a lista já vem inteira, não vale um endpoint agregado.
+ * capturas, ordenável por data ou peso.
+ *
+ * Os números vêm da API (GET /dex/stats e GET /dex), que já aplicam as regras:
+ * captura oculta pela moderação não conta (RGN-10) e espécie arquivada fica
+ * fora do X/Y (REQ-09). O histórico mostra TODAS as capturas, inclusive as
+ * ocultas, com o selo "em análise" — é assim que o usuário entende por que a
+ * contagem caiu.
  */
 
 type Coluna = "caughtAt" | "weight";
 type Direcao = "asc" | "desc";
 
-const formatarData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
-
 export function ProfilePage() {
   const { user } = useAuth();
   const [capturas, setCapturas] = useState<Catch[]>([]);
-  const [totalEspecies, setTotalEspecies] = useState(0);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [dex, setDex] = useState<Dex | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -27,29 +32,34 @@ export function ProfilePage() {
   const [coluna, setColuna] = useState<Coluna>("caughtAt");
   const [direcao, setDirecao] = useState<Direcao>("desc");
 
-  useEffect(() => {
-    // O catálogo entra só para o "X de 34 espécies" fazer sentido.
-    Promise.all([catchesApi.list(), speciesApi.list()])
-      .then(([capturas, especies]) => {
+  function carregar() {
+    return Promise.all([catchesApi.list(), dexApi.stats(), dexApi.get()]).then(
+      ([capturas, stats, dex]) => {
         setCapturas(capturas);
-        setTotalEspecies(especies.length);
-      })
+        setStats(stats);
+        setDex(dex);
+      },
+    );
+  }
+
+  useEffect(() => {
+    carregar()
       .catch((e) => setErro(e instanceof Error ? e.message : "Erro ao carregar o perfil"))
       .finally(() => setCarregando(false));
   }, []);
 
-  const estatisticas = useMemo(() => {
-    const especiesDistintas = new Set(capturas.map((c) => c.speciesId));
-    const maior = capturas.reduce<Catch | null>(
+  // O que a API não agrega: a espécie da maior captura e o peso acumulado.
+  // Mesma regra dos números da API: só capturas visíveis.
+  const extras = useMemo(() => {
+    const visiveis = capturas.filter((c) => !c.isHidden);
+    const maior = visiveis.reduce<Catch | null>(
       (recorde, c) => (!recorde || c.weight > recorde.weight ? c : recorde),
       null,
     );
-
     return {
-      total: capturas.length,
-      especies: especiesDistintas.size,
-      pesoTotal: capturas.reduce((soma, c) => soma + c.weight, 0),
       maior,
+      pesoTotal: visiveis.reduce((soma, c) => soma + c.weight, 0),
+      emAnalise: capturas.length - visiveis.length,
     };
   }, [capturas]);
 
@@ -81,7 +91,8 @@ export function ProfilePage() {
 
     try {
       await catchesApi.remove(id);
-      setCapturas((atuais) => atuais.filter((c) => c.id !== id));
+      // RGN-09: a API recalcula estatísticas e Dex na leitura; basta recarregar.
+      await carregar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível excluir");
     }
@@ -95,7 +106,9 @@ export function ProfilePage() {
         </div>
         <div>
           <h2>{user?.name}</h2>
-          <p>{user?.email}</p>
+          <p>
+            @{user?.nickname} · {user?.email}
+          </p>
           {user && <p className="perfil-desde">Pescando desde {formatarData(user.createdAt)}</p>}
         </div>
       </header>
@@ -103,35 +116,42 @@ export function ProfilePage() {
       {erro && <p className="erro">{erro}</p>}
       {carregando && <p className="estado-carregando">Carregando histórico…</p>}
 
-      {!carregando && (
+      {!carregando && stats && dex && (
         <>
           <ul className="perfil-numeros">
             <li>
-              <strong>{estatisticas.total}</strong>
-              <span>{estatisticas.total === 1 ? "captura" : "capturas"}</span>
+              <strong>{stats.totalCatches}</strong>
+              <span>{stats.totalCatches === 1 ? "captura" : "capturas"}</span>
             </li>
             <li>
               <strong>
-                {estatisticas.especies}
-                <small>/{totalEspecies}</small>
+                {dex.captured}
+                <small>/{dex.total}</small>
               </strong>
               <span>espécies na Dex</span>
             </li>
             <li>
               <strong>
-                {estatisticas.maior ? `${estatisticas.maior.weight.toFixed(2)} kg` : "—"}
+                {stats.heaviestWeight !== null ? `${stats.heaviestWeight.toFixed(2)} kg` : "—"}
               </strong>
               <span>
-                {estatisticas.maior
-                  ? `maior captura · ${estatisticas.maior.species.name}`
-                  : "maior captura"}
+                {extras.maior ? `maior captura · ${extras.maior.species.name}` : "maior captura"}
               </span>
             </li>
             <li>
-              <strong>{estatisticas.pesoTotal.toFixed(2)} kg</strong>
+              <strong>{extras.pesoTotal.toFixed(2)} kg</strong>
               <span>peso acumulado</span>
             </li>
           </ul>
+
+          {extras.emAnalise > 0 && (
+            <p className="perfil-aviso-analise">
+              {extras.emAnalise === 1
+                ? "1 captura está em análise pela moderação e "
+                : `${extras.emAnalise} capturas estão em análise pela moderação e `}
+              não entra nas estatísticas nem na Dex até um administrador revisar.
+            </p>
+          )}
 
           <h3 className="perfil-subtitulo">Histórico</h3>
 
@@ -167,13 +187,29 @@ export function ProfilePage() {
 
                 <tbody>
                   {ordenadas.map((captura) => (
-                    <tr key={captura.id}>
+                    <tr key={captura.id} className={captura.isHidden ? "perfil-linha-oculta" : undefined}>
                       <td>
                         <div className="perfil-especie">
                           {captura.photoUrl && (
                             <img src={captura.photoUrl} alt={captura.species.name} />
                           )}
                           <span>{captura.species.name}</span>
+                          {captura.isHidden && (
+                            <span
+                              className="perfil-selo perfil-selo-analise"
+                              title="Ocultada pela moderação até um administrador revisar. Não conta na Dex."
+                            >
+                              em análise
+                            </span>
+                          )}
+                          {captura.isFlaggedForReview && (
+                            <span
+                              className="perfil-selo perfil-selo-faixa"
+                              title="Peso ou comprimento fora da faixa plausível da espécie, confirmado por você."
+                            >
+                              fora da faixa
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td>{formatarData(captura.caughtAt)}</td>
@@ -183,6 +219,9 @@ export function ProfilePage() {
                       <td>
                         {captura.spot?.name ?? captura.spotName ?? (
                           <span className="perfil-vazio-celula">—</span>
+                        )}
+                        {captura.region && (
+                          <div className="perfil-regiao">{captura.region}</div>
                         )}
                       </td>
                       <td>

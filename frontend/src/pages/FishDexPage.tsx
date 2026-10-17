@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { speciesApi } from "../api/species";
+import { dexApi } from "../api/species";
 import { catchesApi } from "../api/catches";
-import type { Catch, FishSpecies } from "../types";
+import { RarityBadge } from "../components/RarityBadge";
+import { formatarData, formatarFaixa } from "../format";
+import type { Catch, Dex, DexSpecies } from "../types";
 import "./FishDexPage.css";
 
 /**
- * A "Dex": catálogo completo de espécies, marcando as que o usuário já pescou.
- * O backend devolve o catálogo puro e as capturas do usuário; quem cruza os dois
- * é esta tela — com 34 espécies não compensa um endpoint agregado só para isso.
+ * A "Dex": o catálogo com o que o usuário já pescou de cada espécie.
+ *
+ * O "capturada ou não" e o contador X/Y vêm prontos de GET /dex — é lá que
+ * moram as regras (RGN-10: captura oculta não conta; REQ-09: espécie
+ * arquivada fica fora do X e do Y). O recorde pessoal sai das capturas do
+ * próprio usuário, cruzadas aqui.
  */
 
 /** O que o usuário fez com uma espécie. Só existe para espécie já pescada. */
@@ -19,8 +24,6 @@ interface Recorde {
   ultimaCaptura: string;
 }
 
-const formatarData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
-
 /** 'massa, milho, minhoca' -> ['massa', 'milho', 'minhoca'] */
 const separarIscas = (iscas: string | null) =>
   (iscas ?? "")
@@ -29,28 +32,29 @@ const separarIscas = (iscas: string | null) =>
     .filter(Boolean);
 
 export function FishDexPage() {
-  const [especies, setEspecies] = useState<FishSpecies[]>([]);
+  const [dex, setDex] = useState<Dex | null>(null);
   const [capturas, setCapturas] = useState<Catch[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [selecionada, setSelecionada] = useState<FishSpecies | null>(null);
+  const [selecionada, setSelecionada] = useState<DexSpecies | null>(null);
 
   useEffect(() => {
-    Promise.all([speciesApi.list(), catchesApi.list()])
-      .then(([especies, capturas]) => {
-        setEspecies(especies);
+    Promise.all([dexApi.get(), catchesApi.list()])
+      .then(([dex, capturas]) => {
+        setDex(dex);
         setCapturas(capturas);
       })
       .catch((e) => setErro(e instanceof Error ? e.message : "Erro ao carregar a Dex"))
       .finally(() => setCarregando(false));
   }, []);
 
-  // Um passe pelas capturas monta o recorde de cada espécie pescada. A chave do
-  // mapa é o id da espécie, então "já pescou?" é só um `.has()`.
+  // Um passe pelas capturas monta o recorde de cada espécie pescada. As
+  // ocultas pela moderação ficam de fora, igual à contagem da Dex (RGN-10).
   const recordes = useMemo(() => {
     const mapa = new Map<string, Recorde>();
 
     for (const captura of capturas) {
+      if (captura.isHidden) continue;
       const atual = mapa.get(captura.speciesId);
 
       mapa.set(captura.speciesId, {
@@ -67,10 +71,9 @@ export function FishDexPage() {
   }, [capturas]);
 
   if (carregando) return <p className="estado-carregando">Carregando a Dex…</p>;
-  if (erro) return <p className="erro">{erro}</p>;
+  if (erro || !dex) return <p className="erro">{erro ?? "Erro ao carregar a Dex"}</p>;
 
-  const pescadas = recordes.size;
-  const porcentagem = especies.length ? Math.round((pescadas / especies.length) * 100) : 0;
+  const porcentagem = dex.total ? Math.round((dex.captured / dex.total) * 100) : 0;
 
   return (
     <section>
@@ -78,46 +81,52 @@ export function FishDexPage() {
         <div className="dex-titulo">
           <h2>Fish Dex</h2>
           <strong className="dex-contador">
-            {pescadas}/{especies.length} espécies capturadas
+            {dex.captured}/{dex.total} espécies capturadas
           </strong>
         </div>
 
         <div
           className="dex-barra"
           role="progressbar"
-          aria-valuenow={pescadas}
+          aria-valuenow={dex.captured}
           aria-valuemin={0}
-          aria-valuemax={especies.length}
+          aria-valuemax={dex.total}
         >
           <div className="dex-barra-preenchida" style={{ width: `${porcentagem}%` }} />
         </div>
       </header>
 
       <ul className="dex-grade">
-        {especies.map((especie) => {
+        {dex.species.map((especie) => {
           const recorde = recordes.get(especie.id);
+          const classes = [
+            "dex-card",
+            !especie.captured && "bloqueado",
+            especie.archived && "arquivada",
+          ]
+            .filter(Boolean)
+            .join(" ");
 
           return (
             <li key={especie.id}>
-              <button
-                type="button"
-                className={recorde ? "dex-card" : "dex-card bloqueado"}
-                onClick={() => setSelecionada(especie)}
-              >
+              <button type="button" className={classes} onClick={() => setSelecionada(especie)}>
                 <div className="dex-figura">
                   {especie.imageUrl ? (
                     <img src={especie.imageUrl} alt={especie.name} />
                   ) : (
                     <span className="dex-imagem-vazia">🐟</span>
                   )}
-                  {!recorde && <span className="dex-cadeado">🔒</span>}
+                  {!especie.captured && <span className="dex-cadeado">🔒</span>}
                 </div>
 
                 <h3>{especie.name}</h3>
+                <RarityBadge rarity={especie.rarity} />
                 <span className="dex-status">
-                  {recorde
-                    ? `Recorde: ${recorde.melhorPeso.toFixed(2)} kg`
-                    : "Ainda não capturado"}
+                  {especie.archived
+                    ? "Arquivada · fora da contagem"
+                    : recorde
+                      ? `Recorde: ${recorde.melhorPeso.toFixed(2)} kg`
+                      : "Ainda não capturado"}
                 </span>
               </button>
             </li>
@@ -142,7 +151,7 @@ function DetalheEspecie({
   recorde,
   aoFechar,
 }: {
-  especie: FishSpecies;
+  especie: DexSpecies;
   recorde: Recorde | undefined;
   aoFechar: () => void;
 }) {
@@ -156,6 +165,8 @@ function DetalheEspecie({
   }, [aoFechar]);
 
   const iscas = separarIscas(especie.recommendedBaits);
+  const faixaPeso = formatarFaixa(especie.minWeight, especie.maxWeight, "kg");
+  const faixaTamanho = formatarFaixa(especie.minLength, especie.maxLength, "cm");
 
   return (
     // Clique no fundo escuro fecha; o clique dentro do cartão não sobe.
@@ -171,7 +182,7 @@ function DetalheEspecie({
           ✕
         </button>
 
-        <div className={recorde ? "dex-figura grande" : "dex-figura grande bloqueado"}>
+        <div className={especie.captured ? "dex-figura grande" : "dex-figura grande bloqueado"}>
           {especie.imageUrl ? (
             <img src={especie.imageUrl} alt={especie.name} />
           ) : (
@@ -181,6 +192,17 @@ function DetalheEspecie({
 
         <h2>{especie.name}</h2>
         <p className="dex-cientifico">{especie.scientificName}</p>
+        <div className="dex-selos">
+          <RarityBadge rarity={especie.rarity} />
+          {especie.archived && <span className="dex-arquivada-selo">Arquivada</span>}
+        </div>
+
+        {especie.archived && (
+          <p className="dex-arquivada-aviso">
+            Esta espécie saiu do catálogo. Suas capturas continuam aqui, mas ela não
+            entra mais na contagem da Dex.
+          </p>
+        )}
 
         <dl className="dex-ficha">
           <dt>Habitat</dt>
@@ -200,6 +222,25 @@ function DetalheEspecie({
               </span>
             )}
           </dd>
+
+          <dt>Faixa plausível</dt>
+          <dd>
+            {faixaPeso || faixaTamanho ? (
+              <>
+                {faixaPeso && <div>Peso: {faixaPeso}</div>}
+                {faixaTamanho && <div>Comprimento: {faixaTamanho}</div>}
+              </>
+            ) : (
+              <span className="dex-vazio">Não cadastrada</span>
+            )}
+          </dd>
+
+          {especie.curiosities && (
+            <>
+              <dt>Curiosidades</dt>
+              <dd>{especie.curiosities}</dd>
+            </>
+          )}
         </dl>
 
         {recorde ? (

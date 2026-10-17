@@ -20,7 +20,7 @@ export function Layout() {
         </nav>
 
         <div className="layout-user">
-          <span>{user?.name}</span>
+          <span title={user?.name}>@{user?.nickname}</span>
           <button type="button" onClick={logout}>
             Sair
           </button>

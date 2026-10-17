@@ -3,6 +3,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
 import { LoginPage } from "./pages/LoginPage";
+import { ConfirmEmailPage } from "./pages/ConfirmEmailPage";
+import { VerificationPage } from "./pages/VerificationPage";
 import { FishDexPage } from "./pages/FishDexPage";
 import { LogCatchPage } from "./pages/LogCatchPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -13,6 +15,10 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Públicas: quem chega aqui ainda não consegue entrar. */}
+          <Route path="/confirme-email" element={<ConfirmEmailPage />} />
+          {/* Destino do link do e-mail (a API redireciona com ?status=). */}
+          <Route path="/verificacao" element={<VerificationPage />} />
 
           {/* Tudo abaixo exige usuário logado e usa o Layout com a navegação. */}
           <Route element={<ProtectedRoute />}>

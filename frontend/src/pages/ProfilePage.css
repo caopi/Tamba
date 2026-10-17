@@ -166,3 +166,42 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+/* --- Selos de captura: em análise (moderação) e fora da faixa (RGN-08) --- */
+
+.perfil-selo {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.perfil-selo-analise {
+  background: #fde2e0;
+  color: #8a1f17;
+}
+
+.perfil-selo-faixa {
+  background: #fff4d6;
+  color: #6b4e00;
+}
+
+.perfil-linha-oculta td {
+  opacity: 0.7;
+}
+
+.perfil-aviso-analise {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--raio);
+  background: #fde2e0;
+  color: #8a1f17;
+  font-size: 0.85rem;
+}
+
+.perfil-regiao {
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+}

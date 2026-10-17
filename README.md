@@ -287,10 +287,12 @@ sinalizada para revisão.
 
 | Rota | Tela |
 | --- | --- |
-| `/login` | Login e cadastro |
-| `/` | Fish Dex — catálogo com contador de progresso; clicar num peixe abre a ficha |
-| `/registrar` | Formulário de nova captura |
-| `/perfil` | Perfil, estatísticas e histórico ordenável por data ou peso |
+| `/login` | Login e cadastro (com apelido). Conta não confirmada recebe aviso e opção de reenviar o link |
+| `/confirme-email` | Depois do cadastro: "confirme seu e-mail", com reenvio do link |
+| `/verificacao` | Destino do link do e-mail: confirmado, expirado ou inválido (com reenvio) |
+| `/` | Fish Dex — grade com raridade, contador X/Y e espécies arquivadas; clicar abre a ficha (faixa plausível, curiosidades, recorde pessoal) |
+| `/registrar` | Nova captura. Medida fora da faixa da espécie abre uma confirmação antes de salvar |
+| `/perfil` | Estatísticas e histórico ordenável; capturas ocultas pela moderação aparecem "em análise" |
 
 ---
 

@@ -1,0 +1,30 @@
+.raridade {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.raridade-comum {
+  background: #e4e9eb;
+  color: #4a5a60;
+}
+
+.raridade-incomum {
+  background: #dcf1e0;
+  color: #1e6b33;
+}
+
+.raridade-raro {
+  background: #dbe8fb;
+  color: #1f4f9c;
+}
+
+.raridade-muito_raro {
+  background: #f6e7c1;
+  color: #7a5200;
+}

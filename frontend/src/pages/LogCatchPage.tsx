@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { speciesApi } from "../api/species";
+import { speciesApi, spotsApi } from "../api/species";
 import { catchesApi } from "../api/catches";
-import type { FishSpecies } from "../types";
+import { ApiError } from "../api/client";
+import { formatarFaixa } from "../format";
+import type { CatchInput, FishSpecies, FishingSpot, OutOfRangeDetail } from "../types";
 import "./LogCatchPage.css";
 
 /**
@@ -12,6 +14,11 @@ import "./LogCatchPage.css";
  * já filtra enquanto o usuário digita, então a busca sai de graça, sem
  * biblioteca e sem componente novo. Como `fish_species.name` é UNIQUE, dá para
  * voltar do nome digitado para o id com segurança.
+ *
+ * Medida fora da faixa (RGN-08 / REQ-24): quem decide é a API. Se ela
+ * responder 422 OUT_OF_RANGE, a tela guarda o que tentou enviar, abre a
+ * confirmação e, se o usuário confirmar, reenvia o MESMO corpo com
+ * `confirmOutOfRange: true` — a captura entra sinalizada para revisão.
  */
 
 /** Data de hoje no formato que o <input type="date"> espera (aaaa-mm-dd). */
@@ -31,38 +38,51 @@ function normalizar(texto: string) {
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[̀-ͯ]/g, "");
 }
 
 type Campo = "especie" | "weight" | "length" | "caughtAt" | "photoUrl";
 type Erros = Partial<Record<Campo, string>>;
 
+/** Tentativa recusada por medida fora da faixa, à espera da confirmação. */
+interface ForaDaFaixa {
+  corpo: CatchInput;
+  especie: FishSpecies;
+  detalhes: OutOfRangeDetail[];
+}
+
 export function LogCatchPage() {
   const [especies, setEspecies] = useState<FishSpecies[]>([]);
-  const [carregandoEspecies, setCarregandoEspecies] = useState(true);
+  const [pesqueiros, setPesqueiros] = useState<FishingSpot[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
   const [nomeEspecie, setNomeEspecie] = useState("");
-  const [spotName, setSpotName] = useState("");
   const [weight, setWeight] = useState("");
   const [length, setLength] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
+  // "" = nenhum pesqueiro do catálogo: o usuário digita local e região.
+  const [spotId, setSpotId] = useState("");
+  const [spotName, setSpotName] = useState("");
+  const [region, setRegion] = useState("");
   const [caughtAt, setCaughtAt] = useState(hoje);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [notes, setNotes] = useState("");
 
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [foraDaFaixa, setForaDaFaixa] = useState<ForaDaFaixa | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    speciesApi
-      .list()
-      .then(setEspecies)
+    Promise.all([speciesApi.list(), spotsApi.list()])
+      .then(([especies, pesqueiros]) => {
+        setEspecies(especies);
+        setPesqueiros(pesqueiros);
+      })
       .catch((e) =>
-        setErroGeral(
-          e instanceof Error ? e.message : "Não foi possível carregar as espécies",
-        ),
+        setErroGeral(e instanceof Error ? e.message : "Não foi possível carregar o formulário"),
       )
-      .finally(() => setCarregandoEspecies(false));
+      .finally(() => setCarregando(false));
   }, []);
 
   // Nome digitado -> espécie do catálogo. A collation do banco é
@@ -72,6 +92,7 @@ export function LogCatchPage() {
     () => especies.find((e) => normalizar(e.name) === normalizar(nomeEspecie)) ?? null,
     [especies, nomeEspecie],
   );
+  const pesqueiroEscolhido = pesqueiros.find((p) => p.id === spotId) ?? null;
 
   /** Valida tudo de uma vez e devolve os erros encontrados. */
   function validar(): Erros {
@@ -103,15 +124,35 @@ export function LogCatchPage() {
       encontrados.caughtAt = "A data não pode estar no futuro";
     }
 
-    // O backend exige URL válida (Zod .url()), então barramos aqui antes de mandar.
-    if (photoUrl.trim() && !URL.canParse(photoUrl.trim())) {
+    // RGN-07: foto obrigatória. O backend exige URL válida (Zod .url()).
+    if (!photoUrl.trim()) {
+      encontrados.photoUrl = "A foto é obrigatória";
+    } else if (!URL.canParse(photoUrl.trim())) {
       encontrados.photoUrl = "URL inválida (comece com https://)";
     }
 
     return encontrados;
   }
 
-  async function handleSubmit(event: FormEvent) {
+  /** Envia; se a API recusar por faixa, guarda a tentativa e abre a confirmação. */
+  async function enviar(corpo: CatchInput, especie: FishSpecies) {
+    setErroGeral(null);
+    setEnviando(true);
+    try {
+      await catchesApi.create(corpo);
+      navigate("/perfil");
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "OUT_OF_RANGE" && !corpo.confirmOutOfRange) {
+        setForaDaFaixa({ corpo, especie, detalhes: e.details as OutOfRangeDetail[] });
+      } else {
+        setErroGeral(e instanceof Error ? e.message : "Não foi possível salvar a captura");
+      }
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setErroGeral(null);
 
@@ -119,26 +160,32 @@ export function LogCatchPage() {
     setErros(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
-    setEnviando(true);
-    try {
-      await catchesApi.create({
+    enviar(
+      {
         speciesId: especieEscolhida!.id,
-        // Texto livre por enquanto; o Google Places entra depois e preenche o spotId.
-        spotName: spotName.trim() || null,
+        // Com pesqueiro do catálogo, a API preenche a região pelo `location`
+        // dele; sem, vale o que o usuário digitou.
+        spotId: spotId || null,
+        spotName: spotId ? null : spotName.trim() || null,
+        region: spotId ? null : region.trim() || null,
         weight: Number(weight),
         length: Number(length),
-        photoUrl: photoUrl.trim() || null,
+        photoUrls: [photoUrl.trim()],
+        notes: notes.trim() || null,
         // O <input type="date"> só dá o dia. Fixando meio-dia local, a conversão
         // para UTC não empurra o registro para o dia anterior ou seguinte.
         caughtAt: new Date(`${caughtAt}T12:00:00`).toISOString(),
-      });
-      navigate("/perfil");
-    } catch (e) {
-      setErroGeral(e instanceof Error ? e.message : "Não foi possível salvar a captura");
-    } finally {
-      setEnviando(false);
-    }
+      },
+      especieEscolhida!,
+    );
   }
+
+  const faixaPeso = especieEscolhida
+    ? formatarFaixa(especieEscolhida.minWeight, especieEscolhida.maxWeight, "kg")
+    : null;
+  const faixaTamanho = especieEscolhida
+    ? formatarFaixa(especieEscolhida.minLength, especieEscolhida.maxLength, "cm")
+    : null;
 
   return (
     <section>
@@ -155,10 +202,8 @@ export function LogCatchPage() {
             list="lista-especies"
             value={nomeEspecie}
             onChange={(e) => setNomeEspecie(e.target.value)}
-            placeholder={
-              carregandoEspecies ? "Carregando espécies…" : "Digite para buscar…"
-            }
-            disabled={carregandoEspecies}
+            placeholder={carregando ? "Carregando espécies…" : "Digite para buscar…"}
+            disabled={carregando}
             aria-invalid={Boolean(erros.especie)}
           />
           <datalist id="lista-especies">
@@ -170,7 +215,11 @@ export function LogCatchPage() {
           </datalist>
           {erros.especie && <span className="campo-erro">{erros.especie}</span>}
           {especieEscolhida && (
-            <span className="campo-dica">✓ {especieEscolhida.scientificName}</span>
+            <span className="campo-dica">
+              ✓ {especieEscolhida.scientificName}
+              {(faixaPeso || faixaTamanho) &&
+                ` · faixa esperada: ${[faixaPeso, faixaTamanho].filter(Boolean).join(", ")}`}
+            </span>
           )}
         </label>
 
@@ -207,17 +256,41 @@ export function LogCatchPage() {
         </div>
 
         <label>
-          Local da pescaria
-          <input
-            value={spotName}
-            onChange={(e) => setSpotName(e.target.value)}
-            placeholder="Pesqueiro Recanto Azul"
-            maxLength={180}
-          />
-          <span className="campo-dica">
-            Texto livre por enquanto — vira busca do Google Places depois.
-          </span>
+          Pesqueiro
+          <select value={spotId} onChange={(e) => setSpotId(e.target.value)} disabled={carregando}>
+            <option value="">Outro lugar (digitar abaixo)</option>
+            {pesqueiros.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} — {p.location}
+              </option>
+            ))}
+          </select>
         </label>
+
+        {pesqueiroEscolhido ? (
+          <p className="campo-dica">Região: {pesqueiroEscolhido.location} (vem do pesqueiro)</p>
+        ) : (
+          <div className="captura-dupla">
+            <label>
+              Local da pescaria
+              <input
+                value={spotName}
+                onChange={(e) => setSpotName(e.target.value)}
+                placeholder="Pesqueiro Recanto Azul"
+                maxLength={180}
+              />
+            </label>
+            <label>
+              Cidade / região
+              <input
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder="Salto, SP"
+                maxLength={120}
+              />
+            </label>
+          </div>
+        )}
 
         <label>
           Data da captura *
@@ -232,7 +305,7 @@ export function LogCatchPage() {
         </label>
 
         <label>
-          Foto (URL, opcional)
+          Foto (URL) *
           <input
             type="url"
             placeholder="https://…"
@@ -243,16 +316,90 @@ export function LogCatchPage() {
           {erros.photoUrl && <span className="campo-erro">{erros.photoUrl}</span>}
         </label>
 
-        {photoUrl.trim() && !erros.photoUrl && (
+        {photoUrl.trim() && !erros.photoUrl && URL.canParse(photoUrl.trim()) && (
           <img className="captura-previa" src={photoUrl.trim()} alt="Prévia da foto" />
         )}
 
+        <label>
+          Observações
+          <textarea
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Clima, isca, equipamento…"
+            maxLength={2000}
+          />
+        </label>
+
         {erroGeral && <p className="erro">{erroGeral}</p>}
 
-        <button type="submit" disabled={enviando || carregandoEspecies}>
+        <button type="submit" disabled={enviando || carregando}>
           {enviando ? "Salvando…" : "Salvar captura"}
         </button>
       </form>
+
+      {foraDaFaixa && (
+        <ConfirmacaoForaDaFaixa
+          tentativa={foraDaFaixa}
+          enviando={enviando}
+          aoCorrigir={() => setForaDaFaixa(null)}
+          aoConfirmar={() => {
+            const { corpo, especie } = foraDaFaixa;
+            setForaDaFaixa(null);
+            enviar({ ...corpo, confirmOutOfRange: true }, especie);
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+const NOMES_CAMPO = { weight: "peso", length: "comprimento" } as const;
+const UNIDADES = { weight: "kg", length: "cm" } as const;
+
+/** Diálogo do RGN-08: a medida está fora da faixa plausível da espécie. */
+function ConfirmacaoForaDaFaixa({
+  tentativa,
+  enviando,
+  aoCorrigir,
+  aoConfirmar,
+}: {
+  tentativa: ForaDaFaixa;
+  enviando: boolean;
+  aoCorrigir: () => void;
+  aoConfirmar: () => void;
+}) {
+  const { corpo, especie, detalhes } = tentativa;
+
+  return (
+    <div className="captura-dialogo-fundo">
+      <div className="captura-dialogo" role="alertdialog" aria-modal="true" aria-labelledby="titulo-faixa">
+        <h3 id="titulo-faixa">Confere essa medida?</h3>
+        <ul>
+          {detalhes.map((d) => (
+            <li key={d.campo}>
+              O {NOMES_CAMPO[d.campo]} informado,{" "}
+              <strong>
+                {corpo[d.campo].toLocaleString("pt-BR")} {UNIDADES[d.campo]}
+              </strong>
+              , está fora da faixa plausível para <strong>{especie.name}</strong> (
+              {formatarFaixa(d.min, d.max, UNIDADES[d.campo])}).
+            </li>
+          ))}
+        </ul>
+        <p className="campo-dica">
+          Se o valor estiver certo, a captura é registrada normalmente e fica
+          sinalizada para revisão. Se foi erro de digitação, corrija antes de salvar.
+        </p>
+        <div className="captura-dialogo-botoes">
+          <button type="button" className="secundario" onClick={aoCorrigir} disabled={enviando}>
+            Corrigir
+          </button>
+          <button type="button" onClick={aoConfirmar} disabled={enviando}>
+            Está certo, registrar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

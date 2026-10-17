@@ -52,8 +52,10 @@ button.link {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
+  font-family: inherit;
   padding: 0.55rem;
   border: 1px solid var(--borda);
   border-radius: var(--raio);
@@ -74,8 +76,26 @@ label {
   font-size: 0.9rem;
 }
 
+/* Texto pequeno embaixo de um campo de formulário: erro ou dica. */
+.campo-erro {
+  font-size: 0.78rem;
+  color: var(--erro);
+}
+
+.campo-dica {
+  font-size: 0.78rem;
+  color: var(--texto-fraco);
+}
+
 .estado-carregando {
   padding: 2rem;
   text-align: center;
   color: var(--texto-fraco);
+}
+
+/* Botão de ação secundária (ex.: "Cancelar", "Corrigir"). */
+button.secundario {
+  background: #fff;
+  color: var(--agua);
+  border: 1px solid var(--agua);
 }

@@ -3,11 +3,13 @@ import { authApi } from "../api/auth";
 import { tokenStorage } from "../api/client";
 import type { User } from "../types";
 
+// O cadastro não está aqui de propósito: ele não loga ninguém (a conta nasce
+// inativa até confirmar o e-mail), então não mexe no estado de autenticação.
+// A tela de cadastro chama `authApi.signup` direto.
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -36,19 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(user);
   }
 
-  async function signup(name: string, email: string, password: string) {
-    const { user, token } = await authApi.signup({ name, email, password });
-    tokenStorage.set(token);
-    setUser(user);
-  }
-
   function logout() {
     tokenStorage.clear();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

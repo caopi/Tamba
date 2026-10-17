@@ -257,3 +257,47 @@
   color: var(--texto-fraco);
   text-align: center;
 }
+
+/* --- Raridade e espécie arquivada --- */
+
+/* Selo de raridade e status um embaixo do outro, centralizados no card. */
+.dex-card .dex-status {
+  display: block;
+  width: fit-content;
+  margin: 0.4rem auto 0;
+}
+
+.dex-selos {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+/* Arquivada: saiu do catálogo, mas o usuário já tinha pescado. */
+.dex-card.arquivada {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.dex-card.arquivada .dex-status,
+.dex-arquivada-selo {
+  background: #eee6dc;
+  color: #6b5640;
+}
+
+.dex-arquivada-selo {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.dex-arquivada-aviso {
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--raio);
+  background: #f5efe6;
+  color: #6b5640;
+  font-size: 0.85rem;
+}

@@ -10,7 +10,7 @@ import { query, queryOne } from "../lib/db.js";
 const SELECT_COMPLETO = `
   SELECT
     c.id, c.user_id, c.species_id, c.spot_id, c.spot_name, c.region, c.weight, c.length,
-    c.photo_url, c.notes, c.latitude, c.longitude, c.is_flagged_for_review, c.is_hidden,
+    c.notes, c.latitude, c.longitude, c.is_flagged_for_review, c.is_hidden,
     c.caught_at, c.created_at, c.updated_at,
     e.id                     AS especie_id,
     e.name                   AS especie_name,
@@ -54,8 +54,7 @@ function mapCatch(linha) {
     region: linha.region,
     weight: linha.weight,
     length: linha.length,
-    // Legado: espelho da foto de posição 0, enquanto o frontend lê só esta.
-    photoUrl: linha.photo_url,
+    // Preenchido por anexarFotos, em ordem de `position` (a 1ª é a capa).
     photos: [],
     notes: linha.notes,
     latitude: numeroOuNull(linha.latitude),
@@ -182,22 +181,15 @@ export async function findFeed(viewerId, { onlyFollowing, before, limit }) {
   );
 }
 
-/** Lista de fotos da captura a partir dos dados recebidos (nova ou legada). */
-function fotosDe(dados) {
-  if (dados.photoUrls) return dados.photoUrls;
-  if (dados.photoUrl) return [dados.photoUrl];
-  return [];
-}
-
+/** Cria a captura e as fotos dela (`dados.photoUrls`, na ordem: a 1ª é a capa). */
 export async function create(userId, dados, conn) {
   const id = randomUUID();
-  const fotos = fotosDe(dados);
 
   await query(
     `INSERT INTO catches
-       (id, user_id, species_id, spot_id, spot_name, region, weight, length, photo_url,
+       (id, user_id, species_id, spot_id, spot_name, region, weight, length,
         notes, latitude, longitude, is_flagged_for_review, caught_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       userId,
@@ -207,7 +199,6 @@ export async function create(userId, dados, conn) {
       dados.region ?? null,
       dados.weight,
       dados.length,
-      fotos[0] ?? null,
       dados.notes ?? null,
       dados.latitude ?? null,
       dados.longitude ?? null,
@@ -216,7 +207,7 @@ export async function create(userId, dados, conn) {
     ],
     conn,
   );
-  await inserirFotos(id, fotos, conn);
+  await inserirFotos(id, dados.photoUrls ?? [], conn);
 
   return findById(userId, id, conn);
 }
@@ -231,20 +222,16 @@ async function inserirFotos(catchId, urls, conn) {
   }
 }
 
-/**
- * Troca todas as fotos da captura. Mantém `catches.photo_url` igual à foto de
- * posição 0 enquanto as duas colunas convivem.
- */
+/** Troca todas as fotos da captura pela lista nova, na ordem dada. */
 export async function replacePhotos(catchId, urls, conn) {
   await query("DELETE FROM catch_photos WHERE catch_id = ?", [catchId], conn);
   await inserirFotos(catchId, urls, conn);
-  await query("UPDATE catches SET photo_url = ? WHERE id = ?", [urls[0] ?? null, catchId], conn);
 }
 
 // Whitelist campo da API -> coluna do banco. É daqui que sai o SET da query,
 // nunca do corpo da request: sem isso, um campo inventado pelo cliente entraria
 // no SQL. Os valores continuam indo como `?`. As fotos não estão aqui: mudam
-// por `replacePhotos`, que mantém photo_url em sincronia.
+// por `replacePhotos`, que mexe em catch_photos.
 const COLUNAS_EDITAVEIS = {
   speciesId: "species_id",
   spotId: "spot_id",

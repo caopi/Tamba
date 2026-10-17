@@ -282,7 +282,7 @@ Exemplo de corpo para `POST /catches`:
 `weight` é sempre em **kg** e `length` em **cm** (a unidade do perfil é só de
 exibição). `photoUrls` precisa de pelo menos uma foto (até 10), na ordem de exibição — a
 primeira é a capa. Cada URL tem de ter vindo do `POST /uploads`: link de imagem
-externa é recusado. O formato antigo, `photoUrl` com uma URL só, ainda é aceito. Se escolher um `spotId`, a `region`
+externa é recusado. Se escolher um `spotId`, a `region`
 vem do pesqueiro. Peso ou tamanho fora da faixa da espécie volta 422
 `OUT_OF_RANGE`; reenviando com `"confirmOutOfRange": true`, a captura entra
 sinalizada para revisão.

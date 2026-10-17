@@ -90,10 +90,9 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
 - **catch_photos** — 1..10 fotos por captura, ordenadas por `position`; a de
   posição 0 é a capa. `url` aponta para o armazenamento do `lib/storage.js` — a
   API só aceita foto enviada por `POST /api/uploads` (REQ-15), não link externo.
-  **`catches.photo_url` é legado:** espelha a foto de posição 0 enquanto o
-  frontend antigo lê só ela, e o model mantém as duas em sincronia
-  (`replacePhotos`). Vai sair numa migration própria depois que o frontend
-  passar a usar `photos`.
+  É a única fonte das fotos: a antiga coluna `catches.photo_url` foi removida
+  na migration 011. Capturas antigas podem ter `url` externa, de antes do
+  upload; elas continuam valendo.
 - **follows / likes / user_favorite_species** — chave primária composta pelo
   par: é ela que impede duplicata (RGN-15). "Não seguir a si mesmo" é trigger
   (migration 007), porque o MySQL não aceita CHECK em coluna com FK CASCADE.

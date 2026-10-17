@@ -49,15 +49,13 @@ const createSchema = z.object({
   notes: textoOpcional(2000, "Observações muito longas"),
   latitude: z.number().min(-90).max(90).nullish(),
   longitude: z.number().min(-180).max(180).nullish(),
-  // RGN-07: pelo menos uma foto (conferido em `fotosDaEntrada`).
-  // REQ-15: só fotos enviadas pelo upload do app (POST /api/uploads) — colar
-  // o link de uma imagem qualquer da internet não vale.
+  // RGN-07: pelo menos uma foto. REQ-15: só fotos enviadas pelo upload do
+  // app (POST /api/uploads) — colar o link de uma imagem da internet não vale.
+  // Na ordem de exibição: a primeira é a capa.
   photoUrls: z
     .array(fotoEnviada)
-    .max(10, "No máximo 10 fotos por captura")
-    .optional(),
-  // Formato antigo, de uma foto só, que o formulário atual ainda manda.
-  photoUrl: fotoEnviada.nullish(),
+    .min(1, "A captura precisa de pelo menos uma foto")
+    .max(10, "No máximo 10 fotos por captura"),
   // RGN-08: o usuário confirmou que o peso/tamanho fora da faixa está certo.
   confirmOutOfRange: z.boolean().default(false),
 });
@@ -73,14 +71,6 @@ const feedSchema = z.object({
   before: z.coerce.date().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
-
-/** Fotos enviadas, no formato novo (lista) ou no antigo (uma URL). */
-function fotosDaEntrada(dados) {
-  if (dados.photoUrls) return dados.photoUrls;
-  if (dados.photoUrl) return [dados.photoUrl];
-  if ("photoUrl" in dados || "photoUrls" in dados) return [];
-  return undefined; // não mexeu nas fotos
-}
 
 function conferirCoordenadas(latitude, longitude) {
   if ((latitude == null) !== (longitude == null)) {
@@ -217,13 +207,8 @@ export async function getFeed(viewerId, entrada) {
 }
 
 export async function createCatch(userId, entrada) {
+  // RGN-07: o "pelo menos uma foto" está no próprio schema (photoUrls.min).
   const dados = createSchema.parse(entrada);
-
-  // RGN-07: pelo menos uma foto.
-  const fotos = fotosDaEntrada(dados) ?? [];
-  if (fotos.length === 0) {
-    throw httpError(422, "A captura precisa de pelo menos uma foto");
-  }
   conferirCoordenadas(dados.latitude, dados.longitude);
 
   const especie = await especieParaCaptura(dados.speciesId);
@@ -236,7 +221,6 @@ export async function createCatch(userId, entrada) {
       userId,
       {
         ...dados,
-        photoUrls: fotos,
         region: regiao ?? dados.region,
         isFlaggedForReview: sinalizada,
       },
@@ -254,11 +238,9 @@ export async function updateCatch(userId, catchId, entrada) {
   const atual = await catchModel.findByIdForUser(catchId, userId);
   if (!atual) throw httpError(404, "Captura não encontrada");
 
-  // RGN-07: se mandou fotos, a lista nova não pode ficar vazia.
-  const fotos = fotosDaEntrada(dados);
-  if (fotos && fotos.length === 0) {
-    throw httpError(422, "A captura precisa de pelo menos uma foto");
-  }
+  // Fotos são opcionais na edição (não mandou = não mexe), mas se mandou, a
+  // lista nova segue o mesmo schema: pelo menos uma (RGN-07).
+  const fotos = dados.photoUrls;
 
   conferirCoordenadas(
     "latitude" in dados ? dados.latitude : atual.latitude,

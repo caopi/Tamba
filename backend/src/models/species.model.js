@@ -1,4 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { query, queryOne } from "../lib/db.js";
+
+// O mysql2 devolve DECIMAL como string (para não perder precisão). As faixas
+// cabem tranquilamente num number do JS.
+const numeroOuNull = (valor) => (valor === null || valor === undefined ? null : Number(valor));
 
 export function mapSpecies(linha) {
   if (!linha) return null;
@@ -9,11 +14,20 @@ export function mapSpecies(linha) {
     habitat: linha.habitat,
     imageUrl: linha.image_url,
     recommendedBaits: linha.recommended_baits,
+    rarity: linha.rarity,
+    minWeight: numeroOuNull(linha.min_weight),
+    maxWeight: numeroOuNull(linha.max_weight),
+    minLength: numeroOuNull(linha.min_length),
+    maxLength: numeroOuNull(linha.max_length),
+    curiosities: linha.curiosities,
+    isActive: Boolean(linha.is_active),
   };
 }
 
-export async function findAll() {
-  const linhas = await query("SELECT * FROM fish_species ORDER BY name ASC");
+/** Por padrão só as ativas; o admin pode pedir as desativadas também. */
+export async function findAll({ includeInactive = false } = {}) {
+  const filtro = includeInactive ? "" : "WHERE is_active = TRUE";
+  const linhas = await query(`SELECT * FROM fish_species ${filtro} ORDER BY name ASC`);
   return linhas.map(mapSpecies);
 }
 
@@ -21,7 +35,109 @@ export async function findById(id) {
   return mapSpecies(await queryOne("SELECT * FROM fish_species WHERE id = ?", [id]));
 }
 
-/** Só checa existência, sem trazer a linha inteira. Usado ao criar captura. */
+/** Só checa existência, sem trazer a linha inteira. */
 export async function exists(id) {
   return (await queryOne("SELECT id FROM fish_species WHERE id = ?", [id])) !== null;
+}
+
+export async function nameTaken(name, exceptId = null) {
+  const linha = await queryOne(
+    "SELECT id FROM fish_species WHERE name = ? AND (? IS NULL OR id <> ?)",
+    [name, exceptId, exceptId],
+  );
+  return linha !== null;
+}
+
+export async function hasCatches(id) {
+  return (await queryOne("SELECT id FROM catches WHERE species_id = ? LIMIT 1", [id])) !== null;
+}
+
+// Whitelist campo da API -> coluna. Vale para o INSERT e para o UPDATE.
+const COLUNAS = {
+  name: "name",
+  scientificName: "scientific_name",
+  habitat: "habitat",
+  imageUrl: "image_url",
+  recommendedBaits: "recommended_baits",
+  rarity: "rarity",
+  minWeight: "min_weight",
+  maxWeight: "max_weight",
+  minLength: "min_length",
+  maxLength: "max_length",
+  curiosities: "curiosities",
+  isActive: "is_active",
+};
+
+export async function create(dados) {
+  const id = randomUUID();
+  const colunas = ["id"];
+  const valores = [id];
+
+  for (const [campo, coluna] of Object.entries(COLUNAS)) {
+    if (campo in dados) {
+      colunas.push(coluna);
+      valores.push(dados[campo] ?? null);
+    }
+  }
+
+  await query(
+    `INSERT INTO fish_species (${colunas.join(", ")}) VALUES (${colunas.map(() => "?").join(", ")})`,
+    valores,
+  );
+  return findById(id);
+}
+
+export async function update(id, dados) {
+  const atribuicoes = [];
+  const valores = [];
+
+  for (const [campo, coluna] of Object.entries(COLUNAS)) {
+    if (campo in dados) {
+      atribuicoes.push(`${coluna} = ?`);
+      valores.push(dados[campo] ?? null);
+    }
+  }
+  if (atribuicoes.length === 0) return;
+
+  valores.push(id);
+  await query(`UPDATE fish_species SET ${atribuicoes.join(", ")} WHERE id = ?`, valores);
+}
+
+export async function remove(id) {
+  const resultado = await query("DELETE FROM fish_species WHERE id = ?", [id]);
+  return resultado.affectedRows;
+}
+
+/**
+ * A Dex de um usuário: todas as espécies com o que ele já pescou de cada uma.
+ *
+ * Só capturas não ocultas entram na conta (RGN-10; regra no dex.service).
+ * Espécie desativada some do catálogo, mas continua na Dex de quem já a pescou.
+ */
+export async function findDexForUser(userId) {
+  const linhas = await query(
+    `SELECT
+       e.*,
+       COUNT(c.id)      AS catch_count,
+       MIN(c.caught_at) AS first_caught_at,
+       EXISTS (
+         SELECT 1 FROM user_favorite_species f
+         WHERE f.user_id = ? AND f.species_id = e.id
+       ) AS is_favorite
+     FROM fish_species e
+     LEFT JOIN catches c
+       ON c.species_id = e.id AND c.user_id = ? AND c.is_hidden = FALSE
+     GROUP BY e.id
+     HAVING e.is_active = TRUE OR COUNT(c.id) > 0
+     ORDER BY e.name ASC`,
+    [userId, userId],
+  );
+
+  return linhas.map((linha) => ({
+    ...mapSpecies(linha),
+    captured: linha.catch_count > 0,
+    catchCount: linha.catch_count,
+    firstCaughtAt: linha.first_caught_at,
+    isFavorite: Boolean(linha.is_favorite),
+  }));
 }

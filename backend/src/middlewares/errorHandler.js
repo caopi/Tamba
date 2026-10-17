@@ -19,16 +19,23 @@ export function errorHandler(err, req, res, next) {
   }
 
   if (err.status) {
-    return res.status(err.status).json({ error: err.message });
+    return res.status(err.status).json({ error: err.message, ...err.extra });
   }
 
   console.error(err);
   res.status(500).json({ error: "Erro interno do servidor" });
 }
 
-/** Atalho para lancar erros HTTP com status: `throw httpError(404, "não achei")`. */
-export function httpError(status, message) {
+/**
+ * Atalho para lancar erros HTTP com status: `throw httpError(404, "não achei")`.
+ *
+ * `extra` vai junto no JSON da resposta. Serve para quando o frontend precisa
+ * reagir a um erro específico, não só mostrar a mensagem — ex.:
+ * `{ code: "OUT_OF_RANGE" }` faz a tela abrir a confirmação de peso fora da faixa.
+ */
+export function httpError(status, message, extra) {
   const err = new Error(message);
   err.status = status;
+  err.extra = extra;
   return err;
 }

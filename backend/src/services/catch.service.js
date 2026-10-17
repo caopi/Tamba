@@ -1,0 +1,302 @@
+// Capturas: registro, edição, exclusão, feed e o que cada um pode ver
+// (RGN-07, RGN-08, RGN-09, RGN-12, RGN-13).
+//
+// Peso entra e sai sempre em kg e comprimento em cm. A preferência
+// `measurement_unit` do usuário é só de exibição: quem converte é o frontend.
+
+import { z } from "zod";
+import * as catchModel from "../models/catch.model.js";
+import * as speciesModel from "../models/species.model.js";
+import * as spotModel from "../models/spot.model.js";
+import * as userModel from "../models/user.model.js";
+import { withTransaction } from "../lib/db.js";
+import { httpError } from "../middlewares/errorHandler.js";
+
+// Folga para relógio de celular um pouco adiantado: sem ela, quem registra a
+// captura "agora" com o relógio 1 minuto à frente do servidor seria barrado.
+const FOLGA_FUTURO_MS = 5 * 60 * 1000;
+
+const textoOpcional = (max, mensagem) =>
+  z
+    .string()
+    .trim()
+    .max(max, mensagem)
+    .nullish()
+    // Campo vazio vira null para não gravar string em branco no banco.
+    .transform((valor) => valor || null);
+
+const createSchema = z.object({
+  // RGN-07: toda captura tem espécie.
+  speciesId: z.string().uuid("Espécie inválida"),
+  spotId: z.string().uuid("Pesqueiro inválido").nullish(),
+  spotName: textoOpcional(180, "Nome do local muito longo"),
+  region: textoOpcional(120, "Região muito longa"),
+  // RGN-08: peso e comprimento maiores que zero.
+  weight: z.coerce.number().positive("O peso precisa ser maior que zero"),
+  length: z.coerce.number().positive("O comprimento precisa ser maior que zero"),
+  // RGN-07: a data da captura não pode estar no futuro.
+  caughtAt: z.coerce
+    .date()
+    .refine((data) => data.getTime() <= Date.now() + FOLGA_FUTURO_MS, {
+      message: "A data da captura não pode estar no futuro",
+    }),
+  notes: textoOpcional(2000, "Observações muito longas"),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
+  // RGN-07: pelo menos uma foto (conferido em `fotosDaEntrada`).
+  photoUrls: z
+    .array(z.string().trim().url("URL da foto inválida"))
+    .max(10, "No máximo 10 fotos por captura")
+    .optional(),
+  // Formato antigo, de uma foto só, que o formulário atual ainda manda.
+  photoUrl: z.string().trim().url("URL da foto inválida").nullish(),
+  // RGN-08: o usuário confirmou que o peso/tamanho fora da faixa está certo.
+  confirmOutOfRange: z.boolean().default(false),
+});
+
+// Na edição tudo é opcional, mas as regras de cada campo continuam valendo.
+const updateSchema = createSchema.partial();
+
+const feedSchema = z.object({
+  // REQ-26: o feed é "capturas de quem o usuário segue" — por isso é o padrão
+  // (e é o que faz o estado vazio do REQ-36 aparecer para quem não segue
+  // ninguém). `all` é o modo "Descobrir" do REQ-28, sempre pedido explicitamente.
+  scope: z.enum(["following", "all"]).default("following"),
+  before: z.coerce.date().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+/** Fotos enviadas, no formato novo (lista) ou no antigo (uma URL). */
+function fotosDaEntrada(dados) {
+  if (dados.photoUrls) return dados.photoUrls;
+  if (dados.photoUrl) return [dados.photoUrl];
+  if ("photoUrl" in dados || "photoUrls" in dados) return [];
+  return undefined; // não mexeu nas fotos
+}
+
+function conferirCoordenadas(latitude, longitude) {
+  if ((latitude == null) !== (longitude == null)) {
+    throw httpError(422, "Informe latitude e longitude juntas, ou nenhuma das duas");
+  }
+}
+
+/** Espécie para uma captura NOVA: precisa existir e estar ativa (RGN-17). */
+async function especieParaCaptura(speciesId) {
+  const especie = await speciesModel.findById(speciesId);
+  if (!especie) throw httpError(422, "Espécie não existe no catálogo");
+  if (!especie.isActive) throw httpError(422, "Essa espécie foi desativada do catálogo");
+  return especie;
+}
+
+/**
+ * Com pesqueiro do catálogo, a região vem do `location` dele; sem pesqueiro,
+ * vale o que o usuário digitou. Devolve undefined quando não há o que mudar.
+ */
+async function regiaoDoPesqueiro(spotId) {
+  if (!spotId) return undefined;
+  const pesqueiro = await spotModel.findById(spotId);
+  if (!pesqueiro) throw httpError(422, "Pesqueiro não existe");
+  return pesqueiro.location.slice(0, 120);
+}
+
+/**
+ * RGN-08: medida fora da faixa plausível da espécie só entra com confirmação
+ * explícita e, nesse caso, a captura fica sinalizada para revisão. Espécie
+ * sem faixa cadastrada (NULL) nunca sinaliza. Devolve o valor de
+ * `is_flagged_for_review`.
+ */
+function avaliarFaixa(especie, { weight, length }, confirmado) {
+  const fora = [];
+  if (
+    (especie.minWeight !== null && weight < especie.minWeight) ||
+    (especie.maxWeight !== null && weight > especie.maxWeight)
+  ) {
+    fora.push({ campo: "weight", min: especie.minWeight, max: especie.maxWeight });
+  }
+  if (
+    (especie.minLength !== null && length < especie.minLength) ||
+    (especie.maxLength !== null && length > especie.maxLength)
+  ) {
+    fora.push({ campo: "length", min: especie.minLength, max: especie.maxLength });
+  }
+
+  if (fora.length > 0 && !confirmado) {
+    throw httpError(
+      422,
+      `Peso ou comprimento fora do comum para ${especie.name}. Confirme para registrar mesmo assim.`,
+      { code: "OUT_OF_RANGE", details: fora },
+    );
+  }
+  return fora.length > 0;
+}
+
+/**
+ * RGN-13: a coordenada exata só vai para outros usuários se o autor ligou
+ * `share_exact_location`; senão a resposta omite latitude/longitude e fica só
+ * a região (cidade/estado). O próprio autor sempre vê tudo.
+ *
+ * Interpretação adotada: o RGN-13 protege a geolocalização precisa, que é o
+ * que o RNF-11 aponta como dado sensível. O `spotName` continua visível
+ * porque é um rótulo que o autor escreveu de propósito para a publicação
+ * ("Pesqueiro do Zé"), e não uma localização capturada pelo app.
+ *
+ * Também tira os campos internos que o model devolve para a decisão.
+ */
+export function toCatchResponse(captura, viewerId) {
+  const { authorIsActive, authorSharesLocation, ...publica } = captura;
+  if (captura.userId === viewerId || authorSharesLocation) return publica;
+
+  const { latitude, longitude, ...semCoordenadas } = publica;
+  return semCoordenadas;
+}
+
+/**
+ * Captura que `viewerId` pode ver, ainda com os campos internos (para quem
+ * precisa conferir o autor, como curtida e denúncia), ou 404.
+ *
+ * RGN-12: captura oculta ou de autor inativo só aparece para o próprio autor.
+ */
+export async function findVisibleCatch(viewerId, catchId) {
+  const captura = await catchModel.findById(viewerId, catchId);
+  const visivel =
+    captura &&
+    (captura.userId === viewerId || (!captura.isHidden && captura.authorIsActive));
+  if (!visivel) throw httpError(404, "Captura não encontrada");
+  return captura;
+}
+
+export async function getCatch(viewerId, catchId) {
+  return toCatchResponse(await findVisibleCatch(viewerId, catchId), viewerId);
+}
+
+/**
+ * Histórico do próprio usuário, INCLUINDO as ocultas pela moderação: elas
+ * vêm com `isHidden: true` para a tela mostrar o selo "em análise" e o
+ * usuário entender por que a contagem da Dex caiu.
+ */
+export async function listMyCatches(userId) {
+  const capturas = await catchModel.findAllByUser(userId, { includeHidden: true });
+  return capturas.map((c) => toCatchResponse(c, userId));
+}
+
+/** Capturas de outro usuário, no perfil dele: sem ocultas (RGN-12). */
+export async function listUserCatches(viewerId, userId) {
+  if (viewerId === userId) return listMyCatches(userId);
+  if (!(await userModel.findActivePublicById(userId))) {
+    throw httpError(404, "Usuário não encontrado");
+  }
+  const capturas = await catchModel.findAllByUser(userId, { viewerId });
+  return capturas.map((c) => toCatchResponse(c, viewerId));
+}
+
+/**
+ * RGN-12: o feed só mostra capturas não ocultas de usuários ativos (o filtro
+ * está em catchModel.findFeed). Por padrão só de quem o usuário segue;
+ * `scope=all` abre para todo mundo (Descobrir).
+ */
+export async function getFeed(viewerId, entrada) {
+  const { scope, before, limit } = feedSchema.parse(entrada);
+  const capturas = await catchModel.findFeed(viewerId, {
+    onlyFollowing: scope === "following",
+    before,
+    limit,
+  });
+  return {
+    items: capturas.map((c) => toCatchResponse(c, viewerId)),
+    // Cursor da próxima página; null quando acabou.
+    nextBefore: capturas.length === limit ? capturas.at(-1).createdAt : null,
+  };
+}
+
+export async function createCatch(userId, entrada) {
+  const dados = createSchema.parse(entrada);
+
+  // RGN-07: pelo menos uma foto.
+  const fotos = fotosDaEntrada(dados) ?? [];
+  if (fotos.length === 0) {
+    throw httpError(422, "A captura precisa de pelo menos uma foto");
+  }
+  conferirCoordenadas(dados.latitude, dados.longitude);
+
+  const especie = await especieParaCaptura(dados.speciesId);
+  const regiao = await regiaoDoPesqueiro(dados.spotId);
+  const sinalizada = avaliarFaixa(especie, dados, dados.confirmOutOfRange);
+
+  // Captura e fotos entram juntas, ou nenhuma entra.
+  const captura = await withTransaction((conn) =>
+    catchModel.create(
+      userId,
+      {
+        ...dados,
+        photoUrls: fotos,
+        region: regiao ?? dados.region,
+        isFlaggedForReview: sinalizada,
+      },
+      conn,
+    ),
+  );
+  return toCatchResponse(captura, userId);
+}
+
+export async function updateCatch(userId, catchId, entrada) {
+  const dados = updateSchema.parse(entrada);
+
+  // RGN-09: só o autor edita. Conferir antes também evita depender do
+  // affectedRows, que no MySQL vem 0 quando o valor gravado não muda.
+  const atual = await catchModel.findByIdForUser(catchId, userId);
+  if (!atual) throw httpError(404, "Captura não encontrada");
+
+  // RGN-07: se mandou fotos, a lista nova não pode ficar vazia.
+  const fotos = fotosDaEntrada(dados);
+  if (fotos && fotos.length === 0) {
+    throw httpError(422, "A captura precisa de pelo menos uma foto");
+  }
+
+  conferirCoordenadas(
+    "latitude" in dados ? dados.latitude : atual.latitude,
+    "longitude" in dados ? dados.longitude : atual.longitude,
+  );
+
+  // Trocar de espécie segue a regra de captura nova (precisa estar ativa);
+  // editar outro campo de uma captura de espécie já desativada continua valendo.
+  const trocouEspecie = dados.speciesId && dados.speciesId !== atual.speciesId;
+  const especie = trocouEspecie
+    ? await especieParaCaptura(dados.speciesId)
+    : await speciesModel.findById(atual.speciesId);
+
+  // RGN-08 é reavaliado com os valores finais sempre que espécie, peso ou
+  // comprimento mudam: corrigir um peso digitado errado tira a sinalização.
+  const alteracoes = { ...dados };
+  if (trocouEspecie || "weight" in dados || "length" in dados) {
+    alteracoes.isFlaggedForReview = avaliarFaixa(
+      especie,
+      { weight: dados.weight ?? atual.weight, length: dados.length ?? atual.length },
+      dados.confirmOutOfRange,
+    );
+  }
+
+  if ("spotId" in dados) {
+    const regiao = await regiaoDoPesqueiro(dados.spotId);
+    if (regiao !== undefined) alteracoes.region = regiao;
+  }
+
+  const captura = await withTransaction(async (conn) => {
+    await catchModel.updateForUser(catchId, userId, alteracoes, conn);
+    if (fotos) await catchModel.replacePhotos(catchId, fotos, conn);
+    return catchModel.findById(userId, catchId, conn);
+  });
+  return toCatchResponse(captura, userId);
+}
+
+/**
+ * RGN-09: só o autor apaga (o `user_id` vai no WHERE do DELETE).
+ *
+ * "Recalcular estatísticas e Dex" não exige código aqui: os dois são
+ * calculados na leitura (catchModel.statsForUser, speciesModel.findDexForUser),
+ * então a próxima consulta já sai sem a captura apagada. Curtidas,
+ * comentários, denúncias, notificações e fotos saem junto por CASCADE.
+ */
+export async function deleteCatch(userId, catchId) {
+  const apagadas = await catchModel.deleteForUser(catchId, userId);
+  if (apagadas === 0) throw httpError(404, "Captura não encontrada");
+}

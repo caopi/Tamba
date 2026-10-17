@@ -15,6 +15,10 @@ export async function findAll() {
   return linhas.map(mapSpot);
 }
 
+export async function findById(id) {
+  return mapSpot(await queryOne("SELECT * FROM fishing_spots WHERE id = ?", [id]));
+}
+
 export async function exists(id) {
   return (await queryOne("SELECT id FROM fishing_spots WHERE id = ?", [id])) !== null;
 }

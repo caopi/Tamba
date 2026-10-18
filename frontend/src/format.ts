@@ -30,3 +30,12 @@ export function formatarFaixa(min: number | null, max: number | null, unidade: s
   if (max !== null) return `até ${numero(max)} ${unidade}`;
   return null;
 }
+
+/** "CC BY 4.0" -> página da licença; domínio público não tem página. */
+export function licencaUrl(licenca: string | null) {
+  if (!licenca) return null;
+  const by = /^CC BY (\d\.\d)$/.exec(licenca);
+  if (by) return `https://creativecommons.org/licenses/by/${by[1]}/deed.pt-br`;
+  if (licenca === "CC0") return "https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br";
+  return null;
+}

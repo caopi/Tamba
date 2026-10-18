@@ -1,0 +1,20 @@
+/* Crédito logo abaixo da foto (ficha da espécie, tela de créditos). */
+.credito-foto {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+}
+
+.credito-foto p {
+  margin: 0;
+}
+
+.credito-foto a {
+  color: inherit;
+}
+
+/* "Na foto: ...": quando a foto não é exatamente a espécie da entrada. */
+.credito-legenda {
+  margin-top: 0.2rem !important;
+  font-style: italic;
+}

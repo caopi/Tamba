@@ -1,0 +1,77 @@
+/* Moldura única das fotos de espécie. Proporção fixa e cover: toda foto
+   ocupa o quadro inteiro, venha de onde vier. */
+.especie-foto {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  width: 100%;
+  border-radius: var(--raio);
+  overflow: hidden;
+  background: linear-gradient(180deg, #e6f2f5 0%, #cfe3e9 100%);
+  display: grid;
+  place-items: center;
+}
+
+/* Absoluta: a foto nunca influi no tamanho da moldura (com aspect-ratio só,
+   a altura natural de uma foto mais "quadrada" esticava o quadro). */
+.especie-foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: filter 0.2s ease;
+}
+
+/* Mesma vinheta e borda interna em todas: é o que faz fotos de fontes
+   diferentes parecerem da mesma coleção. Fica por cima da foto. */
+.especie-foto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 43, 48, 0.08),
+    inset 0 -36px 40px -30px rgba(15, 43, 48, 0.35);
+}
+
+.especie-foto-vazia {
+  font-size: 2.5rem;
+}
+
+.especie-foto-grande .especie-foto-vazia {
+  font-size: 3.5rem;
+}
+
+.especie-foto-mini {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.especie-foto-mini .especie-foto-vazia {
+  font-size: 1.6rem;
+}
+
+/* Não capturada: a sombra da própria foto. Sem cor e escura, com contraste
+   alto, o peixe ainda se destaca do fundo (sobretudo nas fotos de estúdio,
+   de fundo liso), mas os detalhes somem; o desfoque leve tira o resto. Um
+   recorte de silhueta "de verdade" precisaria saber onde acaba o peixe, e uma
+   foto não tem essa informação. */
+.especie-foto.bloqueada {
+  background: #3a4a50;
+}
+
+.especie-foto.bloqueada img {
+  filter: grayscale(1) brightness(0.5) contrast(1.8) blur(1.5px);
+}
+
+.especie-foto.bloqueada::after {
+  background: rgba(20, 38, 44, 0.35);
+}
+
+.especie-foto.bloqueada .especie-foto-vazia {
+  filter: grayscale(1) brightness(0);
+  opacity: 0.3;
+}

@@ -10,6 +10,7 @@ import { z } from "zod";
 import * as speciesModel from "../models/species.model.js";
 import { isDuplicateKey } from "../lib/db.js";
 import { assertAdmin } from "../lib/authz.js";
+import * as storage from "../lib/storage.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
 const RARIDADES = ["comum", "incomum", "raro", "muito_raro"];
@@ -25,7 +26,14 @@ const createSchema = z.object({
   name: z.string().trim().min(2, "Nome muito curto").max(120, "Nome muito longo"),
   scientificName: z.string().trim().min(2, "Nome científico muito curto").max(180),
   habitat: z.string().trim().min(2, "Descreva o habitat"),
+  // Foto: ver `conferirImagem`. null tira a foto (a Dex mostra o 🐟).
   imageUrl: z.string().trim().url("URL da imagem inválida").nullish(),
+  // Crédito da foto (CC BY exige atribuição). Ver `conferirImagem`.
+  imageCredit: z.string().trim().max(255, "Crédito muito longo").nullish(),
+  imageLicense: z.string().trim().max(60, "Licença muito longa").nullish(),
+  imageSourceUrl: z.string().trim().url("Link da origem inválido").max(500).nullish(),
+  // Legenda opcional ("Na foto: ..."), para entrada de gênero.
+  imageCaption: z.string().trim().max(300, "Legenda muito longa").nullish(),
   recommendedBaits: z.string().trim().max(255).nullish(),
   // Obrigatória: raridade faz parte da definição da espécie. Este é o único
   // schema da API que aceita `rarity` (RGN-11).
@@ -61,6 +69,43 @@ function conferirFaixas({ minWeight, maxWeight, minLength, maxLength }) {
   }
 }
 
+/**
+ * Regras da foto da espécie, iguais para as duas origens (foto do repositório
+ * ou enviada pelo app), porque as duas chegam aqui como a mesma URL pública:
+ *
+ * - igual à foto atual: não mexe (editar a ficha sem trocar a foto);
+ * - null: tira a foto, e o crédito junto (sem foto não há o que creditar);
+ * - outra URL: tem de ser um upload do próprio admin (POST /api/uploads),
+ *   como nas fotos de captura, e vir com autor e licença. Link externo é
+ *   recusado: nada de "hotlink" para a Wikimedia nem para outro site, que
+ *   pode sumir ou mudar.
+ *
+ * Muda `dados` no lugar.
+ */
+function conferirImagem(dados, adminId, atual = null) {
+  if (!("imageUrl" in dados)) return;
+  if (atual && dados.imageUrl === atual.imageUrl) {
+    delete dados.imageUrl;
+    return;
+  }
+  if (dados.imageUrl == null) {
+    dados.imageUrl = null;
+    dados.imageCredit = null;
+    dados.imageLicense = null;
+    dados.imageSourceUrl = null;
+    dados.imageCaption = null;
+    return;
+  }
+  if (!storage.belongsTo(dados.imageUrl, adminId)) {
+    throw httpError(422, "Envie a foto pelo próprio formulário", { code: "PHOTO_NOT_OWNED" });
+  }
+  // Foto nova sem autor ou licença não entra: CC BY sem atribuição viola a
+  // licença, e até a foto do próprio admin precisa dizer de quem é.
+  if (!dados.imageCredit || !dados.imageLicense) {
+    throw httpError(422, "Informe o autor e a licença da foto");
+  }
+}
+
 function traduzirNomeDuplicado(err) {
   if (isDuplicateKey(err, "uk_fish_species_name")) {
     // A collation ignora acento e maiúscula: "Traira" colide com "Traíra".
@@ -90,6 +135,7 @@ export async function createSpecies(actor, entrada) {
   assertAdmin(actor);
   const dados = createSchema.parse(entrada);
   conferirFaixas(dados);
+  conferirImagem(dados, actor.id);
 
   if (await speciesModel.nameTaken(dados.name)) {
     throw httpError(409, "Já existe uma espécie com esse nome");
@@ -109,6 +155,7 @@ export async function updateSpecies(actor, speciesId, entrada) {
   const atual = await speciesModel.findById(speciesId);
   if (!atual) throw httpError(404, "Espécie não encontrada");
   conferirFaixas({ ...atual, ...dados });
+  conferirImagem(dados, actor.id, atual);
 
   if (dados.name && (await speciesModel.nameTaken(dados.name, speciesId))) {
     throw httpError(409, "Já existe uma espécie com esse nome");

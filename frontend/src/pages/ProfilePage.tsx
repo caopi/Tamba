@@ -24,7 +24,7 @@ type Coluna = "caughtAt" | "weight";
 type Direcao = "asc" | "desc";
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const unidades = useUnidades();
   const [capturas, setCapturas] = useState<Catch[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -112,7 +112,13 @@ export function ProfilePage() {
             @{user?.nickname} · {user?.email}
           </p>
           {user && <p className="perfil-desde">Pescando desde {formatarData(user.createdAt)}</p>}
-          <Link to="/configuracoes" className="perfil-editar">Editar perfil e configurações</Link>
+          <nav className="perfil-links">
+            <Link to="/configuracoes">⚙ Configurações</Link>
+            <Link to="/creditos">Créditos das fotos</Link>
+            <button type="button" className="link" onClick={logout}>
+              Sair
+            </button>
+          </nav>
         </div>
       </header>
 

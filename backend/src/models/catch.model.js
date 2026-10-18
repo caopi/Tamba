@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query, queryOne } from "../lib/db.js";
+import { publicUrl } from "../lib/storage.js";
 
 // A tela sempre precisa da espécie, do pesqueiro e do autor junto da captura,
 // então todo SELECT já vem com os JOINs. Os aliases evitam colisão entre as
@@ -81,7 +82,7 @@ function mapCatch(linha) {
       id: linha.especie_id,
       name: linha.especie_name,
       scientificName: linha.especie_scientific_name,
-      imageUrl: linha.especie_image_url,
+      imageUrl: publicUrl(linha.especie_image_url),
       rarity: linha.especie_rarity,
     },
     // LEFT JOIN: sem pesqueiro, todas as colunas vêm nulas.

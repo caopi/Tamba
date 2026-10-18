@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { usersApi } from "../api/social";
-import { PersonCard } from "../components/PersonCard";
+import { PersonCard } from "./PersonCard";
 import type { UserCard } from "../types";
-import "../components/PersonCard.css";
-import "./PeopleSearchPage.css";
+import "./PersonCard.css";
+import "./PeopleSearch.css";
 
 /**
  * Buscar pessoas por nome ou apelido (REQ-41/42) e segui-las (UC008). Sem
- * nada digitado, mostra as sugestões de quem seguir.
+ * nada digitado, mostra as sugestões de quem seguir. Fica na aba "Pessoas"
+ * do Feed (/feed?aba=pessoas).
  */
-export function PeopleSearchPage() {
+export function PeopleSearch() {
   const [termo, setTermo] = useState("");
   const [resultados, setResultados] = useState<UserCard[] | null>(null);
   const [sugestoes, setSugestoes] = useState<UserCard[]>([]);
@@ -46,7 +47,6 @@ export function PeopleSearchPage() {
 
   return (
     <section className="busca-pessoas">
-      <h2>Pessoas</h2>
       <input
         type="search"
         value={termo}

@@ -7,6 +7,9 @@ import { useUnidades } from "../units";
 import { useAuth } from "../context/AuthContext";
 import { adminApi } from "../api/admin";
 import { SpeciesForm } from "../components/SpeciesForm";
+import { SpeciesImage } from "../components/SpeciesImage";
+import { PhotoCredit } from "../components/PhotoCredit";
+import { Link } from "react-router-dom";
 import type { Catch, Dex, DexSpecies } from "../types";
 import "./FishDexPage.css";
 
@@ -104,6 +107,9 @@ export function FishDexPage() {
           <strong className="dex-contador">
             {dex.captured}/{dex.total} espécies capturadas
           </strong>
+          <Link to="/creditos" className="dex-creditos">
+            Créditos das fotos
+          </Link>
         </div>
 
         <div
@@ -132,15 +138,15 @@ export function FishDexPage() {
             <li key={especie.id}>
               <button type="button" className={classes} onClick={() => setSelecionada(especie)}>
                 <div className="dex-figura">
-                  {especie.imageUrl ? (
-                    <img src={especie.imageUrl} alt={especie.name} />
-                  ) : (
-                    <span className="dex-imagem-vazia">🐟</span>
-                  )}
+                  <SpeciesImage especie={especie} bloqueada={!especie.captured} />
                   {!especie.captured && <span className="dex-cadeado">🔒</span>}
                 </div>
 
                 <h3>{especie.name}</h3>
+                {/* Mostra o escopo: "Pseudoplatystoma spp." é o gênero inteiro. */}
+                <span className="dex-card-cientifico" title={especie.scientificName}>
+                  {especie.scientificName}
+                </span>
                 <RarityBadge rarity={especie.rarity} />
                 <span className="dex-status">
                   {especie.archived && !especie.captured
@@ -254,13 +260,10 @@ function DetalheEspecie({
           ✕
         </button>
 
-        <div className={especie.captured ? "dex-figura grande" : "dex-figura grande bloqueado"}>
-          {especie.imageUrl ? (
-            <img src={especie.imageUrl} alt={especie.name} />
-          ) : (
-            <span className="dex-imagem-vazia">🐟</span>
-          )}
-        </div>
+        {/* Sem sombra na ficha: habitat, iscas e faixa são justamente o que
+            se quer saber ANTES de pescar. A sombra é só da grade (progresso). */}
+        <SpeciesImage especie={especie} tamanho="grande" />
+        <PhotoCredit especie={especie} />
 
         <h2>{especie.name}</h2>
         <p className="dex-cientifico">{especie.scientificName}</p>

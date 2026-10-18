@@ -11,9 +11,9 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { FeedPage } from "./pages/FeedPage";
 import { CatchDetailPage } from "./pages/CatchDetailPage";
 import { PublicProfilePage } from "./pages/PublicProfilePage";
-import { PeopleSearchPage } from "./pages/PeopleSearchPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { CreditsPage } from "./pages/CreditsPage";
 
 export default function App() {
   return (
@@ -25,6 +25,8 @@ export default function App() {
           <Route path="/confirme-email" element={<ConfirmEmailPage />} />
           {/* Destino do link do e-mail (a API redireciona com ?status=). */}
           <Route path="/verificacao" element={<VerificationPage />} />
+          {/* Créditos das fotos: público, é o endereço citado no relatório. */}
+          <Route path="/creditos" element={<CreditsPage />} />
 
           {/* Tudo abaixo exige usuário logado e usa o Layout com a navegação. */}
           <Route element={<ProtectedRoute />}>
@@ -35,7 +37,8 @@ export default function App() {
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/capturas/:id" element={<CatchDetailPage />} />
               <Route path="/u/:id" element={<PublicProfilePage />} />
-              <Route path="/pessoas" element={<PeopleSearchPage />} />
+              {/* A busca de pessoas virou aba do Feed; o endereço antigo leva para lá. */}
+              <Route path="/pessoas" element={<Navigate to="/feed?aba=pessoas" replace />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
               <Route path="/notificacoes" element={<NotificationsPage />} />
             </Route>

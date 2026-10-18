@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { routes } from "./routes/index.js";
 import { notFound, errorHandler } from "./middlewares/errorHandler.js";
-import { UPLOADS_DIR } from "./lib/storage.js";
+import { ASSETS_DIR, UPLOADS_DIR } from "./lib/storage.js";
 
 export const app = express();
 
@@ -20,6 +20,19 @@ app.use(
     index: false,
     immutable: true,
     maxAge: "365d",
+    setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff"),
+  }),
+);
+
+// Imagens versionadas no repositório (fotos do catálogo). O nome do arquivo
+// é o da espécie e pode ser trocado por uma foto melhor, então o cache é
+// curto, sem `immutable`.
+app.use(
+  "/assets",
+  express.static(ASSETS_DIR, {
+    dotfiles: "deny",
+    index: false,
+    maxAge: "1d",
     setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff"),
   }),
 );

@@ -1,0 +1,45 @@
+.creditos {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.creditos-voltar {
+  font-size: 0.9rem;
+}
+
+.creditos-intro {
+  color: var(--texto-fraco);
+  font-size: 0.9rem;
+}
+
+.creditos-lista {
+  list-style: none;
+  margin: 1.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.creditos-lista li {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.creditos-lista em {
+  color: var(--texto-fraco);
+  font-size: 0.85rem;
+}
+
+.creditos-lista .credito-foto {
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.creditos-sem-foto {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}

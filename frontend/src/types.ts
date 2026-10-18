@@ -44,7 +44,16 @@ export interface FishSpecies {
   name: string;
   scientificName: string;
   habitat: string;
+  /** Foto do repositório ou enviada pelo admin: a API já devolve a URL completa. */
   imageUrl: string | null;
+  /** Autor, licença e origem da foto (null quando não há foto). */
+  imageCredit: string | null;
+  imageLicense: string | null;
+  imageSourceUrl: string | null;
+  /** Legenda opcional, nas entradas de gênero: "Na foto: Cichla piquiti...". */
+  imageCaption: string | null;
+  /** Reservado para um modelo 3D; sempre null por enquanto. */
+  modelUrl: string | null;
   /** Iscas típicas, separadas por vírgula: "massa, milho, minhoca". */
   recommendedBaits: string | null;
   rarity: Rarity;
@@ -178,6 +187,11 @@ export interface SpeciesInput {
   name: string;
   scientificName: string;
   habitat: string;
+  imageUrl: string | null;
+  imageCredit: string | null;
+  imageLicense: string | null;
+  imageSourceUrl: string | null;
+  imageCaption: string | null;
   recommendedBaits: string | null;
   rarity: Rarity;
   minWeight: number | null;

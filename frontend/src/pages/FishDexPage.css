@@ -42,9 +42,17 @@
   gap: 1rem;
 }
 
+/* Cards da mesma linha com a mesma altura, qualquer que seja o nome. */
+.dex-grade > li {
+  display: flex;
+}
+
 /* O card é um <button>: precisa apagar o visual padrão de botão do global.css. */
 .dex-card {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   background: #fff;
   color: inherit;
   border: 1px solid var(--borda);
@@ -60,38 +68,10 @@
   box-shadow: 0 4px 12px rgba(15, 92, 115, 0.15);
 }
 
+/* A foto em si é o <SpeciesImage> (moldura 3:2 padronizada); aqui só o
+   cadeado por cima. */
 .dex-figura {
   position: relative;
-  height: 110px;
-  border-radius: var(--raio);
-  background: var(--agua-clara);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.dex-figura img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.dex-imagem-vazia {
-  font-size: 2.5rem;
-}
-
-/* Espécie ainda não capturada: silhueta apagada, como numa Pokédex. */
-.dex-card.bloqueado .dex-figura,
-.dex-figura.bloqueado {
-  background: #dfe6e9;
-}
-
-.dex-card.bloqueado .dex-figura img,
-.dex-card.bloqueado .dex-imagem-vazia,
-.dex-figura.bloqueado img,
-.dex-figura.bloqueado .dex-imagem-vazia {
-  filter: grayscale(1) brightness(0);
-  opacity: 0.25;
 }
 
 .dex-card.bloqueado h3,
@@ -103,13 +83,41 @@
   position: absolute;
   top: 0.4rem;
   right: 0.5rem;
+  z-index: 1;
   font-size: 0.9rem;
-  opacity: 0.65;
+  opacity: 0.85;
 }
 
+.dex-card .dex-figura {
+  width: 100%;
+}
+
+/* Nome em até duas linhas, sempre no mesmo espaço. */
 .dex-card h3 {
-  margin: 0.7rem 0 0.3rem;
+  margin: 0.7rem 0 0.15rem;
   font-size: 0.95rem;
+  min-height: 2.4em;
+  display: flex;
+  align-items: center;
+}
+
+.dex-card-cientifico {
+  /* Até duas linhas: os híbridos têm nome científico longo. O nome
+     completo fica no title e na ficha. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--texto-fraco);
+  line-height: 1.25;
+}
+
+.dex-creditos {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
 }
 
 .dex-status {
@@ -168,10 +176,6 @@
   color: var(--texto);
   font-size: 0.9rem;
   line-height: 1;
-}
-
-.dex-figura.grande {
-  height: 170px;
 }
 
 .dex-ficha {

@@ -211,7 +211,19 @@
   color: var(--texto-fraco);
 }
 
-.perfil-editar {
+/* Configurações, créditos e sair: saíram do topo e moram aqui (o avatar do
+   topo abre esta tela). */
+.perfil-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-top: 0.4rem;
   font-size: 0.85rem;
+}
+
+.perfil-links a,
+.perfil-links button.link {
   color: var(--agua);
+  font-size: inherit;
+  padding: 0;
 }

@@ -41,3 +41,43 @@
   font-weight: 600;
   pointer-events: none;
 }
+
+/* Foto da espécie: miniatura + ações, e o crédito logo abaixo. */
+.especie-foto-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.7rem 0.8rem 0.8rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+.especie-foto-campos legend {
+  padding: 0 0.3rem;
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}
+
+.especie-foto-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.especie-foto-acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.botao-arquivo {
+  display: inline-block;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--agua);
+  border-radius: var(--raio);
+  color: var(--agua);
+  cursor: pointer;
+  font-size: 0.85rem;
+}

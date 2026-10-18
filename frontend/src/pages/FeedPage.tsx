@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { feedApi, usersApi } from "../api/social";
 import { useAuth } from "../context/AuthContext";
 import { CatchCard } from "../components/CatchCard";
 import { PersonCard } from "../components/PersonCard";
+import { PeopleSearch } from "../components/PeopleSearch";
 import type { Catch, FeedOrder, FeedScope, UserCard } from "../types";
 import "./FeedPage.css";
 import "../components/PersonCard.css";
@@ -16,15 +18,34 @@ import "../components/PersonCard.css";
  *   página quando aparece na tela. O botão "Atualizar" faz o papel do
  *   "puxar para atualizar" do celular.
  * - Sem ninguém seguido, o estado vazio sugere perfis (REQ-36).
+ * - Aba "Pessoas": busca e sugestões de quem seguir (REQ-41/42), aqui dentro
+ *   em vez de numa tela à parte. A aba fica na URL (?aba=pessoas), então link
+ *   e recarregar a página voltam para ela.
  *
  * Quem decide o que aparece é a API (RGN-12: só autor ativo e captura não
  * oculta; RGN-13: coordenada só se o autor compartilha).
  */
 const POR_PAGINA = 10;
 
+/** Aba da URL -> escopo do feed. "pessoas" não é feed: é a busca. */
+const ESCOPO_DA_ABA: Record<string, FeedScope> = {
+  seguindo: "following",
+  descobrir: "all",
+  denunciadas: "reported",
+};
+
 export function FeedPage() {
   const { user } = useAuth();
-  const [scope, setScope] = useState<FeedScope>("following");
+  const [params, setParams] = useSearchParams();
+  const pedida = params.get("aba") ?? "seguindo";
+  // Aba desconhecida, ou "denunciadas" para quem não é admin: Seguindo.
+  const aba =
+    pedida === "pessoas" || (pedida in ESCOPO_DA_ABA && (pedida !== "denunciadas" || user?.role === "admin"))
+      ? pedida
+      : "seguindo";
+  const pessoas = aba === "pessoas";
+  const scope: FeedScope = ESCOPO_DA_ABA[aba] ?? "following";
+  const irPara = (nova: string) => setParams(nova === "seguindo" ? {} : { aba: nova }, { replace: true });
   const [order, setOrder] = useState<FeedOrder>("recent");
   const [itens, setItens] = useState<Catch[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -68,32 +89,33 @@ export function FeedPage() {
 
   // Trocar aba ou ordem recomeça do topo.
   useEffect(() => {
+    if (pessoas) return;
     setItens([]);
     setCursor(null);
     setAcabou(false);
     carregar(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage a aba/ordem
-  }, [scope, order]);
+  }, [scope, order, pessoas]);
 
   // Rolagem infinita: quando o sentinela entra na tela, busca a próxima página.
   useEffect(() => {
     const alvo = sentinela.current;
-    if (!alvo || acabou) return;
+    if (!alvo || acabou || pessoas) return;
     const observador = new IntersectionObserver((entradas) => {
       if (entradas[0].isIntersecting && !carregando && cursor) carregar(false);
     });
     observador.observe(alvo);
     return () => observador.disconnect();
-  }, [carregar, carregando, cursor, acabou]);
+  }, [carregar, carregando, cursor, acabou, pessoas]);
 
   const vazio = !carregando && !erro && itens.length === 0 && acabou;
 
   // Feed "Seguindo" vazio: sugestões de quem seguir (REQ-36).
   useEffect(() => {
-    if (!vazio || scope !== "following" || !user) return;
+    if (!vazio || pessoas || scope !== "following" || !user) return;
     usersApi.profile(user.id).then((p) => setSeguindoAlguem(p.following > 0)).catch(() => {});
     usersApi.suggestions().then(setSugestoes).catch(() => setSugestoes([]));
-  }, [vazio, scope, user]);
+  }, [vazio, pessoas, scope, user]);
 
   /** Seguir/deixar de seguir num post vale para todos os posts do mesmo autor. */
   function aoSeguir(autorId: string, seguindo: boolean) {
@@ -111,20 +133,29 @@ export function FeedPage() {
           <button
             type="button"
             role="tab"
-            aria-selected={scope === "following"}
-            className={scope === "following" ? "feed-aba ativa" : "feed-aba"}
-            onClick={() => setScope("following")}
+            aria-selected={aba === "seguindo"}
+            className={aba === "seguindo" ? "feed-aba ativa" : "feed-aba"}
+            onClick={() => irPara("seguindo")}
           >
             Seguindo
           </button>
           <button
             type="button"
             role="tab"
-            aria-selected={scope === "all"}
-            className={scope === "all" ? "feed-aba ativa" : "feed-aba"}
-            onClick={() => setScope("all")}
+            aria-selected={aba === "descobrir"}
+            className={aba === "descobrir" ? "feed-aba ativa" : "feed-aba"}
+            onClick={() => irPara("descobrir")}
           >
             Descobrir
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={pessoas}
+            className={pessoas ? "feed-aba ativa" : "feed-aba"}
+            onClick={() => irPara("pessoas")}
+          >
+            Pessoas
           </button>
           {/* Fila de moderação (UC011): só admin. Sem área de admin separada,
               é por aqui que ele acha o que foi denunciado — inclusive o que
@@ -133,15 +164,21 @@ export function FeedPage() {
             <button
               type="button"
               role="tab"
-              aria-selected={scope === "reported"}
-              className={scope === "reported" ? "feed-aba ativa feed-aba-admin" : "feed-aba feed-aba-admin"}
-              onClick={() => setScope("reported")}
+              aria-selected={aba === "denunciadas"}
+              className={aba === "denunciadas" ? "feed-aba ativa feed-aba-admin" : "feed-aba feed-aba-admin"}
+              onClick={() => irPara("denunciadas")}
+              title="Denunciadas (só admin)"
             >
-              🛡 Denunciadas
+              {/* No celular estreito, o escudo some e sobra só a palavra. */}
+              <span className="feed-aba-escudo" aria-hidden="true">
+                🛡{" "}
+              </span>
+              Denunciadas
             </button>
           )}
         </div>
 
+        {!pessoas && (
         <div className="feed-controles">
           <label className="feed-ordem">
             Ordem
@@ -154,8 +191,13 @@ export function FeedPage() {
             ↻ Atualizar
           </button>
         </div>
+        )}
       </header>
 
+      {pessoas ? (
+        <PeopleSearch />
+      ) : (
+        <>
       {erro && <p className="erro">{erro}</p>}
 
       {vazio && scope === "following" ? (
@@ -181,7 +223,7 @@ export function FeedPage() {
               ))}
             </ul>
           )}
-          <button type="button" className="link" onClick={() => setScope("all")}>
+          <button type="button" className="link" onClick={() => irPara("descobrir")}>
             Ver todas as capturas em Descobrir
           </button>
           {sugestoes?.some((p) => p.isFollowedByMe) && (
@@ -211,6 +253,8 @@ export function FeedPage() {
       <div ref={sentinela} className="feed-sentinela" aria-hidden="true" />
       {carregando && <p className="estado-carregando">Carregando…</p>}
       {acabou && itens.length > 0 && <p className="feed-fim">Você chegou ao fim.</p>}
+        </>
+      )}
     </section>
   );
 }

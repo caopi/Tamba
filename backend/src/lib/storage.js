@@ -1,4 +1,5 @@
-// Armazenamento de arquivos enviados (fotos de captura).
+// Armazenamento de arquivos enviados (fotos de captura e de espécie) e
+// endereço público de qualquer imagem do app (`publicUrl`).
 //
 // Por enquanto só existe o driver de disco local: os arquivos vão para
 // backend/uploads/<id do usuário>/ (fora do git) e a própria API os serve em
@@ -23,6 +24,33 @@ export const UPLOADS_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../uploads",
 );
+
+/**
+ * Imagens versionadas no repositório (hoje, as fotos do catálogo de espécies).
+ * Servidas estaticamente em /assets. Ao contrário de uploads/, entram no git:
+ * quem clona o projeto já tem as fotos.
+ */
+export const ASSETS_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../assets",
+);
+
+// Endereço público da própria API, base dos caminhos relativos ("/assets/...").
+const API_PUBLICA = (process.env.PUBLIC_API_URL ?? "http://localhost:3333").replace(/\/+$/, "");
+
+/**
+ * Transforma a referência guardada no banco em URL que o navegador abre.
+ *
+ * O banco guarda um de dois formatos, conforme a origem da imagem: caminho
+ * relativo à API ("/assets/species/tambaqui.webp", foto versionada no repo)
+ * ou URL absoluta (arquivo enviado, `getUrl`). `new URL` resolve os dois sem
+ * caso especial: relativo ganha a base, absoluto passa intacto. Todo lugar que
+ * devolve imagem para a API passa por aqui, e só aqui.
+ */
+export function publicUrl(ref) {
+  if (!ref) return null;
+  return new URL(ref, `${API_PUBLICA}/`).href;
+}
 
 // Endereço público dos arquivos. Em desenvolvimento, a própria API.
 const URL_PUBLICA = (process.env.UPLOADS_PUBLIC_URL ?? "http://localhost:3333/uploads").replace(

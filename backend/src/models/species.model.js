@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query, queryOne } from "../lib/db.js";
+import { publicUrl } from "../lib/storage.js";
 
 // O mysql2 devolve DECIMAL como string (para não perder precisão). As faixas
 // cabem tranquilamente num number do JS.
@@ -12,7 +13,14 @@ export function mapSpecies(linha) {
     name: linha.name,
     scientificName: linha.scientific_name,
     habitat: linha.habitat,
-    imageUrl: linha.image_url,
+    // Foto do repositório ou enviada pelo admin: o publicUrl resolve as duas.
+    imageUrl: publicUrl(linha.image_url),
+    imageCredit: linha.image_credit,
+    imageLicense: linha.image_license,
+    imageSourceUrl: linha.image_source_url,
+    imageCaption: linha.image_caption,
+    // Reservado (migration 013): ninguém grava ainda.
+    modelUrl: linha.model_url,
     recommendedBaits: linha.recommended_baits,
     rarity: linha.rarity,
     minWeight: numeroOuNull(linha.min_weight),
@@ -62,6 +70,10 @@ const COLUNAS = {
   scientificName: "scientific_name",
   habitat: "habitat",
   imageUrl: "image_url",
+  imageCredit: "image_credit",
+  imageLicense: "image_license",
+  imageSourceUrl: "image_source_url",
+  imageCaption: "image_caption",
   recommendedBaits: "recommended_baits",
   rarity: "rarity",
   minWeight: "min_weight",

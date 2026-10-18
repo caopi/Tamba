@@ -45,7 +45,7 @@ export function PublicProfilePage() {
     return (
       <section className="perfil-publico">
         <p className="erro">{erro}</p>
-        <Link to="/pessoas">Buscar pessoas</Link>
+        <Link to="/feed?aba=pessoas">Buscar pessoas</Link>
       </section>
     );
   }

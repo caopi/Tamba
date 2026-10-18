@@ -28,6 +28,15 @@ function IconeRegistrar() {
   );
 }
 
+function IconeSino() {
+  return (
+    <svg {...ICONE}>
+      <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
 function IconeFeed() {
   return (
     <svg {...ICONE}>
@@ -81,16 +90,15 @@ export function Layout() {
 
   return (
     <div className="layout">
+      {/* Topo: título centralizado, perfil à direita. O espaço vazio da
+          esquerda equilibra o perfil, para o título ficar no centro de fato. */}
       <header className="layout-header">
+        <span className="layout-topo-lado" aria-hidden="true" />
         <Link to="/" className="layout-logo">
-          🎣 Tamba
+          Tamba
         </Link>
 
         <div className="layout-user">
-          <NavLink to="/notificacoes" className="layout-sino" title={rotuloSino} aria-label={rotuloSino}>
-            🔔
-            {naoLidas > 0 && <span className="layout-sino-contador">{naoLidas > 99 ? "99+" : naoLidas}</span>}
-          </NavLink>
           {/* Perfil: pela foto, ou pelo @apelido de quem não tem foto. De lá
               saem Configurações, Créditos e Sair. */}
           <NavLink to="/perfil" className="layout-perfil" title="Meu perfil" aria-label="Meu perfil">
@@ -108,8 +116,8 @@ export function Layout() {
         <Outlet context={{ definirNaoLidas: setNaoLidas } satisfies LayoutContexto} />
       </main>
 
-      {/* Abas principais, embaixo, como em app de celular. Na tela larga
-          continua embaixo, mas com largura limitada. */}
+      {/* Abas principais, embaixo, como em app de celular: Dex | Registrar
+          Captura | Feed | Notificações. */}
       <nav className="layout-abas" aria-label="Navegação principal">
         <NavLink to="/" end className="layout-aba">
           <IconeDex />
@@ -122,6 +130,14 @@ export function Layout() {
         <NavLink to="/feed" className="layout-aba">
           <IconeFeed />
           <span>Feed</span>
+        </NavLink>
+        {/* Notificações: saiu do topo; o número de não lidas fica no ícone. */}
+        <NavLink to="/notificacoes" className="layout-aba layout-sino" aria-label={rotuloSino}>
+          <span className="layout-aba-icone">
+            <IconeSino />
+            {naoLidas > 0 && <span className="layout-sino-contador">{naoLidas > 99 ? "99+" : naoLidas}</span>}
+          </span>
+          <span>Notificações</span>
         </NavLink>
       </nav>
     </div>

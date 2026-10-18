@@ -1,3 +1,9 @@
+/* Título, ajuda e formulário num bloco só, centralizado na tela. */
+.captura {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
 .captura-ajuda {
   margin: -0.25rem 0 1.25rem;
   color: var(--texto-fraco);

@@ -80,9 +80,9 @@ no banco, com autor e licença obrigatórios, e aparecem na tela \`/creditos\`.
   sob a [SIL Open Font License 1.1](https://openfontlicense.org), carregadas
   do Google Fonts.
 
-As versões pixel art das fotos do catálogo (\`backend/assets/species/pixel/\`,
-geradas por \`npm run pixel\`) são derivadas das fotos acima e seguem a
-licença e o crédito de cada uma.
+As miniaturas da grade da Dex (\`backend/assets/species/thumb/\`, geradas por
+\`npm run thumbs\`) são as mesmas fotos reduzidas e seguem a licença e o
+crédito de cada uma.
 `;
 
 const destino = fileURLToPath(new URL("../../CREDITOS.md", import.meta.url));

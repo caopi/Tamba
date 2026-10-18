@@ -13,10 +13,9 @@ import "./SpeciesImage.css";
  * `bloqueada`: espécie ainda não capturada. A "sombra" sai da própria foto,
  * por filtro, sem precisar de um segundo arquivo.
  *
- * No card da grade vão as duas versões da foto, a inteira e a pixel art
- * (`imageThumbUrl`), e o CSS mostra uma só: a inteira por padrão, a pixel no
- * tema retrô (styles/retro/retro.css). A escondida, com loading="lazy", nem
- * é baixada. A ficha e o resto do app usam sempre a foto inteira.
+ * No card da grade vai a miniatura (`imageThumbUrl`, ~400 px): nítida e leve.
+ * A foto inteira só é baixada na ficha da espécie (e nas outras telas que
+ * usam o tamanho "grande" ou "mini"). Sem miniatura, o card usa a inteira.
  */
 export function SpeciesImage({
   especie,
@@ -31,12 +30,11 @@ export function SpeciesImage({
   return (
     <div className={classes}>
       {especie.imageUrl ? (
-        <>
-          <img className="especie-foto-inteira" src={especie.imageUrl} alt={especie.name} loading="lazy" />
-          {tamanho === "card" && especie.imageThumbUrl && (
-            <img className="especie-foto-pixel" src={especie.imageThumbUrl} alt={especie.name} loading="lazy" />
-          )}
-        </>
+        <img
+          src={(tamanho === "card" && especie.imageThumbUrl) || especie.imageUrl}
+          alt={especie.name}
+          loading="lazy"
+        />
       ) : (
         <span className="especie-foto-vazia" aria-hidden="true">
           🐟

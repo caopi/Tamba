@@ -475,7 +475,7 @@ const pesqueiros = [
 // Foto: `image_url` guarda o caminho relativo à API ("/assets/species/...",
 // arquivo versionado no repo); o storage.publicUrl completa o endereço. O
 // crédito anda junto com a foto: só é preenchido se a espécie ainda não tem
-// foto. Por isso a versão pixel, o crédito e a legenda vêm ANTES do image_url — o MySQL
+// foto. Por isso a miniatura, o crédito e a legenda vêm ANTES do image_url — o MySQL
 // aplica as atribuições em ordem, e ali o image_url ainda é o valor antigo.
 // Assim a foto que um admin trocou pelo app nunca ganha o crédito da foto do
 // seed.
@@ -511,8 +511,8 @@ for (const especie of especies) {
     especie.scientificName,
     especie.habitat,
     foto ? `/assets/species/${foto.file}` : null,
-    // Versão pixel art gerada por `npm run pixel`: mesmo nome, em pixel/, PNG.
-    foto ? `/assets/species/pixel/${foto.file.replace(/\.webp$/, ".png")}` : null,
+    // Miniatura da grade, gerada por `npm run thumbs`: mesmo nome, em thumb/.
+    foto ? `/assets/species/thumb/${foto.file}` : null,
     foto?.credit ?? null,
     foto?.license ?? null,
     foto?.sourceUrl ?? null,

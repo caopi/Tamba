@@ -15,7 +15,7 @@ export function mapSpecies(linha) {
     habitat: linha.habitat,
     // Foto do repositório ou enviada pelo admin: o publicUrl resolve as duas.
     imageUrl: publicUrl(linha.image_url),
-    // Versão pixel art (migration 014), para a grade do tema retrô.
+    // Miniatura da grade da Dex (migrations 014 e 015).
     imageThumbUrl: publicUrl(linha.image_thumb_url),
     imageCredit: linha.image_credit,
     imageLicense: linha.image_license,

@@ -231,7 +231,7 @@ export function LogCatchPage() {
     : null;
 
   return (
-    <section>
+    <section className="captura">
       <h2>Registrar captura</h2>
       <p className="captura-ajuda">
         Todo peixe registrado desbloqueia a espécie na sua Dex.

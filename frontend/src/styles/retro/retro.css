@@ -3,8 +3,7 @@
 
    Tudo aqui vale só com a classe `tema-retro` no <html> (index.html). Tirar a
    classe desliga o tema inteiro; nenhum componente tem estilo retrô no
-   próprio CSS. O que o tema precisa de dado (a versão pixel art das fotos)
-   já vem da API e fica escondido fora dele.
+   próprio CSS.
 
    Regras:
    - Paleta em torno de um azul-escuro (variáveis --retro-*). As variáveis
@@ -24,12 +23,18 @@ html.tema-retro {
   --retro-950: #060a1f;
   --retro-900: #0b1233;
   --retro-800: #131d4f;
+  --retro-750: #182461;
   --retro-700: #1d2b73;
+  --retro-650: #233487;
   --retro-600: #2a3d9a;
+  --retro-550: #344aaf;
   --retro-500: #3f57c2;
+  --retro-400: #6680d6;
   --retro-300: #8fa3e8;
   --retro-200: #c3cff5;
+  --retro-150: #d3dcf8;
   --retro-100: #e3e9fc;
+  --retro-75: #ecf0fd;
   --retro-50: #f4f6ff;
   /* Destaques */
   --retro-amarelo: #ffd23f;
@@ -271,19 +276,19 @@ html.tema-retro .dex-status {
 
 /* --- Topo --- */
 html.tema-retro .layout-header {
-  background: var(--retro-800);
+  background: var(--retro-700);
   border-bottom: 4px solid var(--retro-950);
   box-shadow: var(--chanfro) !important;
 }
 
 html.tema-retro .layout-apelido {
-  background: var(--retro-700);
+  background: var(--retro-550);
   border: 2px solid var(--retro-950);
 }
 
 /* --- Barra de abas: HUD de console --- */
 html.tema-retro .layout-abas {
-  background: var(--retro-900);
+  background: var(--retro-700);
   border-top: 4px solid var(--retro-500);
   box-shadow: var(--chanfro) !important;
 }
@@ -297,6 +302,15 @@ html.tema-retro .layout-aba {
   white-space: normal;
   text-align: center;
   padding: 0 0.25rem;
+}
+
+/* Quatro abas em 375 px: "Notificações" é a palavra mais longa e não quebra;
+   um pouco menor no celular, para ter respiro dos lados. */
+@media (max-width: 420px) {
+  html.tema-retro .layout-aba {
+    font-size: 0.62rem;
+    letter-spacing: 0;
+  }
 }
 
 html.tema-retro .layout-aba.active {
@@ -354,21 +368,82 @@ html.tema-retro .especie-foto::after {
   box-shadow: inset 0 0 0 3px var(--retro-950) !important;
 }
 
-/* Grade da Dex: a versão pixel art no lugar da foto inteira. A ficha da
-   espécie (especie-foto-grande) não tem a versão pixel: fica com a foto fiel. */
-html.tema-retro .especie-foto-card:has(.especie-foto-pixel) .especie-foto-inteira {
-  display: none;
+/* "Créditos das fotos": botão do tema, como os outros. */
+html.tema-retro .dex-creditos {
+  border: var(--borda-retro);
+  background: var(--retro-50);
+  color: var(--retro-800);
+  font-family: var(--fonte-pixel);
+  box-shadow: var(--chanfro) !important;
 }
 
-html.tema-retro .especie-foto-card img.especie-foto-pixel {
-  display: block;
-  image-rendering: pixelated;
+html.tema-retro .dex-creditos:active {
+  box-shadow: var(--chanfro-afundado) !important;
 }
 
-/* Não capturada, no tema: escura e cinza como sempre, mas sem o desfoque,
-   que borraria os pixels. */
-html.tema-retro .especie-foto.bloqueada img {
-  filter: grayscale(1) brightness(0.5) contrast(1.6);
+/* --- Feed em 16 bits ---------------------------------------------------
+   O resto do tema é 8 bits: blocos chapados, borda de 3–4 px, chanfro de
+   3 px. Nos cards do feed, 16 bits: mais tons intermediários, borda de 2 px,
+   chanfro de 1 px e sombreado pontilhado (xadrez de 2×2 px entre dois tons
+   vizinhos) no lugar do degrau seco de cor. Só no feed, por enquanto. */
+html.tema-retro {
+  /* Xadrez de 2×2 px entre dois tons: o "dithering" de 16 bits. */
+  --pontilhado-claro: repeating-conic-gradient(var(--retro-75) 0 25%, var(--retro-150) 0 50%) 0 0 / 4px 4px;
+  --pontilhado-suave: repeating-conic-gradient(var(--retro-50) 0 25%, var(--retro-100) 0 50%) 0 0 / 4px 4px;
+  --chanfro-16: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(19, 29, 79, 0.25);
+  --chanfro-16-botao: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(6, 10, 31, 0.35);
+}
+
+html.tema-retro .feed .post {
+  border: 2px solid var(--retro-750);
+  background-color: var(--retro-50);
+  box-shadow: var(--chanfro-16) !important;
+}
+
+/* Cabeçalho do post: faixa pontilhada entre dois azuis-claros, com um fio
+   de tom intermediário embaixo em vez de borda escura. */
+html.tema-retro .feed .post-cabecalho {
+  background: var(--pontilhado-claro);
+  background-color: var(--retro-100);
+  border-bottom: 2px solid var(--retro-200);
+}
+
+/* Corpo: chapado em cima e escurecendo no pé por pontilhado, não por degrau. */
+html.tema-retro .feed .post-corpo {
+  background:
+    linear-gradient(var(--retro-50), var(--retro-50)) top / 100% 65% no-repeat,
+    var(--pontilhado-suave);
+  background-color: var(--retro-50);
+}
+
+html.tema-retro .feed .post-galeria {
+  border-bottom: 2px solid var(--retro-750);
+}
+
+/* Botões dentro do card: borda de 2 px, dois tons (claro em cima, um tom
+   abaixo embaixo) e chanfro de 1 px. O seletor repete a lista de :not() da
+   regra geral de botão do tema para ficar mais específico que ela. */
+html.tema-retro .feed .post button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta) {
+  border: 2px solid var(--retro-800);
+  /* Cor sólida por baixo do degradê: é ela que garante o contraste se o
+     degradê não for desenhado (e é a que as ferramentas de contraste leem). */
+  background-color: var(--retro-650);
+  background-image: linear-gradient(var(--retro-550) 50%, var(--retro-650) 50%);
+  box-shadow: var(--chanfro-16-botao) !important;
+}
+
+html.tema-retro .feed .post button.secundario:not(.link) {
+  background-color: var(--retro-100);
+  background-image: linear-gradient(var(--retro-50) 50%, var(--retro-100) 50%);
+  color: var(--retro-800);
+}
+
+html.tema-retro .feed .post button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):active {
+  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.35) !important;
+}
+
+html.tema-retro .feed .post .raridade {
+  border-width: 1px;
 }
 
 /* Avisos e textos de apoio com contraste suficiente sobre o painel. */

@@ -11,7 +11,7 @@ import * as speciesModel from "../models/species.model.js";
 import { isDuplicateKey } from "../lib/db.js";
 import { assertAdmin } from "../lib/authz.js";
 import * as storage from "../lib/storage.js";
-import { pixelVariant } from "../lib/pixel.js";
+import { thumbVariant } from "../lib/pixel.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
 const RARIDADES = ["comum", "incomum", "raro", "muito_raro"];
@@ -106,17 +106,17 @@ async function conferirImagem(dados, adminId, atual = null) {
   if (!dados.imageCredit || !dados.imageLicense) {
     throw httpError(422, "Informe o autor e a licença da foto");
   }
-  // Versão pixel art para a grade (tema retrô), gravada na pasta do admin
-  // como qualquer upload. As fotos do repositório têm a delas gerada no build
-  // (npm run pixel); esta é a mesma coisa para a foto enviada pelo app.
+  // Miniatura da grade da Dex (~400 px), gravada na pasta do admin como
+  // qualquer upload. As fotos do repositório têm a delas gerada no build
+  // (npm run thumbs); esta é a mesma coisa para a foto enviada pelo app.
   // Se a imagem não puder ser lida (arquivo corrompido que passou pela
-  // assinatura), a espécie é salva assim mesmo, sem a versão pixel: a grade
-  // usa a foto inteira. Melhor que recusar a foto inteira por causa do tema.
+  // assinatura), a espécie é salva assim mesmo, sem miniatura: a grade usa a
+  // foto inteira. Melhor que recusar a foto por causa da miniatura.
   try {
-    const pixel = await pixelVariant(await storage.readUrl(dados.imageUrl, adminId));
-    dados.imageThumbUrl = storage.getUrl(await storage.save({ buffer: pixel, extension: "png", ownerId: adminId }));
+    const miniatura = await thumbVariant(await storage.readUrl(dados.imageUrl, adminId));
+    dados.imageThumbUrl = storage.getUrl(await storage.save({ buffer: miniatura, extension: "webp", ownerId: adminId }));
   } catch (err) {
-    console.warn(`Versão pixel não gerada para ${dados.imageUrl}: ${err.message}`);
+    console.warn(`Miniatura não gerada para ${dados.imageUrl}: ${err.message}`);
     dados.imageThumbUrl = null;
   }
 }

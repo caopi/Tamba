@@ -167,7 +167,8 @@ Para conferir se a API subiu: <http://localhost:3333/api/health>
 | `npm start` | Sobe a API sem reload |
 | `npm run migrate` | Aplica os `.sql` ainda não rodados de `database/migrations/` |
 | `npm run seed` | Popula o catálogo (pode rodar várias vezes, não duplica) |
-| `npm run pixel` | Gera a versão pixel art (96 px) de cada foto do catálogo em `assets/species/pixel/` (depois de trocar uma foto) |
+| `npm run thumbs` | Gera a miniatura (~400 px) de cada foto do catálogo em `assets/species/thumb/`, a que a grade da Dex usa (depois de trocar uma foto) |
+| `npm run pixel` | Gera a versão pixel art (96 px) das fotos em `assets/species/pixel/` — experimento fora de uso, fora do git |
 | `npm run credits` | Regera o `CREDITOS.md` a partir de `database/species-images.js` (depois de trocar uma foto do catálogo) |
 
 ### Frontend
@@ -306,7 +307,7 @@ sinalizada para revisão.
 | `GET` | `/favorites` | privado | Espécies favoritas |
 | `POST` / `DELETE` | `/favorites/:speciesId` | privado | Favorita / desfavorita. Idempotente |
 | `GET` | `/notifications?unreadOnly=&cursor=&limit=` | privado | `{ items, unreadCount, nextCursor }`, mais recentes primeiro. Cada item traz o ator, a espécie da captura e se ela foi ocultada |
-| `GET` | `/notifications/unread-count` | privado | `{ unreadCount }` — o número do sino |
+| `GET` | `/notifications/unread-count` | privado | `{ unreadCount }` — o número na aba de Notificações |
 | `PATCH` | `/notifications/:id/read` | privado | Marca uma como lida |
 | `POST` | `/notifications/read-all` | privado | Marca todas como lidas |
 | `GET` | `/species` · `/species/:id` | público | Catálogo ativo / uma espécie, com `imageUrl` (sempre completa) e `imageCredit`, `imageLicense`, `imageSourceUrl` |
@@ -346,11 +347,11 @@ Não há área de admin no app: essas ações aparecem dentro das telas normais
 | `/capturas/:id` | Detalhe da captura: todas as fotos, observações, localização (coordenada só se o autor compartilha) e comentários. É o link do "Compartilhar" |
 | `/u/:id` | Perfil público de outro usuário, com seguir e as capturas dele |
 | `/configuracoes` | Perfil (nome, apelido, foto), unidades, privacidade da localização e notificações. Abre pelo Perfil |
-| `/notificacoes` | Quem curtiu, comentou ou começou a seguir; clicar abre a captura ou o perfil. Abre pelo sino 🔔 do topo, que mostra quantas não lidas há |
+| `/notificacoes` | Quem curtiu, comentou ou começou a seguir; clicar abre a captura ou o perfil. Abre pela aba Notificações, na barra de baixo, que mostra quantas não lidas há |
 | `/creditos` | Créditos de todas as fotos do catálogo (autor, licença, origem, legenda). Pública, sem login; links na Dex e no Perfil |
 
-As abas principais (Dex, Registrar Captura, Feed) ficam na barra de baixo; no
-topo, o sino de notificações e o acesso ao perfil.
+As abas principais (Dex, Registrar Captura, Feed, Notificações) ficam na barra
+de baixo; no topo, o título e o acesso ao perfil.
 
 **Tema retrô (experimento).** Está ligado pela classe `tema-retro` no `<html>`
 de `frontend/index.html`; para voltar ao visual normal, basta tirar a classe.

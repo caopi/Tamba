@@ -73,8 +73,8 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   Foto: `image_url` + `image_credit`, `image_license`, `image_source_url`
   (migration 013; ver "Fotos do catálogo" em Decisões). `model_url` é
   reservada para um modelo 3D, ideia adiada: fica NULL e nenhum código a usa.
-  `image_thumb_url` (migration 014) é a versão pixel art da foto, para a
-  grade do tema retrô.
+  `image_thumb_url` (migrations 014 e 015) é a miniatura da foto (~400 px)
+  que a grade da Dex usa; a ficha abre a foto inteira.
   `recommended_baits` é uma string simples separada por vírgula ('massa, milho,
   minhoca'), de propósito — não vale uma tabela só para isso. `rarity` é
   obrigatória: `VARCHAR NOT NULL` + CHECK com os quatro valores, e não ENUM —
@@ -156,7 +156,7 @@ e a API recusa (403) para os demais de qualquer jeito.
 | UC006 — interagir com captura | Post (`CatchCard`) e detalhe (`/capturas/:id`) | `/catches/:id/like`, `/comments`, `/reports` → `social.service`, `report.service` |
 | UC007 — perfil e configurações | `/configuracoes`, aberta pelo Perfil (avatar no topo) | `PATCH /users/me` → `user.service.updateMe` |
 | UC008 — seguir | Post, perfil público, aba "Pessoas" do Feed (`/feed?aba=pessoas`) | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
-| UC009 — notificações (REQ-43) | Sino 🔔 no topo, com o número de não lidas; `/notificacoes`: quem fez o quê, marcar uma ou todas como lidas, rolagem infinita | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` → `notification.service` |
+| UC009 — notificações (REQ-43) | Aba "Notificações" na barra de baixo, com o número de não lidas no ícone; `/notificacoes`: quem fez o quê, marcar uma ou todas como lidas, rolagem infinita | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` → `notification.service` |
 | UC010 — catálogo de espécies | Dex (`/`): "+ Nova espécie"; ficha da espécie: "Editar espécie", "Desativar/Reativar" | `/admin/species` → `species.service` |
 | UC011 — moderação | Post: "🛡 Moderar" (denúncias, ocultar/reexibir); feed: aba "🛡 Denunciadas" | `GET /admin/catches/:id/reports`, `POST /admin/catches/:id/review`, `GET /feed?scope=reported` → `report.service` |
 
@@ -292,7 +292,7 @@ abre uma janela entre a conferência e o INSERT.
   por denúncias continua com os avisos: curtida e comentário só avisam o autor
   da captura, e o autor sempre abre a própria captura oculta (com o selo "em
   análise", que a tela de notificações também mostra).
-- **Sino sem tempo real.** O topo pergunta o número de não lidas a cada
+- **Sino sem tempo real.** A barra de abas pergunta o número de não lidas a cada
   minuto, ao trocar de tela e ao voltar para a aba
   (`GET /notifications/unread-count`). Sem WebSocket: um minuto de atraso não
   faz diferença num diário de pesca. Paginação por cursor
@@ -409,18 +409,22 @@ abre uma janela entre a conferência e o INSERT.
   com sombra interna dura; a barra de abas vira um HUD. O conteúdo fica
   sempre num painel sólido, nunca direto sobre a cena (CC0, crédito em
   `/creditos`). Contraste conferido em todas as telas: mínimo 5,5:1.
-  - **Pixel art de verdade na grade, não filtro.** Cada foto tem uma versão de
-    96 px com paleta de 48 cores (`lib/pixel.js`, com o sharp), ampliada com
-    `image-rendering: pixelated`. As do repositório são geradas no build
-    (`npm run pixel`, em `assets/species/pixel/`, versionadas); a da foto que
-    o admin envia é gerada ao salvar a espécie. O card recebe as duas imagens e
-    o CSS mostra uma só — com `loading="lazy"`, a escondida nem é baixada, então
-    a grade retrô baixa ~150 KB em vez de ~2 MB. A ficha usa sempre a foto
-    inteira, sem pixelar: grade estilizada, ficha fiel.
-  - Se a imagem enviada não puder ser lida (passou pela assinatura, mas está
-    corrompida), a espécie é salva sem a versão pixel e a grade usa a inteira.
+  - **16 bits no feed.** O tema é 8 bits (blocos chapados, borda de 3–4 px,
+    chanfro de 3 px); os cards do feed já são 16 bits: rampa com tons
+    intermediários, borda de 2 px, chanfro de 1 px e sombreado pontilhado
+    (xadrez de 2×2 px entre dois tons vizinhos) no lugar do degrau seco.
+- **Miniaturas na grade da Dex.** A grade nunca baixa a foto inteira: cada
+  foto tem uma miniatura de ~400 px, cor cheia, WebP (`lib/pixel.js`, com o
+  sharp) — nítida no card e leve (~370 KB a grade toda, contra ~2,1 MB das
+  fotos inteiras). As do repositório saem de `npm run thumbs`
+  (`assets/species/thumb/`, versionadas); a da foto que o admin envia é gerada
+  ao salvar a espécie (se a imagem estiver corrompida, a espécie é salva sem
+  miniatura e o card usa a inteira). A ficha abre a foto inteira. O gerador
+  da versão pixel art (96 px, 48 cores), do experimento anterior, continua
+  no código: `npm run pixel` gera de novo, se a ideia voltar.
 - **Navegação de app.** As abas principais ficam numa barra embaixo — Dex |
-  Registrar Captura | Feed —, ícone sobre o rótulo, como em app de celular:
+  Registrar Captura | Feed | Notificações (com o número de não lidas no
+  ícone) —, ícone sobre o rótulo, como em app de celular:
   rodapé encaixado, na largura toda da tela em qualquer tamanho, separado do
   conteúdo por um fio (sem sombra); na tela larga só os três itens ficam
   centralizados. A ativa tem um traço curto em cima e a cor de destaque. O
@@ -428,8 +432,8 @@ abre uma janela entre a conferência e o INSERT.
   no `index.html`, senão vale 0 no iPhone), e o conteúdo reserva embaixo a
   altura da barra (`--altura-abas`) para o fim do feed e da Dex não ficar
   escondido.
-  No topo ficam só o sino e o perfil (a foto, ou o @apelido de quem não tem
-  foto). Configurações, Créditos e Sair saíram do topo e estão no Perfil. A
+  No topo ficam só o título, centralizado, e o perfil (a foto, ou o @apelido
+  de quem não tem foto). Configurações, Créditos e Sair saíram do topo e estão no Perfil. A
   busca de pessoas virou a aba "Pessoas" do Feed, ao lado de Seguindo,
   Descobrir e (admin) Denunciadas; a aba fica na URL (`?aba=pessoas`), e o
   endereço antigo `/pessoas` redireciona para lá. As abas do Feed dividem a

@@ -101,9 +101,16 @@
   align-items: center;
 }
 
+/* "Créditos das fotos": link com cara de botão secundário. */
 .dex-creditos {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--agua);
+  border-radius: var(--raio);
+  background: #fff;
+  color: var(--agua);
   font-size: 0.8rem;
-  color: var(--texto-fraco);
+  text-decoration: none;
 }
 
 .dex-status {
@@ -153,8 +160,11 @@
   margin: 1rem 0 0.2rem;
 }
 
+/* z-index: a moldura da foto vem depois no HTML e é position: relative, então
+   sem isto ela era pintada por cima do botão (e o tapava para o clique). */
 .dex-modal-fechar {
   position: absolute;
+  z-index: 2;
   top: 0.75rem;
   right: 0.75rem;
   padding: 0.25rem 0.55rem;

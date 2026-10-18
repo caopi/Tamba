@@ -11,6 +11,8 @@ build/
 
 # Fotos enviadas pelos usuários (driver de disco local do lib/storage.js)
 backend/uploads/
+# Versão pixel art das fotos (npm run pixel): experimento fora de uso, gerado sob demanda
+backend/assets/species/pixel/
 
 # Logs
 *.log

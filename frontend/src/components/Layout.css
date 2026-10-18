@@ -1,11 +1,13 @@
-/* Topo: logo à esquerda; sino e perfil à direita. As abas ficam embaixo. */
+/* Topo: título no centro, perfil à direita. As abas (e o sino) ficam
+   embaixo. Grade de três colunas iguais nas pontas: o título fica no centro
+   da tela, qualquer que seja a largura do perfil. */
 .layout-header {
   position: sticky;
   top: 0;
   z-index: 5;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 1rem;
   background: var(--agua);
@@ -21,6 +23,7 @@
 
 .layout-user {
   display: flex;
+  justify-self: end;
   align-items: center;
   gap: 1.1rem;
   font-size: 0.9rem;
@@ -135,23 +138,16 @@
   color: var(--agua);
 }
 
-.layout-sino {
+/* Ícone da aba com o número de não lidas por cima, no canto. */
+.layout-aba-icone {
   position: relative;
-  color: #fff;
-  font-size: 1.15rem;
-  line-height: 1;
-  text-decoration: none;
-  opacity: 0.85;
-}
-
-.layout-sino.active {
-  opacity: 1;
+  display: inline-flex;
 }
 
 .layout-sino-contador {
   position: absolute;
-  top: -0.45rem;
-  right: -0.6rem;
+  top: -0.4rem;
+  right: -0.75rem;
   min-width: 1.1rem;
   padding: 0.1rem 0.3rem;
   border-radius: 999px;

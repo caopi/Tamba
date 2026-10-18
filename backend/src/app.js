@@ -25,15 +25,19 @@ app.use(
 );
 
 // Imagens versionadas no repositório (fotos do catálogo). O nome do arquivo
-// é o da espécie e pode ser trocado por uma foto melhor, então o cache é
-// curto, sem `immutable`.
+// é o da espécie e a foto pode ser trocada mantendo o nome, então o navegador
+// não pode usar a cópia guardada sem perguntar: `no-cache` faz ele conferir
+// pelo ETag a cada vez (resposta 304, sem baixar de novo, se não mudou).
 app.use(
   "/assets",
   express.static(ASSETS_DIR, {
     dotfiles: "deny",
     index: false,
-    maxAge: "1d",
-    setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff"),
+    cacheControl: false,
+    setHeaders: (res) => {
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    },
   }),
 );
 

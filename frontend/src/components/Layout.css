@@ -26,11 +26,20 @@
   font-size: 0.9rem;
 }
 
-/* Espaço embaixo para a barra de abas não cobrir o fim da página. */
+/* Altura da barra de abas (sem a área do indicador de início do iPhone). O
+   espaço reservado embaixo do conteúdo sai daqui, para os dois nunca
+   divergirem. */
+:root {
+  --altura-abas: 3.75rem;
+}
+
+/* Espaço embaixo para a barra não cobrir o fim da página: a altura dela, a
+   área segura do iPhone e um respiro. Vale para toda tela dentro do Layout,
+   inclusive o feed e a grade da Dex, que crescem com a rolagem. */
 .layout-main {
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.25rem 1rem calc(5.5rem + env(safe-area-inset-bottom));
+  padding: 1.25rem 1rem calc(var(--altura-abas) + env(safe-area-inset-bottom) + 1.5rem);
 }
 
 .layout-perfil {
@@ -55,70 +64,59 @@
   font-weight: 600;
 }
 
-/* --- Barra de abas embaixo --- */
+/* --- Barra de abas embaixo ---
+   Rodapé encaixado: largura toda da tela em qualquer tamanho, colado na
+   borda de baixo, sem margem, canto arredondado nem sombra; só um fio em
+   cima separa do conteúdo. Na tela larga a barra continua inteira e só os
+   três itens ficam centralizados. O padding de baixo é a área segura do
+   iPhone (precisa do viewport-fit=cover no index.html para valer). */
 .layout-abas {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
   z-index: 5;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 560px;
   display: flex;
-  padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+  justify-content: center;
+  padding: 0 0 env(safe-area-inset-bottom);
   background: #fff;
   border-top: 1px solid var(--borda);
-  box-shadow: 0 -4px 16px rgba(15, 43, 48, 0.08);
-}
-
-/* Na tela larga a barra "flutua" centralizada, com cantos arredondados. */
-@media (min-width: 600px) {
-  .layout-abas {
-    bottom: 0.75rem;
-    border: 1px solid var(--borda);
-    border-radius: 16px;
-    padding-bottom: 0.35rem;
-  }
 }
 
 .layout-aba {
   position: relative;
   flex: 1 1 0;
+  max-width: 11rem;
   min-width: 0;
+  height: var(--altura-abas);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.4rem 0.25rem 0.3rem;
-  border-radius: 12px;
+  justify-content: center;
+  gap: 0.2rem;
   color: var(--texto-fraco);
   text-decoration: none;
   font-size: 0.75rem;
   white-space: nowrap;
 }
 
-/* Aba ativa: cor da marca, fundo claro e um traço em cima. */
+/* Aba ativa: ícone e rótulo na cor de destaque e um traço curto em cima,
+   encostado no fio da barra. */
 .layout-aba.active {
   color: var(--agua);
-  background: var(--agua-clara);
   font-weight: 700;
 }
 
 .layout-aba.active::before {
   content: "";
   position: absolute;
-  top: -0.35rem;
-  left: 30%;
-  right: 30%;
+  top: -1px;
+  left: 50%;
+  width: 2rem;
   height: 3px;
+  margin-left: -1rem;
   border-radius: 0 0 3px 3px;
   background: var(--agua);
-}
-
-@media (min-width: 600px) {
-  .layout-aba.active::before {
-    display: none;
-  }
 }
 
 .layout-admin {
@@ -139,6 +137,7 @@
 
 .layout-sino {
   position: relative;
+  color: #fff;
   font-size: 1.15rem;
   line-height: 1;
   text-decoration: none;
@@ -156,7 +155,8 @@
   min-width: 1.1rem;
   padding: 0.1rem 0.3rem;
   border-radius: 999px;
-  background: #d9412b;
+  /* Vermelho escuro o bastante para o número branco passar de 4,5:1. */
+  background: #b8232c;
   color: #fff;
   font-size: 0.65rem;
   font-weight: 700;

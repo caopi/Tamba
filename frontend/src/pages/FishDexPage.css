@@ -94,25 +94,11 @@
 
 /* Nome em até duas linhas, sempre no mesmo espaço. */
 .dex-card h3 {
-  margin: 0.7rem 0 0.15rem;
+  margin: 0.7rem 0 0.3rem;
   font-size: 0.95rem;
   min-height: 2.4em;
   display: flex;
   align-items: center;
-}
-
-.dex-card-cientifico {
-  /* Até duas linhas: os híbridos têm nome científico longo. O nome
-     completo fica no title e na ficha. */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-bottom: 0.35rem;
-  font-size: 0.72rem;
-  font-style: italic;
-  color: var(--texto-fraco);
-  line-height: 1.25;
 }
 
 .dex-creditos {

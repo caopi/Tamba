@@ -143,10 +143,6 @@ export function FishDexPage() {
                 </div>
 
                 <h3>{especie.name}</h3>
-                {/* Mostra o escopo: "Pseudoplatystoma spp." é o gênero inteiro. */}
-                <span className="dex-card-cientifico" title={especie.scientificName}>
-                  {especie.scientificName}
-                </span>
                 <RarityBadge rarity={especie.rarity} />
                 <span className="dex-status">
                   {especie.archived && !especie.captured
@@ -155,7 +151,7 @@ export function FishDexPage() {
                     ? "Arquivada · fora da contagem"
                     : recorde
                       ? `Recorde: ${unidades.peso(recorde.melhorPeso)}`
-                      : "Ainda não capturado"}
+                      : "Não capturado"}
                 </span>
               </button>
             </li>

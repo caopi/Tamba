@@ -1,9 +1,15 @@
 import * as notificationService from "../services/notification.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 
-// GET /api/notifications?unreadOnly=true&limit=30  -> { items, unreadCount }
+// GET /api/notifications?unreadOnly=true&cursor=...&limit=20
+//   -> { items, unreadCount, nextCursor }
 export const list = asyncHandler(async (req, res) => {
   res.json(await notificationService.listNotifications(req.userId, req.query));
+});
+
+// GET /api/notifications/unread-count -> { unreadCount }
+export const unreadCount = asyncHandler(async (req, res) => {
+  res.json(await notificationService.unreadCount(req.userId));
 });
 
 // PATCH /api/notifications/:id/read

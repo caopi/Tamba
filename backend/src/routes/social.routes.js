@@ -30,6 +30,7 @@ export const favoriteRoutes = Router()
 export const notificationRoutes = Router()
   .use(requireAuth)
   .get("/", notifications.list)
+  .get("/unread-count", notifications.unreadCount)
   .post("/read-all", notifications.markAllRead)
   .patch("/:id/read", notifications.markRead);
 

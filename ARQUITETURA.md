@@ -70,6 +70,9 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   (migration 012).
 - **fish_species** — catálogo da Dex. O seed popula; depois disso só **admin**
   cria e edita (RGN-16). `name` é UNIQUE: é a chave do upsert do seed.
+  Foto: `image_url` + `image_credit`, `image_license`, `image_source_url`
+  (migration 013; ver "Fotos do catálogo" em Decisões). `model_url` é
+  reservada para um modelo 3D, ideia adiada: fica NULL e nenhum código a usa.
   `recommended_baits` é uma string simples separada por vírgula ('massa, milho,
   minhoca'), de propósito — não vale uma tabela só para isso. `rarity` é
   obrigatória: `VARCHAR NOT NULL` + CHECK com os quatro valores, e não ENUM —
@@ -149,8 +152,8 @@ e a API recusa (403) para os demais de qualquer jeito.
 | UC002 (lado admin) — desativar/reativar conta | Perfil público (`/u/:id`): faixa "🛡 Conta ativa / desativada" | `PATCH /admin/users/:id/active` → `user.service.setUserActive` |
 | UC005 — feed | `/feed`: Seguindo, Descobrir, ordem, rolagem infinita | `GET /feed` → `catch.service.getFeed` |
 | UC006 — interagir com captura | Post (`CatchCard`) e detalhe (`/capturas/:id`) | `/catches/:id/like`, `/comments`, `/reports` → `social.service`, `report.service` |
-| UC007 — perfil e configurações | `/configuracoes` | `PATCH /users/me` → `user.service.updateMe` |
-| UC008 — seguir | Post, perfil público, `/pessoas` | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
+| UC007 — perfil e configurações | `/configuracoes`, aberta pelo Perfil (avatar no topo) | `PATCH /users/me` → `user.service.updateMe` |
+| UC008 — seguir | Post, perfil público, aba "Pessoas" do Feed (`/feed?aba=pessoas`) | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
 | UC009 — notificações (REQ-43) | Sino 🔔 no topo, com o número de não lidas; `/notificacoes`: quem fez o quê, marcar uma ou todas como lidas, rolagem infinita | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` → `notification.service` |
 | UC010 — catálogo de espécies | Dex (`/`): "+ Nova espécie"; ficha da espécie: "Editar espécie", "Desativar/Reativar" | `/admin/species` → `species.service` |
 | UC011 — moderação | Post: "🛡 Moderar" (denúncias, ocultar/reexibir); feed: aba "🛡 Denunciadas" | `GET /admin/catches/:id/reports`, `POST /admin/catches/:id/review`, `GET /feed?scope=reported` → `report.service` |
@@ -341,6 +344,66 @@ abre uma janela entre a conferência e o INSERT.
 - **Compressão no aparelho (RNF-09).** O frontend redimensiona para 1600 px e
   reencoda em JPEG antes de enviar (`src/imageCompression.ts`). Isso também
   descarta o EXIF, inclusive o GPS que o celular grava na foto.
+- **Fotos do catálogo: dado versionado, não upload.** As fotos das espécies do
+  seed ficam em `backend/assets/species/` (WebP, até ~190 KB cada, 2,1 MB no
+  total), **dentro do git**, servidas pela API em `/assets`. É o oposto das
+  fotos de usuário: `uploads/` fica fora do git e existe numa máquina só, e
+  quem clonasse o projeto veria só 🐟. O autor, a licença, a origem e o que
+  foi alterado de cada foto estão em `database/species-images.js`, que o seed
+  lê e o `npm run credits` transforma no `CREDITOS.md` da raiz. Legenda
+  opcional (`image_caption`, "Na foto: ...") nas entradas de gênero, quando a
+  foto mostra uma espécie do gênero e não a entrada inteira.
+  - **Fotos da equipe.** Seis espécies usam foto da própria equipe ("Equipe
+    Tamba", todos os direitos reservados — não são CC). Os originais ficam
+    fora do git (pasta `peixes/`, só local) porque tinham pessoas no quadro e
+    podiam carregar o GPS do pesqueiro (RGN-13). No repositório só entra o
+    recorte no peixe, regravado a partir dos pixels, sem nenhum metadado; o
+    recorte mais largo que 3:2 é completado com uma cópia desfocada dele
+    mesmo, para o card não cortar cabeça e cauda.
+  - **Duas origens, um caminho.** A espécie que o admin cadastra pelo app
+    ganha foto por upload comum. No banco, `image_url` é um caminho relativo
+    à API (`/assets/species/tambaqui.webp`) ou a URL absoluta do upload; o
+    `storage.publicUrl` resolve os dois com `new URL(ref, PUBLIC_API_URL)`, e
+    é chamado só onde as linhas viram resposta (models de espécie e de
+    captura). Da API para fora existe uma URL só. Na escrita
+    (`species.service`), a regra também é uma só: a foto atual passa, null
+    tira a foto e o crédito, e foto nova tem de ser upload do próprio admin,
+    com autor e licença — link externo é recusado.
+  - **Crédito anda com a foto.** O seed só preenche o crédito se a espécie
+    ainda não tem foto: a foto que um admin trocou nunca ganha o crédito da
+    Wikimedia. Consequência do "seed só preenche o vazio": se o admin
+    *remover* a foto de uma espécie do seed, o próximo `npm run seed` devolve
+    a do repositório (com o crédito certo).
+  - **Escolha das fotos.** Pelo nome científico (categoria do Commons ou
+    observação "research grade" do iNaturalist), nunca pelo nome popular;
+    domínio público/CC0 primeiro, depois CC BY; nada de CC BY-SA nem desenho.
+    Ficaram sem foto, de propósito: três híbridos (Patinga, Pincachara,
+    Cachapira), o Piauçu e o Trairão, cujo nome cobre um grupo de espécies
+    quase idênticas sem registro brasileiro sólido (ver o `CREDITOS.md`).
+  - **Padronização no CSS.** As fontes variam em ângulo, fundo e proporção;
+    `<SpeciesImage>` normaliza: moldura 3:2 fixa, `object-fit: cover`, mesmo
+    fundo e a mesma vinheta. Nas fotos de estúdio muito largas (fundo liso), o
+    fundo foi estendido até 3:2 no processamento, para o `cover` não cortar
+    cabeça e cauda. Espécie não capturada: só **na grade da Dex**, como
+    indicador de progresso, a "sombra" sai da própria foto por filtro CSS
+    (cinza, escura, contraste alto, desfoque leve); nome e nome científico
+    continuam visíveis — é um guia de referência, não jogo de adivinhar. Nas
+    fotos de fundo liso vira uma silhueta de verdade; nas com cenário, um
+    quadro escuro em que a forma mal aparece. **A ficha da espécie nunca é
+    bloqueada:** habitat, iscas e faixa plausível são justamente o que se
+    quer saber antes de pescar.
+  - **Crédito visível.** Na ficha da espécie, logo abaixo da foto ("Foto:
+    autor · licença · origem", e a legenda), e na tela `/creditos`, pública,
+    que reúne todas — inclusive as enviadas pelo app.
+- **Navegação de app.** As abas principais ficam numa barra embaixo — Dex |
+  Registrar Captura | Feed —, ícone sobre o rótulo, como em app de celular;
+  na tela larga a barra continua embaixo, centralizada e com no máximo 560 px.
+  No topo ficam só o sino e o perfil (a foto, ou o @apelido de quem não tem
+  foto). Configurações, Créditos e Sair saíram do topo e estão no Perfil. A
+  busca de pessoas virou a aba "Pessoas" do Feed, ao lado de Seguindo,
+  Descobrir e (admin) Denunciadas; a aba fica na URL (`?aba=pessoas`), e o
+  endereço antigo `/pessoas` redireciona para lá. As abas do Feed dividem a
+  linha em partes iguais e cabem em 375 px sem rolagem lateral.
 
 ## Problemas conhecidos
 
@@ -368,6 +431,7 @@ cd backend
 npm run dev                       # API em http://localhost:3333
 npm run migrate                   # aplica os .sql novos de database/migrations
 npm run seed                      # popula o catálogo (idempotente)
+npm run credits                   # regera o CREDITOS.md (fotos do catálogo)
 
 cd frontend
 npm run dev                       # http://localhost:5173

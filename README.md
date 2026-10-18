@@ -59,6 +59,7 @@ Abra o `backend/.env` e preencha:
 | `ADMIN_EMAIL` | Conta que o `npm run seed` promove a admin (ver "Primeiro admin" abaixo). |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` liga a confirmação de e-mail no cadastro (RGN-01). Padrão `false`: o cadastro já entra logado. |
 | `UPLOADS_PUBLIC_URL` | Endereço público das fotos enviadas. Padrão `http://localhost:3333/uploads` (a própria API). |
+| `PUBLIC_API_URL` | Endereço público da própria API, sem `/api`. Base das fotos do catálogo (`/assets/...`). Padrão `http://localhost:3333`. |
 | `SEED_DEV_USERS` | `true` faz o `npm run seed` criar as contas de desenvolvimento (ver abaixo). Ignorado com `NODE_ENV=production`. |
 
 Para gerar um `JWT_SECRET` decente:
@@ -71,7 +72,7 @@ Depois crie as tabelas e popule o catálogo de espécies:
 
 ```bash
 npm run migrate    # roda os .sql de database/migrations em ordem
-npm run seed       # insere as 34 espécies e 3 pesqueiros de exemplo
+npm run seed       # insere as 34 espécies (com foto) e 3 pesqueiros de exemplo
 ```
 
 Os dois comandos podem ser rodados quantas vezes você quiser: o `migrate` pula
@@ -166,6 +167,7 @@ Para conferir se a API subiu: <http://localhost:3333/api/health>
 | `npm start` | Sobe a API sem reload |
 | `npm run migrate` | Aplica os `.sql` ainda não rodados de `database/migrations/` |
 | `npm run seed` | Popula o catálogo (pode rodar várias vezes, não duplica) |
+| `npm run credits` | Regera o `CREDITOS.md` a partir de `database/species-images.js` (depois de trocar uma foto do catálogo) |
 
 ### Frontend
 
@@ -306,7 +308,7 @@ sinalizada para revisão.
 | `GET` | `/notifications/unread-count` | privado | `{ unreadCount }` — o número do sino |
 | `PATCH` | `/notifications/:id/read` | privado | Marca uma como lida |
 | `POST` | `/notifications/read-all` | privado | Marca todas como lidas |
-| `GET` | `/species` · `/species/:id` | público | Catálogo ativo / uma espécie |
+| `GET` | `/species` · `/species/:id` | público | Catálogo ativo / uma espécie, com `imageUrl` (sempre completa) e `imageCredit`, `imageLicense`, `imageSourceUrl` |
 | `GET` | `/spots` | público | Lista de pesqueiros |
 
 ### Admin
@@ -336,15 +338,18 @@ Não há área de admin no app: essas ações aparecem dentro das telas normais
 | `/login` | Login e cadastro (com apelido). Conta não confirmada recebe aviso e opção de reenviar o link |
 | `/confirme-email` | Depois do cadastro: "confirme seu e-mail", com reenvio do link |
 | `/verificacao` | Destino do link do e-mail: confirmado, expirado ou inválido (com reenvio) |
-| `/` | Fish Dex — grade com raridade, contador X/Y e espécies arquivadas; clicar abre a ficha (faixa plausível, curiosidades, recorde pessoal) |
+| `/` | Fish Dex — grade com foto, nome científico, raridade, contador X/Y e espécies arquivadas; as ainda não capturadas aparecem "na sombra". Clicar abre a ficha (foto com crédito, faixa plausível, curiosidades, recorde pessoal), sempre completa |
 | `/registrar` | Nova captura. Medida fora da faixa da espécie abre uma confirmação antes de salvar |
-| `/perfil` | Estatísticas e histórico ordenável; capturas ocultas pela moderação aparecem "em análise" |
-| `/feed` | Feed: abas Seguindo / Descobrir, ordem por data ou engajamento, rolagem infinita, "Atualizar". Sem ninguém seguido, sugere perfis |
+| `/perfil` | Estatísticas e histórico ordenável; capturas ocultas pela moderação aparecem "em análise". Abre pela foto (ou @apelido) no topo e leva a Configurações, Créditos e Sair |
+| `/feed` | Feed: abas Seguindo / Descobrir / Pessoas (busca, `?aba=pessoas`) e, para admin, Denunciadas; ordem por data ou engajamento, rolagem infinita, "Atualizar". Sem ninguém seguido, sugere perfis |
 | `/capturas/:id` | Detalhe da captura: todas as fotos, observações, localização (coordenada só se o autor compartilha) e comentários. É o link do "Compartilhar" |
 | `/u/:id` | Perfil público de outro usuário, com seguir e as capturas dele |
-| `/pessoas` | Busca de pessoas por nome ou apelido, com sugestões |
-| `/configuracoes` | Perfil (nome, apelido, foto), unidades, privacidade da localização e notificações. Abre clicando no seu @apelido no topo |
+| `/configuracoes` | Perfil (nome, apelido, foto), unidades, privacidade da localização e notificações. Abre pelo Perfil |
 | `/notificacoes` | Quem curtiu, comentou ou começou a seguir; clicar abre a captura ou o perfil. Abre pelo sino 🔔 do topo, que mostra quantas não lidas há |
+| `/creditos` | Créditos de todas as fotos do catálogo (autor, licença, origem, legenda). Pública, sem login; links na Dex e no Perfil |
+
+As abas principais (Dex, Registrar Captura, Feed) ficam na barra de baixo; no
+topo, o sino de notificações e o acesso ao perfil.
 
 ---
 

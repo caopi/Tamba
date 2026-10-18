@@ -56,8 +56,7 @@
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { pool, query, queryOne } from "../src/lib/db.js";
-
-// image_url fica NULL de propósito: as fotos entram depois.
+import { speciesImages } from "./species-images.js";
 const especies = [
   // --- Redondos (Serrasalmidae) ---
   {
@@ -472,13 +471,26 @@ const pesqueiros = [
 ];
 
 // Tudo com COALESCE: só preenche o que está NULL (ver o topo do arquivo).
-// `image_url` nem entra no UPDATE: as fotos são preenchidas à mão.
+//
+// Foto: `image_url` guarda o caminho relativo à API ("/assets/species/...",
+// arquivo versionado no repo); o storage.publicUrl completa o endereço. O
+// crédito anda junto com a foto: só é preenchido se a espécie ainda não tem
+// foto. Por isso as colunas de crédito e a legenda vêm ANTES do image_url — o MySQL
+// aplica as atribuições em ordem, e ali o image_url ainda é o valor antigo.
+// Assim a foto que um admin trocou pelo app nunca ganha o crédito da foto do
+// seed.
 const UPSERT_ESPECIE = `
   INSERT INTO fish_species
-    (id, name, scientific_name, habitat, image_url, recommended_baits,
-     rarity, min_weight, max_weight, min_length, max_length, curiosities)
-  VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?) AS novo
+    (id, name, scientific_name, habitat, image_url, image_credit, image_license,
+     image_source_url, image_caption, recommended_baits, rarity, min_weight,
+     max_weight, min_length, max_length, curiosities)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AS novo
   ON DUPLICATE KEY UPDATE
+    image_credit      = IF(fish_species.image_url IS NULL, novo.image_credit,     fish_species.image_credit),
+    image_license     = IF(fish_species.image_url IS NULL, novo.image_license,    fish_species.image_license),
+    image_source_url  = IF(fish_species.image_url IS NULL, novo.image_source_url, fish_species.image_source_url),
+    image_caption     = IF(fish_species.image_url IS NULL, novo.image_caption,    fish_species.image_caption),
+    image_url         = COALESCE(fish_species.image_url,         novo.image_url),
     scientific_name   = COALESCE(fish_species.scientific_name,   novo.scientific_name),
     habitat           = COALESCE(fish_species.habitat,           novo.habitat),
     recommended_baits = COALESCE(fish_species.recommended_baits, novo.recommended_baits),
@@ -491,11 +503,17 @@ const UPSERT_ESPECIE = `
 `;
 
 for (const especie of especies) {
+  const foto = speciesImages[especie.name];
   await query(UPSERT_ESPECIE, [
     randomUUID(),
     especie.name,
     especie.scientificName,
     especie.habitat,
+    foto ? `/assets/species/${foto.file}` : null,
+    foto?.credit ?? null,
+    foto?.license ?? null,
+    foto?.sourceUrl ?? null,
+    foto?.caption ?? null,
     especie.recommendedBaits,
     especie.rarity,
     especie.minWeight,
@@ -514,6 +532,14 @@ if (total === 0) {
       "INSERT INTO fishing_spots (id, name, location, google_place_id) VALUES (?, ?, ?, NULL)",
       [randomUUID(), pesqueiro.name, pesqueiro.location],
     );
+  }
+}
+
+// Foto cadastrada para uma espécie que não existe no seed: erro de digitação
+// no nome, que deixaria a espécie sem foto sem ninguém perceber.
+for (const nome of Object.keys(speciesImages)) {
+  if (!especies.some((e) => e.name === nome)) {
+    throw new Error(`species-images.js: "${nome}" não é uma espécie do seed`);
   }
 }
 

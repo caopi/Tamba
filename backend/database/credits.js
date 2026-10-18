@@ -67,6 +67,22 @@ ${linhas.join("\n")}
 
 As fotos que um administrador enviar pelo app não entram neste arquivo: ficam
 no banco, com autor e licença obrigatórios, e aparecem na tela \`/creditos\`.
+
+## Tema retrô
+
+- **Cena de fundo** (\`frontend/src/styles/retro/fundo-noite.png\`):
+  "Parallax Background Forest Pixel Art", de **MatiasVME** —
+  [CC0](https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br) —
+  [origem](https://opengameart.org/content/parallax-background-forest-pixel-art).
+  Alterações: reduzida à resolução original (1280×360, a publicada é 4× maior)
+  e recolorida, cor a cor, para uma paleta noturna em azul.
+- **Fontes**: Press Start 2P (CodeMan38) e Silkscreen (Jason Kottke), ambas
+  sob a [SIL Open Font License 1.1](https://openfontlicense.org), carregadas
+  do Google Fonts.
+
+As versões pixel art das fotos do catálogo (\`backend/assets/species/pixel/\`,
+geradas por \`npm run pixel\`) são derivadas das fotos acima e seguem a
+licença e o crédito de cada uma.
 `;
 
 const destino = fileURLToPath(new URL("../../CREDITOS.md", import.meta.url));

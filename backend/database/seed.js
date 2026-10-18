@@ -475,17 +475,18 @@ const pesqueiros = [
 // Foto: `image_url` guarda o caminho relativo à API ("/assets/species/...",
 // arquivo versionado no repo); o storage.publicUrl completa o endereço. O
 // crédito anda junto com a foto: só é preenchido se a espécie ainda não tem
-// foto. Por isso as colunas de crédito e a legenda vêm ANTES do image_url — o MySQL
+// foto. Por isso a versão pixel, o crédito e a legenda vêm ANTES do image_url — o MySQL
 // aplica as atribuições em ordem, e ali o image_url ainda é o valor antigo.
 // Assim a foto que um admin trocou pelo app nunca ganha o crédito da foto do
 // seed.
 const UPSERT_ESPECIE = `
   INSERT INTO fish_species
-    (id, name, scientific_name, habitat, image_url, image_credit, image_license,
-     image_source_url, image_caption, recommended_baits, rarity, min_weight,
-     max_weight, min_length, max_length, curiosities)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AS novo
+    (id, name, scientific_name, habitat, image_url, image_thumb_url, image_credit,
+     image_license, image_source_url, image_caption, recommended_baits, rarity,
+     min_weight, max_weight, min_length, max_length, curiosities)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AS novo
   ON DUPLICATE KEY UPDATE
+    image_thumb_url   = IF(fish_species.image_url IS NULL, novo.image_thumb_url,  fish_species.image_thumb_url),
     image_credit      = IF(fish_species.image_url IS NULL, novo.image_credit,     fish_species.image_credit),
     image_license     = IF(fish_species.image_url IS NULL, novo.image_license,    fish_species.image_license),
     image_source_url  = IF(fish_species.image_url IS NULL, novo.image_source_url, fish_species.image_source_url),
@@ -510,6 +511,8 @@ for (const especie of especies) {
     especie.scientificName,
     especie.habitat,
     foto ? `/assets/species/${foto.file}` : null,
+    // Versão pixel art gerada por `npm run pixel`: mesmo nome, em pixel/, PNG.
+    foto ? `/assets/species/pixel/${foto.file.replace(/\.webp$/, ".png")}` : null,
     foto?.credit ?? null,
     foto?.license ?? null,
     foto?.sourceUrl ?? null,

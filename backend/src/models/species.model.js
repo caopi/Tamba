@@ -15,6 +15,8 @@ export function mapSpecies(linha) {
     habitat: linha.habitat,
     // Foto do repositório ou enviada pelo admin: o publicUrl resolve as duas.
     imageUrl: publicUrl(linha.image_url),
+    // Versão pixel art (migration 014), para a grade do tema retrô.
+    imageThumbUrl: publicUrl(linha.image_thumb_url),
     imageCredit: linha.image_credit,
     imageLicense: linha.image_license,
     imageSourceUrl: linha.image_source_url,
@@ -70,6 +72,8 @@ const COLUNAS = {
   scientificName: "scientific_name",
   habitat: "habitat",
   imageUrl: "image_url",
+  // Não vem do cliente (não está no schema): o species.service gera.
+  imageThumbUrl: "image_thumb_url",
   imageCredit: "image_credit",
   imageLicense: "image_license",
   imageSourceUrl: "image_source_url",

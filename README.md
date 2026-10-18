@@ -167,6 +167,7 @@ Para conferir se a API subiu: <http://localhost:3333/api/health>
 | `npm start` | Sobe a API sem reload |
 | `npm run migrate` | Aplica os `.sql` ainda não rodados de `database/migrations/` |
 | `npm run seed` | Popula o catálogo (pode rodar várias vezes, não duplica) |
+| `npm run pixel` | Gera a versão pixel art (96 px) de cada foto do catálogo em `assets/species/pixel/` (depois de trocar uma foto) |
 | `npm run credits` | Regera o `CREDITOS.md` a partir de `database/species-images.js` (depois de trocar uma foto do catálogo) |
 
 ### Frontend
@@ -350,6 +351,10 @@ Não há área de admin no app: essas ações aparecem dentro das telas normais
 
 As abas principais (Dex, Registrar Captura, Feed) ficam na barra de baixo; no
 topo, o sino de notificações e o acesso ao perfil.
+
+**Tema retrô (experimento).** Está ligado pela classe `tema-retro` no `<html>`
+de `frontend/index.html`; para voltar ao visual normal, basta tirar a classe.
+Tudo do tema mora em `frontend/src/styles/retro/`.
 
 ---
 

@@ -73,6 +73,8 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   Foto: `image_url` + `image_credit`, `image_license`, `image_source_url`
   (migration 013; ver "Fotos do catálogo" em Decisões). `model_url` é
   reservada para um modelo 3D, ideia adiada: fica NULL e nenhum código a usa.
+  `image_thumb_url` (migration 014) é a versão pixel art da foto, para a
+  grade do tema retrô.
   `recommended_baits` é uma string simples separada por vírgula ('massa, milho,
   minhoca'), de propósito — não vale uma tabela só para isso. `rarity` é
   obrigatória: `VARCHAR NOT NULL` + CHECK com os quatro valores, e não ENUM —
@@ -395,9 +397,37 @@ abre uma janela entre a conferência e o INSERT.
   - **Crédito visível.** Na ficha da espécie, logo abaixo da foto ("Foto:
     autor · licença · origem", e a legenda), e na tela `/creditos`, pública,
     que reúne todas — inclusive as enviadas pelo app.
+- **Tema retrô (8/16 bits) — experimento reversível.** Fica inteiro em
+  `frontend/src/styles/retro/` (`retro.css` + a cena de fundo) e só vale com
+  a classe `tema-retro` no `<html>` do `index.html`: tirar a classe desliga o
+  tema, e nenhum componente tem estilo retrô no próprio CSS. Paleta em
+  variáveis `--retro-*` (rampa de azul-escuro), que também redefinem as
+  variáveis globais (`--agua`, `--texto`...). Fonte pixel (Press Start 2P nos
+  títulos, Silkscreen em rótulos, botões, números e na barra de abas); texto
+  corrido, descrições e campos continuam sans-serif, porque fonte pixel
+  pequena reprova no RNF-13. Sem canto arredondado, borda grossa e chanfro
+  com sombra interna dura; a barra de abas vira um HUD. O conteúdo fica
+  sempre num painel sólido, nunca direto sobre a cena (CC0, crédito em
+  `/creditos`). Contraste conferido em todas as telas: mínimo 5,5:1.
+  - **Pixel art de verdade na grade, não filtro.** Cada foto tem uma versão de
+    96 px com paleta de 48 cores (`lib/pixel.js`, com o sharp), ampliada com
+    `image-rendering: pixelated`. As do repositório são geradas no build
+    (`npm run pixel`, em `assets/species/pixel/`, versionadas); a da foto que
+    o admin envia é gerada ao salvar a espécie. O card recebe as duas imagens e
+    o CSS mostra uma só — com `loading="lazy"`, a escondida nem é baixada, então
+    a grade retrô baixa ~150 KB em vez de ~2 MB. A ficha usa sempre a foto
+    inteira, sem pixelar: grade estilizada, ficha fiel.
+  - Se a imagem enviada não puder ser lida (passou pela assinatura, mas está
+    corrompida), a espécie é salva sem a versão pixel e a grade usa a inteira.
 - **Navegação de app.** As abas principais ficam numa barra embaixo — Dex |
-  Registrar Captura | Feed —, ícone sobre o rótulo, como em app de celular;
-  na tela larga a barra continua embaixo, centralizada e com no máximo 560 px.
+  Registrar Captura | Feed —, ícone sobre o rótulo, como em app de celular:
+  rodapé encaixado, na largura toda da tela em qualquer tamanho, separado do
+  conteúdo por um fio (sem sombra); na tela larga só os três itens ficam
+  centralizados. A ativa tem um traço curto em cima e a cor de destaque. O
+  padding de baixo usa `env(safe-area-inset-bottom)` (com `viewport-fit=cover`
+  no `index.html`, senão vale 0 no iPhone), e o conteúdo reserva embaixo a
+  altura da barra (`--altura-abas`) para o fim do feed e da Dex não ficar
+  escondido.
   No topo ficam só o sino e o perfil (a foto, ou o @apelido de quem não tem
   foto). Configurações, Créditos e Sair saíram do topo e estão no Perfil. A
   busca de pessoas virou a aba "Pessoas" do Feed, ao lado de Seguindo,

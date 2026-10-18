@@ -37,6 +37,13 @@
     inset 0 -36px 40px -30px rgba(15, 43, 48, 0.35);
 }
 
+/* Versão pixel art: só o tema retrô a mostra (no lugar da inteira). O
+   seletor precisa ser tão específico quanto o `.especie-foto img` acima,
+   senão ele vence e as duas aparecem (e as duas são baixadas). */
+.especie-foto img.especie-foto-pixel {
+  display: none;
+}
+
 .especie-foto-vazia {
   font-size: 2.5rem;
 }

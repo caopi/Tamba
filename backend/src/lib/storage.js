@@ -15,7 +15,7 @@
 // ver "Problemas conhecidos" na ARQUITETURA.
 
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -83,6 +83,16 @@ const localDriver = {
     return `${URL_PUBLICA}/${id}`;
   },
 
+  /**
+   * Lê um arquivo deste armazenamento pela URL pública. Só aceita o que
+   * `belongsTo` aceitaria para o dono da pasta (o mesmo formato de nome), então
+   * não serve para ler caminho arbitrário do disco.
+   */
+  async readUrl(url, ownerId) {
+    if (!this.belongsTo(url, ownerId)) throw new Error("URL fora do armazenamento");
+    return readFile(path.join(UPLOADS_DIR, ownerId, url.slice(`${URL_PUBLICA}/${ownerId}/`.length)));
+  },
+
   /** A URL é de um arquivo deste armazenamento enviado por `ownerId`? */
   belongsTo(url, ownerId) {
     const prefixo = `${URL_PUBLICA}/${ownerId}/`;
@@ -107,4 +117,9 @@ export function getUrl(id) {
 
 export function belongsTo(url, ownerId) {
   return driver.belongsTo(url, ownerId);
+}
+
+/** Conteúdo (buffer) de um arquivo enviado por `ownerId`, pela URL dele. */
+export function readUrl(url, ownerId) {
+  return driver.readUrl(url, ownerId);
 }

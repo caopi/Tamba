@@ -54,6 +54,28 @@ export function CreditsPage() {
         ))}
       </ul>
 
+      <h2 className="creditos-secao">Tema retrô</h2>
+      <ul className="creditos-tema">
+        <li>
+          <strong>Cena de fundo</strong>: “Parallax Background Forest Pixel Art”, de MatiasVME ·{" "}
+          <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br" target="_blank" rel="noreferrer">
+            CC0
+          </a>{" "}
+          ·{" "}
+          <a href="https://opengameart.org/content/parallax-background-forest-pixel-art" target="_blank" rel="noreferrer">
+            origem
+          </a>
+          . Reduzida à resolução original e recolorida para uma paleta noturna.
+        </li>
+        <li>
+          <strong>Fontes</strong>: Press Start 2P (CodeMan38) e Silkscreen (Jason Kottke) ·{" "}
+          <a href="https://openfontlicense.org" target="_blank" rel="noreferrer">
+            SIL Open Font License 1.1
+          </a>
+          , via Google Fonts.
+        </li>
+      </ul>
+
       {semFoto.length > 0 && (
         <p className="creditos-sem-foto">
           Sem foto: {semFoto.map((e) => e.name).join(", ")}. Nenhuma foto livre com identificação confiável: os

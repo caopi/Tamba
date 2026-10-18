@@ -11,6 +11,7 @@ import * as speciesModel from "../models/species.model.js";
 import { isDuplicateKey } from "../lib/db.js";
 import { assertAdmin } from "../lib/authz.js";
 import * as storage from "../lib/storage.js";
+import { pixelVariant } from "../lib/pixel.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
 const RARIDADES = ["comum", "incomum", "raro", "muito_raro"];
@@ -82,7 +83,7 @@ function conferirFaixas({ minWeight, maxWeight, minLength, maxLength }) {
  *
  * Muda `dados` no lugar.
  */
-function conferirImagem(dados, adminId, atual = null) {
+async function conferirImagem(dados, adminId, atual = null) {
   if (!("imageUrl" in dados)) return;
   if (atual && dados.imageUrl === atual.imageUrl) {
     delete dados.imageUrl;
@@ -90,6 +91,7 @@ function conferirImagem(dados, adminId, atual = null) {
   }
   if (dados.imageUrl == null) {
     dados.imageUrl = null;
+    dados.imageThumbUrl = null;
     dados.imageCredit = null;
     dados.imageLicense = null;
     dados.imageSourceUrl = null;
@@ -103,6 +105,19 @@ function conferirImagem(dados, adminId, atual = null) {
   // licença, e até a foto do próprio admin precisa dizer de quem é.
   if (!dados.imageCredit || !dados.imageLicense) {
     throw httpError(422, "Informe o autor e a licença da foto");
+  }
+  // Versão pixel art para a grade (tema retrô), gravada na pasta do admin
+  // como qualquer upload. As fotos do repositório têm a delas gerada no build
+  // (npm run pixel); esta é a mesma coisa para a foto enviada pelo app.
+  // Se a imagem não puder ser lida (arquivo corrompido que passou pela
+  // assinatura), a espécie é salva assim mesmo, sem a versão pixel: a grade
+  // usa a foto inteira. Melhor que recusar a foto inteira por causa do tema.
+  try {
+    const pixel = await pixelVariant(await storage.readUrl(dados.imageUrl, adminId));
+    dados.imageThumbUrl = storage.getUrl(await storage.save({ buffer: pixel, extension: "png", ownerId: adminId }));
+  } catch (err) {
+    console.warn(`Versão pixel não gerada para ${dados.imageUrl}: ${err.message}`);
+    dados.imageThumbUrl = null;
   }
 }
 
@@ -135,7 +150,7 @@ export async function createSpecies(actor, entrada) {
   assertAdmin(actor);
   const dados = createSchema.parse(entrada);
   conferirFaixas(dados);
-  conferirImagem(dados, actor.id);
+  await conferirImagem(dados, actor.id);
 
   if (await speciesModel.nameTaken(dados.name)) {
     throw httpError(409, "Já existe uma espécie com esse nome");
@@ -155,7 +170,7 @@ export async function updateSpecies(actor, speciesId, entrada) {
   const atual = await speciesModel.findById(speciesId);
   if (!atual) throw httpError(404, "Espécie não encontrada");
   conferirFaixas({ ...atual, ...dados });
-  conferirImagem(dados, actor.id, atual);
+  await conferirImagem(dados, actor.id, atual);
 
   if (dados.name && (await speciesModel.nameTaken(dados.name, speciesId))) {
     throw httpError(409, "Já existe uma espécie com esse nome");

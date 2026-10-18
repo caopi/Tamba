@@ -21,6 +21,7 @@ const SELECT_COMPLETO = `
     e.name                   AS especie_name,
     e.scientific_name        AS especie_scientific_name,
     e.image_url              AS especie_image_url,
+    e.image_thumb_url        AS especie_image_thumb_url,
     e.rarity                 AS especie_rarity,
     p.id                     AS pesqueiro_id,
     p.name                   AS pesqueiro_name,
@@ -83,6 +84,7 @@ function mapCatch(linha) {
       name: linha.especie_name,
       scientificName: linha.especie_scientific_name,
       imageUrl: publicUrl(linha.especie_image_url),
+      imageThumbUrl: publicUrl(linha.especie_image_thumb_url),
       rarity: linha.especie_rarity,
     },
     // LEFT JOIN: sem pesqueiro, todas as colunas vêm nulas.

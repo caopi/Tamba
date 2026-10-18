@@ -46,6 +46,8 @@ export interface FishSpecies {
   habitat: string;
   /** Foto do repositório ou enviada pelo admin: a API já devolve a URL completa. */
   imageUrl: string | null;
+  /** Versão pixel art (~96 px) para a grade no tema retrô; null sem foto. */
+  imageThumbUrl: string | null;
   /** Autor, licença e origem da foto (null quando não há foto). */
   imageCredit: string | null;
   imageLicense: string | null;

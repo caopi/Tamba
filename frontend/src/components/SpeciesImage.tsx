@@ -12,13 +12,18 @@ import "./SpeciesImage.css";
  *
  * `bloqueada`: espécie ainda não capturada. A "sombra" sai da própria foto,
  * por filtro, sem precisar de um segundo arquivo.
+ *
+ * No card da grade vão as duas versões da foto, a inteira e a pixel art
+ * (`imageThumbUrl`), e o CSS mostra uma só: a inteira por padrão, a pixel no
+ * tema retrô (styles/retro/retro.css). A escondida, com loading="lazy", nem
+ * é baixada. A ficha e o resto do app usam sempre a foto inteira.
  */
 export function SpeciesImage({
   especie,
   bloqueada = false,
   tamanho = "card",
 }: {
-  especie: Pick<FishSpecies, "name" | "imageUrl">;
+  especie: Pick<FishSpecies, "name" | "imageUrl"> & Partial<Pick<FishSpecies, "imageThumbUrl">>;
   bloqueada?: boolean;
   tamanho?: "card" | "grande" | "mini";
 }) {
@@ -26,8 +31,12 @@ export function SpeciesImage({
   return (
     <div className={classes}>
       {especie.imageUrl ? (
-        // Bloqueada, o nome não aparece no alt: a sombra é o "mistério".
-        <img src={especie.imageUrl} alt={bloqueada ? "Espécie ainda não capturada" : especie.name} loading="lazy" />
+        <>
+          <img className="especie-foto-inteira" src={especie.imageUrl} alt={especie.name} loading="lazy" />
+          {tamanho === "card" && especie.imageThumbUrl && (
+            <img className="especie-foto-pixel" src={especie.imageThumbUrl} alt={especie.name} loading="lazy" />
+          )}
+        </>
       ) : (
         <span className="especie-foto-vazia" aria-hidden="true">
           🐟

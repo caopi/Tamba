@@ -20,3 +20,24 @@
   justify-content: flex-end;
   gap: 0.6rem;
 }
+
+/* Unidade escrita dentro do campo, à direita: "kg" / "cm". */
+.campo-unidade {
+  position: relative;
+  display: block;
+}
+
+.campo-unidade input {
+  width: 100%;
+  padding-right: 2.6rem;
+}
+
+.campo-unidade > span {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--texto-fraco);
+  font-weight: 600;
+  pointer-events: none;
+}

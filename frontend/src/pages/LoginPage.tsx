@@ -17,7 +17,7 @@ export function LoginPage() {
   const [naoConfirmada, setNaoConfirmada] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  const { login, signup } = useAuth();
+  const { login, signup, avisoSessao } = useAuth();
   const navigate = useNavigate();
   // Veio de uma rota privada (ex.: link compartilhado)? Volta para lá depois.
   const destino = (useLocation().state as { from?: string } | null)?.from ?? "/";
@@ -64,6 +64,8 @@ export function LoginPage() {
       <form className="login-card" onSubmit={handleSubmit}>
         <h1>🎣 Tamba</h1>
         <p className="login-subtitulo">Seu diário de pescarias</p>
+
+        {avisoSessao && !erro && <p className="aviso">{avisoSessao}</p>}
 
         {modo === "cadastro" && (
           <>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { adminApi } from "../api/admin";
+import { useAuth } from "../context/AuthContext";
 import type { FishSpecies, Rarity, SpeciesInput } from "../types";
 import "./SpeciesForm.css";
 
@@ -26,6 +27,19 @@ const textoDe = (valor: number | null | undefined) => (valor == null ? "" : Stri
 const numeroOuNull = (texto: string) =>
   texto.trim() === "" ? null : Number(texto.trim().replace(",", "."));
 
+/** Campo numérico com a unidade escrita dentro, à direita, para não ser esquecida. */
+function CampoComUnidade(props: { rotulo: string; unidade: string; valor: string; mudar: (v: string) => void }) {
+  return (
+    <label>
+      {props.rotulo} ({props.unidade})
+      <span className="campo-unidade">
+        <input inputMode="decimal" value={props.valor} onChange={(e) => props.mudar(e.target.value)} />
+        <span aria-hidden="true">{props.unidade}</span>
+      </span>
+    </label>
+  );
+}
+
 export function SpeciesForm({
   especie,
   aoSalvar,
@@ -44,6 +58,7 @@ export function SpeciesForm({
   const [maxWeight, setMaxWeight] = useState(textoDe(especie?.maxWeight));
   const [minLength, setMinLength] = useState(textoDe(especie?.minLength));
   const [maxLength, setMaxLength] = useState(textoDe(especie?.maxLength));
+  const imperial = useAuth().user?.measurementUnit === "lb";
   const [curiosities, setCuriosities] = useState(especie?.curiosities ?? "");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -113,23 +128,16 @@ export function SpeciesForm({
       </label>
 
       <p className="campo-dica">Faixa plausível — vazio = sem faixa. Sempre em kg e cm.</p>
+      {imperial && (
+        <p className="aviso">
+          Seu app está em libras e polegadas, mas o catálogo é editado em <strong>quilos e centímetros</strong>.
+        </p>
+      )}
       <div className="especie-faixas">
-        <label>
-          Peso mín. (kg)
-          <input inputMode="decimal" value={minWeight} onChange={(e) => setMinWeight(e.target.value)} />
-        </label>
-        <label>
-          Peso máx. (kg)
-          <input inputMode="decimal" value={maxWeight} onChange={(e) => setMaxWeight(e.target.value)} />
-        </label>
-        <label>
-          Compr. mín. (cm)
-          <input inputMode="decimal" value={minLength} onChange={(e) => setMinLength(e.target.value)} />
-        </label>
-        <label>
-          Compr. máx. (cm)
-          <input inputMode="decimal" value={maxLength} onChange={(e) => setMaxLength(e.target.value)} />
-        </label>
+        <CampoComUnidade rotulo="Peso mín." unidade="kg" valor={minWeight} mudar={setMinWeight} />
+        <CampoComUnidade rotulo="Peso máx." unidade="kg" valor={maxWeight} mudar={setMaxWeight} />
+        <CampoComUnidade rotulo="Compr. mín." unidade="cm" valor={minLength} mudar={setMinLength} />
+        <CampoComUnidade rotulo="Compr. máx." unidade="cm" valor={maxLength} mudar={setMaxLength} />
       </div>
 
       <label>

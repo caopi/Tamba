@@ -197,6 +197,28 @@ export interface FeedPage {
   nextCursor: string | null;
 }
 
+/** UC009, REQ-43: alguém curtiu, comentou ou começou a seguir. */
+export type NotificationType = "like" | "comment" | "follow";
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  /** Captura curtida/comentada; null no follow (aí o destino é o perfil do ator). */
+  catchId: string | null;
+  speciesName: string | null;
+  /** A captura foi ocultada por denúncias depois do aviso (a dona ainda abre). */
+  catchIsHidden: boolean;
+  isRead: boolean;
+  createdAt: string;
+  actor: PublicUser;
+}
+
+export interface NotificationPage {
+  items: AppNotification[];
+  unreadCount: number;
+  nextCursor: string | null;
+}
+
 export interface Comment {
   id: string;
   catchId: string;

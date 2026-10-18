@@ -150,6 +150,7 @@ export function SettingsPage() {
 
         <fieldset>
           <legend>Notificações</legend>
+          <p className="campo-dica">Os avisos aparecem no sino 🔔 do topo. Escolha quais você quer receber:</p>
           <label className="config-opcao">
             <input type="checkbox" checked={notifyLikes} onChange={(e) => setNotifyLikes(e.target.checked)} />
             Quando curtirem uma captura minha

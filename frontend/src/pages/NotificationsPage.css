@@ -1,0 +1,100 @@
+.notificacoes {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.notificacoes-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.notificacoes-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.notificacao {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: #fff;
+}
+
+/* Não lida: fundo azul-claro, faixa à esquerda e o ponto para marcar. */
+.notificacao.nao-lida {
+  background: var(--agua-clara);
+  border-left: 4px solid var(--agua);
+}
+
+.notificacao-abrir {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  border-radius: var(--raio);
+}
+
+.notificacao-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.notificacao-texto time {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.notificacao.nao-lida .notificacao-texto time {
+  color: var(--agua);
+  font-weight: 600;
+}
+
+.notificacao-oculta {
+  color: var(--texto-fraco);
+  font-size: 0.85rem;
+}
+
+.notificacao-marcar {
+  align-self: stretch;
+  padding: 0 1rem;
+  background: none;
+}
+
+.notificacao-ponto {
+  display: block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--agua);
+}
+
+.notificacao-marcar:hover .notificacao-ponto {
+  outline: 3px solid rgba(15, 92, 115, 0.25);
+}
+
+.notificacoes-vazio {
+  padding: 2rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--borda);
+  border-radius: var(--raio);
+  background: #fff;
+}
+
+.notificacoes-sentinela {
+  height: 1px;
+}

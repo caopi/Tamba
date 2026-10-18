@@ -104,7 +104,8 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
 - **reports** — UNIQUE (`reporter_id`, `catch_id`): cada linha é um usuário
   distinto, então o RGN-14 é só um COUNT.
 - **notifications** — `user_id` recebe, `actor_id` fez a ação; `catch_id` é
-  nulo para `follow`.
+  nulo para `follow`. Curtida e follow geram um aviso por par (descurtir e
+  curtir de novo não repete); comentário gera um por comentário.
 
 Deleção: apagar usuário apaga tudo dele — capturas, follows, curtidas,
 comentários, denúncias, notificações (`CASCADE`); apagar captura leva fotos,
@@ -150,6 +151,7 @@ e a API recusa (403) para os demais de qualquer jeito.
 | UC006 — interagir com captura | Post (`CatchCard`) e detalhe (`/capturas/:id`) | `/catches/:id/like`, `/comments`, `/reports` → `social.service`, `report.service` |
 | UC007 — perfil e configurações | `/configuracoes` | `PATCH /users/me` → `user.service.updateMe` |
 | UC008 — seguir | Post, perfil público, `/pessoas` | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
+| UC009 — notificações (REQ-43) | Sino 🔔 no topo, com o número de não lidas; `/notificacoes`: quem fez o quê, marcar uma ou todas como lidas, rolagem infinita | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` → `notification.service` |
 | UC010 — catálogo de espécies | Dex (`/`): "+ Nova espécie"; ficha da espécie: "Editar espécie", "Desativar/Reativar" | `/admin/species` → `species.service` |
 | UC011 — moderação | Post: "🛡 Moderar" (denúncias, ocultar/reexibir); feed: aba "🛡 Denunciadas" | `GET /admin/catches/:id/reports`, `POST /admin/catches/:id/review`, `GET /feed?scope=reported` → `report.service` |
 
@@ -271,10 +273,33 @@ abre uma janela entre a conferência e o INSERT.
   (`kg` = métrico, `lb` = libras e polegadas) só muda o que a tela mostra e o
   que se digita — `src/units.ts` converte nos dois sentidos, e nenhuma tela tem
   "kg" fixo. Exceção: o formulário de espécie do admin edita o catálogo em
-  kg/cm, para não acumular erro de arredondamento.
+  kg/cm, para não acumular erro de arredondamento — com a unidade escrita
+  dentro de cada campo e um aviso quando a preferência do admin é libras.
 - **Preferências de notificação no ponto de criação.** `notification.model.create`
   é o único lugar que grava notificação, e só grava se o destinatário quer
-  aquele tipo (`INSERT ... SELECT` com a coluna da preferência).
+  aquele tipo (`INSERT ... SELECT` com a coluna da preferência). Ninguém é
+  notificado da própria ação: curtir/comentar a própria captura não chama o
+  `create`, e seguir a si mesmo já é barrado (RGN-15).
+- **Notificação nunca leva a uma tela que não abre.** Aviso de quem foi
+  desativado sai da lista e do número do sino (filtro na leitura, não
+  `DELETE`: reativar a conta traz os avisos de volta), porque o perfil dele dá
+  404. Captura apagada leva os avisos junto (`CASCADE`). Captura **ocultada**
+  por denúncias continua com os avisos: curtida e comentário só avisam o autor
+  da captura, e o autor sempre abre a própria captura oculta (com o selo "em
+  análise", que a tela de notificações também mostra).
+- **Sino sem tempo real.** O topo pergunta o número de não lidas a cada
+  minuto, ao trocar de tela e ao voltar para a aba
+  (`GET /notifications/unread-count`). Sem WebSocket: um minuto de atraso não
+  faz diferença num diário de pesca. Paginação por cursor
+  (`<createdAt>_<id>`; o id desempata avisos do mesmo milissegundo).
+- **Sessão perdida é tratada num lugar só.** O token dura 7 dias e a conta
+  pode ser desativada no meio do uso; nos dois casos a API responde 401. O
+  `api()` de `src/api/client.ts` trata qualquer 401 de request que levava
+  token: apaga o token e avisa o `AuthProvider`, que tira o usuário e faz o
+  `ProtectedRoute` mandar para `/login` — com o aviso "Sua sessão terminou" e
+  voltando, depois de entrar, para a tela em que a pessoa estava. Login e
+  cadastro limpam o token antigo antes, para um 401 de senha errada não ser
+  confundido com sessão perdida.
 - **Contas de desenvolvimento no seed.** Com `SEED_DEV_USERS=true` (e nunca
   com `NODE_ENV=production`), o seed cria `admin@tamba.local` e três usuários
   comuns, senha `admin123`. São descartáveis e só existem para testar local.

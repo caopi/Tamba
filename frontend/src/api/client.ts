@@ -9,6 +9,17 @@ export const tokenStorage = {
 };
 
 /**
+ * Chamado quando a API recusa o token de uma request que o levava (401):
+ * token expirado (dura 7 dias), conta desativada no meio da sessão etc. O
+ * AuthProvider registra aqui o que fazer — limpar o login e mandar para a
+ * tela de entrada —, para nenhuma tela precisar tratar isso sozinha.
+ */
+let aoPerderSessao: (() => void) | null = null;
+export function registrarPerdaDeSessao(handler: (() => void) | null) {
+  aoPerderSessao = handler;
+}
+
+/**
  * Erro de API com o status HTTP junto, para as telas tratarem 401 etc.
  *
  * `code` e `details` vêm quando a tela precisa reagir a um caso específico,
@@ -49,6 +60,12 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
+    // Só conta como sessão perdida se a request levava token: sem token, um
+    // 401 é resposta normal (ex.: senha errada no login).
+    if (response.status === 401 && token) {
+      tokenStorage.clear();
+      aoPerderSessao?.();
+    }
     throw new ApiError(
       // Erro de validação vem com `details` por campo: mostra o primeiro, que
       // é mais útil que o genérico "Dados inválidos".

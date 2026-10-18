@@ -75,3 +75,29 @@
   background: #fff;
   color: var(--agua);
 }
+
+.layout-sino {
+  position: relative;
+  font-size: 1.15rem;
+  line-height: 1;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.layout-sino.active {
+  opacity: 1;
+}
+
+.layout-sino-contador {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.6rem;
+  min-width: 1.1rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 999px;
+  background: #d9412b;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+}

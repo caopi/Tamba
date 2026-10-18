@@ -302,7 +302,8 @@ sinalizada para revisão.
 | `GET` | `/dex/stats` | privado | Suas estatísticas |
 | `GET` | `/favorites` | privado | Espécies favoritas |
 | `POST` / `DELETE` | `/favorites/:speciesId` | privado | Favorita / desfavorita. Idempotente |
-| `GET` | `/notifications?unreadOnly=&limit=` | privado | `{ items, unreadCount }` |
+| `GET` | `/notifications?unreadOnly=&cursor=&limit=` | privado | `{ items, unreadCount, nextCursor }`, mais recentes primeiro. Cada item traz o ator, a espécie da captura e se ela foi ocultada |
+| `GET` | `/notifications/unread-count` | privado | `{ unreadCount }` — o número do sino |
 | `PATCH` | `/notifications/:id/read` | privado | Marca uma como lida |
 | `POST` | `/notifications/read-all` | privado | Marca todas como lidas |
 | `GET` | `/species` · `/species/:id` | público | Catálogo ativo / uma espécie |
@@ -343,6 +344,7 @@ Não há área de admin no app: essas ações aparecem dentro das telas normais
 | `/u/:id` | Perfil público de outro usuário, com seguir e as capturas dele |
 | `/pessoas` | Busca de pessoas por nome ou apelido, com sugestões |
 | `/configuracoes` | Perfil (nome, apelido, foto), unidades, privacidade da localização e notificações. Abre clicando no seu @apelido no topo |
+| `/notificacoes` | Quem curtiu, comentou ou começou a seguir; clicar abre a captura ou o perfil. Abre pelo sino 🔔 do topo, que mostra quantas não lidas há |
 
 ---
 

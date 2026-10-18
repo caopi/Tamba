@@ -13,6 +13,7 @@ import { CatchDetailPage } from "./pages/CatchDetailPage";
 import { PublicProfilePage } from "./pages/PublicProfilePage";
 import { PeopleSearchPage } from "./pages/PeopleSearchPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/u/:id" element={<PublicProfilePage />} />
               <Route path="/pessoas" element={<PeopleSearchPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
+              <Route path="/notificacoes" element={<NotificationsPage />} />
             </Route>
           </Route>
 

@@ -987,6 +987,12 @@ html.tema-retro .post-acao .icone-pixel:last-child {
   margin-right: 0;
 }
 
+/* O comentar é link (a.botao): sem o gap do link-botão, o espaço entre ícone
+   e número fica igual ao do curtir. */
+html.tema-retro a.botao.post-acao {
+  gap: 0;
+}
+
 /* Avisos e textos de apoio com contraste suficiente sobre o painel. */
 html.tema-retro .aviso {
   background: #fff3c4;

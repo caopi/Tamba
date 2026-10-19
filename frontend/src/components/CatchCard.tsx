@@ -149,7 +149,7 @@ export function CatchCard({
         </button>
         <Link
           to={`/capturas/${captura.id}#comentarios`}
-          className="post-acao"
+          className="post-acao botao"
           aria-label={`Comentários (${plural(captura.commentCount, "comentário", "comentários")})`}
           title="Comentários"
         >

@@ -72,7 +72,7 @@ Depois crie as tabelas e popule o catálogo de espécies:
 
 ```bash
 npm run migrate    # roda os .sql de database/migrations em ordem
-npm run seed       # insere as 34 espécies (com foto) e 3 pesqueiros de exemplo
+npm run seed       # insere as 35 espécies (30 com foto) e 3 pesqueiros de exemplo
 ```
 
 Os dois comandos podem ser rodados quantas vezes você quiser: o `migrate` pula

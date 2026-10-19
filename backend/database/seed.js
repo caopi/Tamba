@@ -259,6 +259,21 @@ const especies = [
     curiosities:
       "Tem papilas gustativas espalhadas pelo corpo e pelos barbilhões: \"prova\" a comida antes de chegar a ela.",
   },
+  // "Bagre-africano" é o nome que os pescadores da região usam. Raridade:
+  // estocado em muitos pesqueiros, mas não em todos (e restrito em alguns
+  // estados). Faixa: a espécie chega perto de 60 kg e 1,7 m.
+  // REVISAR (faixa).
+  {
+    name: "Bagre-africano",
+    scientificName: "Clarias gariepinus",
+    habitat:
+      "Exótico, da África; criado em tanques e solto em pesqueiros; também em represas onde escapou. Tolera água parada e com pouco oxigênio.",
+    recommendedBaits: "fígado, coração de galinha, salsicha, massa, minhoca",
+    rarity: "incomum",
+    minWeight: 0.2, maxWeight: 60, minLength: 20, maxLength: 170,
+    curiosities:
+      "Respira ar por um órgão acima das brânquias e consegue se arrastar por terra entre poças. Chegou ao Brasil para piscicultura na década de 1980 e hoje é considerado invasor. No pesqueiro é quase sempre a forma albina, rosada; na natureza, a espécie é cinza-escura.",
+  },
 
   // --- Predadores de superfície e ciclídeos ---
   {

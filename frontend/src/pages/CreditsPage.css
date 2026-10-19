@@ -1,6 +1,8 @@
 .creditos {
   max-width: 760px;
-  margin: 0 auto;
+  /* Área segura de cima: no app instalado do iPhone a página vai por baixo
+     da barra de status (ver o index.html). Fora dele vale 0. */
+  margin: env(safe-area-inset-top) auto 0;
   padding: 1.5rem;
 }
 

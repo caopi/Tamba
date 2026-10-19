@@ -11,7 +11,7 @@ Ao mudar algo que se afaste do documento, acrescente uma linha aqui.
 
 | Requisito | Implementação | Motivo |
 | --- | --- | --- |
-| RNF-08 — aplicativo móvel nativo | Aplicação web responsiva (React + Vite), sem app nativo | Um semestre, sem tempo para manter duas bases de código; a web cobre celular e computador |
+| RNF-08 — aplicativo móvel nativo | Aplicação web responsiva (React + Vite), sem app nativo; instala no celular como PWA (ícone e tela cheia, sem modo offline) | Um semestre, sem tempo para manter duas bases de código; a web cobre celular e computador |
 | REQ-25, RNF-10 — modo offline | Não há modo offline: toda ação precisa de conexão | Sincronização offline (fila local, conflitos) não cabe no escopo do semestre |
 | Área administrativa | Não há área de admin separada: as ações de admin (UC002, UC010, UC011) aparecem dentro das telas normais, só para admin | Menos telas para construir e testar, e o admin modera onde o conteúdo está |
 | Banimento de usuário | Desativação simples (ativar/desativar), sem motivo, prazo nem histórico | Cobre o efeito necessário (a pessoa sai do app) sem um sistema de moderação completo |

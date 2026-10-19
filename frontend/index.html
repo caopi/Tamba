@@ -5,6 +5,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- App instalável (PWA, sem modo offline): manifesto, ícones e a cor das
+         barras do tema retrô na barra de status. Ícones: npm run icons (backend). -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1d2b73" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Tamba" />
+    <!-- iOS instalado: a página vai por baixo da barra de status (texto branco
+         sobre o azul do topo); o topo compensa com safe-area-inset-top. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <!-- Fontes pixel do tema retrô (OFL). Só são baixadas se o tema estiver ligado. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

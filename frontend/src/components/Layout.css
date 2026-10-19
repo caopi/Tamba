@@ -1,6 +1,9 @@
 /* Topo: título no centro, perfil à direita. As abas (e o sino) ficam
    embaixo. Grade de três colunas iguais nas pontas: o título fica no centro
-   da tela, qualquer que seja a largura do perfil. */
+   da tela, qualquer que seja a largura do perfil.
+   Áreas seguras: no app instalado do iPhone a página vai por baixo da barra
+   de status (black-translucent, no index.html), e com o celular deitado o
+   entalhe fica de um dos lados. Fora disso todas valem 0. */
 .layout-header {
   position: sticky;
   top: 0;
@@ -9,7 +12,8 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 1rem;
+  padding: calc(0.75rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.75rem
+    max(1rem, env(safe-area-inset-left));
   background: var(--agua);
   color: #fff;
 }
@@ -42,7 +46,8 @@
 .layout-main {
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.25rem 1rem calc(var(--altura-abas) + env(safe-area-inset-bottom) + 1.5rem);
+  padding: 1.25rem max(1rem, env(safe-area-inset-right)) calc(var(--altura-abas) + env(safe-area-inset-bottom) + 1.5rem)
+    max(1rem, env(safe-area-inset-left));
 }
 
 .layout-perfil {
@@ -71,8 +76,9 @@
    Rodapé encaixado: largura toda da tela em qualquer tamanho, colado na
    borda de baixo, sem margem, canto arredondado nem sombra; só um fio em
    cima separa do conteúdo. Na tela larga a barra continua inteira e só os
-   três itens ficam centralizados. O padding de baixo é a área segura do
-   iPhone (precisa do viewport-fit=cover no index.html para valer). */
+   itens ficam centralizados. O padding de baixo é a área segura do iPhone
+   (precisa do viewport-fit=cover no index.html para valer); os dos lados,
+   o entalhe com o celular deitado. */
 .layout-abas {
   position: fixed;
   left: 0;
@@ -81,7 +87,7 @@
   z-index: 5;
   display: flex;
   justify-content: center;
-  padding: 0 0 env(safe-area-inset-bottom);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: #fff;
   border-top: 1px solid var(--borda);
 }

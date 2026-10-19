@@ -439,6 +439,22 @@ abre uma janela entre a conferência e o INSERT.
   endereço antigo `/pessoas` redireciona para lá. As abas do Feed dividem a
   linha em partes iguais e cabem em 375 px sem rolagem lateral.
 
+- **App instalável (PWA), sem modo offline.** No celular, o site se instala
+  como app: `public/manifest.webmanifest` (nome, `display: standalone`, cor
+  do tema = o azul das barras, `#1d2b73`), ícones de 192 e 512 px, um
+  *maskable* com margem para o recorte do Android e o `apple-touch-icon` do
+  iOS. **Não há service worker:** o Chrome não exige mais um para oferecer a
+  instalação, e cache offline está fora do escopo (ver DIVERGENCIAS.md). O
+  ícone é um peixe em pixel art descrito como grade de caracteres em
+  `backend/database/icons.js`; `npm run icons` gera os PNGs e o
+  `favicon.svg` em `frontend/public/` (versionados). No iPhone instalado a
+  página vai por baixo da barra de status (`black-translucent`): o topo e as
+  telas fora do Layout (login, créditos) somam `env(safe-area-inset-top)`,
+  e a barra de abas já somava o de baixo; com o celular deitado, os lados
+  respeitam o entalhe. A cor do tema está fixa no manifesto e no
+  `index.html`: se o tema retrô sair, troque as duas pelo `--agua`.
+  Instalar exige HTTPS (ou `localhost`).
+
 ## Problemas conhecidos
 
 - **Fotos órfãs.** Cada foto sobe assim que o usuário a escolhe, antes de a
@@ -466,6 +482,7 @@ npm run dev                       # API em http://localhost:3333
 npm run migrate                   # aplica os .sql novos de database/migrations
 npm run seed                      # popula o catálogo (idempotente)
 npm run credits                   # regera o CREDITOS.md (fotos do catálogo)
+npm run icons                     # regera os ícones do app instalável (frontend/public)
 
 cd frontend
 npm run dev                       # http://localhost:5173

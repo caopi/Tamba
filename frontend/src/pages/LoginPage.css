@@ -4,7 +4,9 @@
   place-items: center;
   align-content: center;
   gap: 1rem;
-  padding: 1.5rem;
+  /* Áreas seguras: no app instalado do iPhone a página vai por baixo da
+     barra de status (ver o index.html). Fora dele valem 0. */
+  padding: calc(1.5rem + env(safe-area-inset-top)) 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
 }
 
 .login-card {

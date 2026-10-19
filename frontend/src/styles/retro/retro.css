@@ -219,7 +219,7 @@ html.tema-retro .login-pagina {
 }
 
 html.tema-retro .creditos {
-  margin: 1rem auto;
+  margin: calc(1rem + env(safe-area-inset-top)) auto 1rem;
   background: var(--retro-100);
   border: 4px solid var(--retro-950);
   box-shadow: var(--chanfro) !important;

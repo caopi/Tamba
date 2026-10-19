@@ -81,7 +81,8 @@ export function CreditsPage() {
           sem cor própria (pintados na cor do tema).
         </li>
         <li>
-          <strong>Sprites do tema</strong> (tambaqui, cadeado e os ícones da barra, do topo e do feed): imagens{" "}
+          <strong>Sprites do tema</strong> (o tambaqui — logo, sem foto e nadando na cena —, o cadeado e os ícones da
+          barra, do topo e do feed): imagens{" "}
           <strong>geradas por inteligência artificial</strong> (IA generativa) pela Equipe Tamba · Todos os direitos
           reservados. Fundo removido, quadros separados e alinhados e reduzidos a pixel art pelo próprio projeto.
         </li>

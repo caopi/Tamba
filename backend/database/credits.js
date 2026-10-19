@@ -86,7 +86,7 @@ no banco, com autor e licença obrigatórios, e aparecem na tela \`/creditos\`.
   inteiras, o meio pixel de deslocamento de alguns foi alinhado à grade e a
   cor saiu (o CSS pinta na cor do tema). Detalhes em \`icones/LICENCA.md\`.
 - **Sprites do tema** (\`frontend/src/styles/retro/sprites/\`): o tambaqui
-  (no lugar da foto que falta), o cadeado das espécies
+  (no lugar da foto que falta, como logo e nadando na cena), o cadeado das espécies
   não pescadas, os ícones da barra de baixo e do topo (tambaqui, diário,
   lista, sino) e os do feed (curtir, curtido, comentar, compartilhar,
   moderar): imagens **geradas por inteligência artificial** (IA generativa)

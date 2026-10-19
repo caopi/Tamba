@@ -1074,13 +1074,16 @@ html.tema-retro .dex-barra-completa .dex-barra-preenchida::after {
    - raro: rosa (o selo "raro" também) — prata seria cinza, que aqui já é a
      comum e o card bloqueado, e o azul se perdia no painel e na cena;
    - muito raro: ouro, não vermelho — vermelho no app é erro e "perigo"
-     (botão Desativar, denúncia); ouro é a cor do selo. É um ouro velho,
-     escuro e puxado para o bronze, longe do amarelo vivo de ativo e foco; e o
-     foco do card é outro desenho (anel amarelo com fio escuro por fora, ver
-     abaixo), então um card de ouro não passa por selecionado. */
+     (botão Desativar, denúncia); ouro é a cor do selo. Ouro vivo, mas
+     separado do amarelo de ativo e foco pelo TRATAMENTO, não só pelo brilho:
+     o card de ouro é metal (borda com chanfro claro em cima/à esquerda e um
+     tom abaixo embaixo/à direita, e o pé em xadrez de dois ouros), e o
+     selecionado é um anel amarelo chapado POR FORA do card, com fio escuro
+     em volta (ver abaixo). Mesmo de brilho parecido, um nunca lê como o
+     outro. */
 html.tema-retro .dex-card.capturada-incomum    { --raridade: #2f7a3a; --raridade-claro: #eef8ec; --raridade-escuro: #d8efd3; }
 html.tema-retro .dex-card.capturada-raro       { --raridade: #b0336f; --raridade-claro: #fdf0f6; --raridade-escuro: #f6d9e8; }
-html.tema-retro .dex-card.capturada-muito_raro { --raridade: #8f6408; --raridade-claro: #fbf4df; --raridade-escuro: #f0e1b5; }
+html.tema-retro .dex-card.capturada-muito_raro { --raridade: #a8740c; --raridade-claro: #fff4c7; --raridade-escuro: #f9e29a; }
 
 html.tema-retro .dex-card:is(.capturada-incomum, .capturada-raro, .capturada-muito_raro) {
   border-color: var(--raridade);
@@ -1093,9 +1096,27 @@ html.tema-retro .dex-card:is(.capturada-incomum, .capturada-raro, .capturada-mui
 
 /* Foco do card: anel amarelo por fora com um fio escuro em volta — desenho
    que nenhuma borda de raridade tem. */
+/* Muito raro: metal. Borda de ouro escuro (3,8:1 contra o painel), chanfro
+   de 2 px por dentro (ouro claro em cima/à esquerda, médio embaixo/à
+   direita) e a última faixa do pé em xadrez de dois ouros. */
+html.tema-retro .dex-card.capturada-muito_raro {
+  background:
+    repeating-conic-gradient(#f3c84b 0 25%, #c8901a 0 50%) left bottom / 4px 4px repeat-x,
+    linear-gradient(var(--retro-50), var(--retro-50)) top / 100% 70% no-repeat,
+    repeating-conic-gradient(var(--raridade-claro) 0 25%, var(--raridade-escuro) 0 50%) 0 0 / 4px 4px;
+  background-color: var(--raridade-escuro);
+  box-shadow: inset 2px 2px 0 #ffe27a, inset -2px -2px 0 #e0a91a !important;
+}
+
 html.tema-retro .dex-card:focus-visible {
   outline: none;
   box-shadow: var(--chanfro-16), 0 0 0 3px var(--retro-amarelo), 0 0 0 5px var(--madeira-900) !important;
+}
+
+/* Card de ouro com foco: o metal continua, e o anel vem por fora. */
+html.tema-retro .dex-card.capturada-muito_raro:focus-visible {
+  box-shadow: inset 2px 2px 0 #ffe27a, inset -2px -2px 0 #e0a91a, 0 0 0 3px var(--retro-amarelo),
+    0 0 0 5px var(--madeira-900) !important;
 }
 
 /* --- Experimento: painel translúcido ----------------------------------------

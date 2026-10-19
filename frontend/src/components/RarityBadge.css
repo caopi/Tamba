@@ -26,7 +26,10 @@
   color: #8f1a55;
 }
 
+/* Ouro em dois tons (claro em cima, um tom abaixo embaixo): tem cara de
+   metal, e não de um amarelo chapado — o de ativo e foco. Texto 6,21:1 sobre
+   a metade mais escura. */
 .raridade-muito_raro {
-  background: #f6e7c1;
-  color: #7a5200;
+  background: linear-gradient(#ffeaa0 50%, #f3c84b 50%);
+  color: #5c3d00;
 }

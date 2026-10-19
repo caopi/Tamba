@@ -471,7 +471,8 @@ abre uma janela entre a conferência e o INSERT.
     diferença entre os quadros. Custo medido: nenhum layout; a cauda põe
     ~35–40 ms de recálculo de estilo a cada 5 s (≈1,5% do processamento
     principal), o resto da cena fica na GPU. A cena se mexe no Dex, Feed,
-    Registrar Captura e Notificações; nas outras telas (Configurações,
+    Registrar Captura, Notificações e no login (que fica fora do Layout e
+    monta a própria CenaAnimada); nas outras telas (Configurações,
     Perfil, edição...) e, com `prefers-reduced-motion`, em qualquer uma,
     nada se mexe: só a cena parada.
   - **Painel translúcido (experimento).** `painel-translucido` no `<html>`

@@ -15,6 +15,7 @@ function mapUser(linha) {
     avatarUrl: linha.avatar_url,
     role: linha.role,
     measurementUnit: linha.measurement_unit,
+    feedOrder: linha.feed_order,
     shareExactLocation: Boolean(linha.share_exact_location),
     notifyLikes: Boolean(linha.notify_likes),
     notifyComments: Boolean(linha.notify_comments),
@@ -35,7 +36,7 @@ function mapPublicUser(linha) {
   };
 }
 
-const COLUNAS_PROPRIAS = `id, name, nickname, email, avatar_url, role, measurement_unit,
+const COLUNAS_PROPRIAS = `id, name, nickname, email, avatar_url, role, measurement_unit, feed_order,
   share_exact_location, notify_likes, notify_comments, notify_follows, created_at`;
 
 /** Busca por e-mail. Traz a linha inteira porque o login compara o hash. */
@@ -219,6 +220,7 @@ const COLUNAS_EDITAVEIS = {
   nickname: "nickname",
   avatarUrl: "avatar_url",
   measurementUnit: "measurement_unit",
+  feedOrder: "feed_order",
   shareExactLocation: "share_exact_location",
   notifyLikes: "notify_likes",
   notifyComments: "notify_comments",

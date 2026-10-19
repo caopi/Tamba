@@ -22,6 +22,8 @@ const updateMeSchema = z
     // sistema métrico (kg, cm); "lb" é o imperial (libras e polegadas). Quem
     // converte é o frontend.
     measurementUnit: z.enum(["kg", "lb"]),
+    // Ordem padrão do feed (o seletor saiu do feed e mora nas Configurações).
+    feedOrder: z.enum(["engagement", "recent"]),
     // RGN-13: quem decide se a coordenada exata aparece para os outros.
     shareExactLocation: z.boolean(),
     // Preferências de notificação (UC007): tipo desligado não é gravado.

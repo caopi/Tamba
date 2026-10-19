@@ -69,8 +69,10 @@ const feedSchema = z.object({
   // `reported`: só admin — capturas com denúncia pendente, ocultas ou não,
   // para a moderação achar o que precisa analisar (UC011).
   scope: z.enum(["following", "all", "reported"]).default("following"),
-  // REQ-35: cronológico (padrão) ou por engajamento (curtidas + comentários).
-  order: z.enum(["recent", "engagement"]).default("recent"),
+  // REQ-35: por engajamento (padrão; curtidas + comentários) ou cronológico.
+  // A escolha é preferência do usuário (users.feed_order, nas Configurações),
+  // que o frontend manda aqui.
+  order: z.enum(["recent", "engagement"]).default("engagement"),
   // Cursor opaco devolvido em `nextCursor`: uma data no cronológico, um
   // offset no engajamento. O frontend só repassa o que recebeu.
   cursor: z.string().max(40).optional(),

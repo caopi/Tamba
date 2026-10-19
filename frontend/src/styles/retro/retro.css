@@ -573,11 +573,13 @@ html.tema-retro .layout-main {
 }
 
 /* No celular a borda grossa do painel come a largura que a grade precisa
-   para duas colunas: menos respiro lateral. */
+   para duas colunas: menos respiro lateral. Em px inteiro, não rem (0,6rem
+   = 9,6 px): o conteúdo começaria em meio pixel e as bordas em degrau
+   (botões, barra de progresso) borrariam. */
 @media (max-width: 420px) {
   html.tema-retro .layout-main {
-    padding-left: 0.6rem;
-    padding-right: 0.6rem;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 }
 
@@ -998,22 +1000,28 @@ html.tema-retro .layout-perfil:not(.active) .avatar {
    Moldura grossa (4 px) com cantos em degrau e um "polo" à direita, como
    barra de vida de console; o miolo verde vivo tem uma linha clara em cima e
    uma escura embaixo. A largura anda em blocos de 4 px (round(), a partir
-   de --progresso, que a página manda de 0 a 1), nunca em meio pixel. */
+   de --progresso, que a página manda de 0 a 1), nunca em meio pixel.
+   Tudo em pixel inteiro, inclusive a ponta direita: a largura da barra é
+   arredondada para múltiplo de 4 (largura fracionária borrava os degraus
+   da direita), e o miolo — a barra menos 4 px de moldura à esquerda e 12 à
+   direita (4 de moldura e 8 do polo) — também fica múltiplo de 4, então a
+   100% o preenchido fecha o miolo inteiro, sem sobrar fresta escura. */
 html.tema-retro .dex-barra {
   position: relative;
+  width: round(down, 100%, 4px);
   height: 20px;
   margin-top: 0.8rem;
   overflow: visible;
   background:
-    linear-gradient(var(--madeira-900) 0 0) 4px 4px / calc(100% - 14px) calc(100% - 8px) no-repeat,
-    linear-gradient(var(--madeira-950) 0 0) 0 0 / calc(100% - 6px) 100% no-repeat,
-    linear-gradient(var(--madeira-950) 0 0) right center / 6px 8px no-repeat;
+    linear-gradient(var(--madeira-900) 0 0) 4px 4px / calc(100% - 16px) calc(100% - 8px) no-repeat,
+    linear-gradient(var(--madeira-950) 0 0) 0 0 / calc(100% - 8px) 100% no-repeat,
+    linear-gradient(var(--madeira-950) 0 0) right center / 8px 8px no-repeat;
   clip-path: polygon(
     0 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0,
-    calc(100% - 10px) 0, calc(100% - 10px) 2px, calc(100% - 8px) 2px, calc(100% - 8px) 4px, calc(100% - 6px) 4px,
-    calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px),
-    calc(100% - 6px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) calc(100% - 2px),
-    calc(100% - 10px) calc(100% - 2px), calc(100% - 10px) 100%,
+    calc(100% - 12px) 0, calc(100% - 12px) 2px, calc(100% - 10px) 2px, calc(100% - 10px) 4px, calc(100% - 8px) 4px,
+    calc(100% - 8px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 8px) calc(100% - 6px),
+    calc(100% - 8px) calc(100% - 4px), calc(100% - 10px) calc(100% - 4px), calc(100% - 10px) calc(100% - 2px),
+    calc(100% - 12px) calc(100% - 2px), calc(100% - 12px) 100%,
     4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px)
   );
 }
@@ -1023,7 +1031,7 @@ html.tema-retro .dex-barra-preenchida {
   top: 4px;
   left: 4px;
   height: calc(100% - 8px);
-  width: round(down, calc((100% - 14px) * var(--progresso, 0)), 4px) !important;
+  width: round(down, calc((100% - 16px) * var(--progresso, 0)), 4px) !important;
   overflow: hidden;
   background: linear-gradient(#b4f26a 0 2px, #66d12e 2px calc(100% - 2px), #3e9a1f calc(100% - 2px));
   transition: none;
@@ -1132,8 +1140,8 @@ html.tema-retro .layout[data-tela="outra"] .layout-main {
 
 @media (max-width: 420px) {
   html.tema-retro .layout[data-tela="outra"] .layout-main {
-    padding-left: 0.9rem;
-    padding-right: 0.9rem;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }
 

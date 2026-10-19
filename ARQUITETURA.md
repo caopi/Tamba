@@ -403,14 +403,21 @@ abre uma janela entre a conferência e o INSERT.
   variáveis globais (`--agua`, `--texto`...). Fonte pixel (Press Start 2P nos
   títulos, Silkscreen em rótulos, botões, números e na barra de abas); texto
   corrido, descrições e campos continuam sans-serif, porque fonte pixel
-  pequena reprova no RNF-13. Sem canto arredondado, borda grossa e chanfro
-  com sombra interna dura; a barra de abas vira um HUD. O conteúdo fica
+  pequena reprova no RNF-13. Sem canto arredondado nem sombra difusa; as
+  barras de cima e de baixo (um HUD) e o painel são 8 bits, o resto é 16
+  bits (abaixo). O conteúdo fica
   sempre num painel sólido, nunca direto sobre a cena (CC0, crédito em
   `/creditos`). Contraste conferido em todas as telas: mínimo 5,5:1.
-  - **16 bits no feed.** O tema é 8 bits (blocos chapados, borda de 3–4 px,
-    chanfro de 3 px); os cards do feed já são 16 bits: rampa com tons
-    intermediários, borda de 2 px, chanfro de 1 px e sombreado pontilhado
-    (xadrez de 2×2 px entre dois tons vizinhos) no lugar do degrau seco.
+  - **8 e 16 bits.** Só as barras de cima e de baixo e o painel são 8 bits
+    (borda de 3–4 px quase preta, chanfro de 3 px): é a identidade de
+    console. Todo o resto — cards da Dex e do feed, ficha da espécie,
+    notificações, formulários, botões e campos — é 16 bits: rampa com tons
+    intermediários, borda de 2 px num tom da rampa, chanfro de 1 px, botão
+    em dois tons e sombreado pontilhado (xadrez de 2×2 px entre dois tons
+    vizinhos) no lugar do degrau seco. Os tokens ficam no topo do
+    `retro.css` (`--chanfro`/`--borda-retro` e os `*-16`). Onde há
+    pontilhado, o `background-color` é o tom mais escuro dele: o contraste
+    é medido contra o pior caso.
 - **Miniaturas na grade da Dex.** A grade nunca baixa a foto inteira: cada
   foto tem uma miniatura de ~400 px, cor cheia, WebP (`lib/pixel.js`, com o
   sharp) — nítida no card e leve (~370 KB a grade toda, contra ~2,1 MB das

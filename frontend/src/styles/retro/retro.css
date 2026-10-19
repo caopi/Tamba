@@ -12,8 +12,11 @@
    - Fonte pixel (Press Start 2P nos títulos, Silkscreen nos rótulos,
      botões, números e barra de abas). Texto corrido, descrições e campos de
      formulário continuam sans-serif: fonte pixel pequena reprova no RNF-13.
-   - Sem cantos arredondados; bordas grossas (3 px) e chanfro com sombra
-     interna dura, nunca sombra difusa.
+   - Sem cantos arredondados nem sombra difusa. Dois níveis: as barras de
+     cima e de baixo e o painel são 8 bits (borda grossa, chanfro de 3 px),
+     a identidade de console; todo o resto — cartões, ficha, formulários,
+     botões — é 16 bits (borda de 2 px num tom da rampa, chanfro de 1 px,
+     sombreado pontilhado). Tokens --chanfro/--borda-retro e *-16.
    - Fundo: cena pixel art noturna (CC0, ver /creditos) atrás do app, mas o
      conteúdo fica sempre num painel sólido, nunca direto sobre a cena.
    ========================================================================== */
@@ -45,10 +48,24 @@ html.tema-retro {
   --fonte-pixel: "Silkscreen", ui-monospace, monospace;
   --fonte-texto: system-ui, "Segoe UI", sans-serif;
 
-  /* Chanfro: luz em cima/esquerda, sombra embaixo/direita, sem desfoque. */
+  /* 8 bits — só as barras de cima e de baixo e o painel: chanfro de 3 px
+     (luz em cima/esquerda, sombra embaixo/direita, sem desfoque) e borda
+     grossa. */
   --chanfro: inset -3px -3px 0 rgba(0, 0, 0, 0.35), inset 3px 3px 0 rgba(255, 255, 255, 0.45);
   --chanfro-afundado: inset 3px 3px 0 rgba(0, 0, 0, 0.35), inset -3px -3px 0 rgba(255, 255, 255, 0.3);
   --borda-retro: 3px solid var(--retro-950);
+
+  /* 16 bits — todo o resto (cartões, ficha, formulários, botões): borda de
+     2 px num tom da rampa em vez do quase-preto, chanfro de 1 px e
+     sombreado pontilhado (xadrez de 2×2 px entre dois tons vizinhos, o
+     "dithering") no lugar do degrau seco de cor. */
+  --borda-16: 2px solid var(--retro-750);
+  --borda-16-controle: 2px solid var(--retro-800);
+  --chanfro-16: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(19, 29, 79, 0.25);
+  --chanfro-16-botao: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(6, 10, 31, 0.35);
+  --chanfro-16-afundado: inset 1px 1px 0 rgba(6, 10, 31, 0.35), inset -1px -1px 0 rgba(255, 255, 255, 0.5);
+  --pontilhado-claro: repeating-conic-gradient(var(--retro-75) 0 25%, var(--retro-150) 0 50%) 0 0 / 4px 4px;
+  --pontilhado-suave: repeating-conic-gradient(var(--retro-50) 0 25%, var(--retro-100) 0 50%) 0 0 / 4px 4px;
 
   /* Variáveis globais do app, redefinidas para o tema */
   --agua: var(--retro-700);
@@ -147,25 +164,31 @@ html.tema-retro label {
   color: var(--retro-800);
 }
 
-/* --- Botões: blocos com chanfro; afundam ao clicar --- */
+/* --- Botões (16 bits): borda de 2 px, dois tons (claro em cima, um tom
+   abaixo embaixo) e chanfro de 1 px; afundam ao clicar.
+   A cor sólida por baixo do degradê garante o contraste se o degradê não
+   for desenhado; o texto branco passa de 5,5:1 sobre os dois tons. --- */
 html.tema-retro button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta) {
-  border: var(--borda-retro);
-  background: var(--retro-600);
+  border: var(--borda-16-controle);
+  background-color: var(--retro-650);
+  background-image: linear-gradient(var(--retro-550) 50%, var(--retro-650) 50%);
   color: #fff;
-  box-shadow: var(--chanfro) !important;
+  box-shadow: var(--chanfro-16-botao) !important;
 }
 
 html.tema-retro button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):active {
-  box-shadow: var(--chanfro-afundado) !important;
+  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.35) !important;
 }
 
-html.tema-retro button.secundario {
-  background: var(--retro-50);
+html.tema-retro button.secundario:not(.link) {
+  background-color: var(--retro-100);
+  background-image: linear-gradient(var(--retro-50) 50%, var(--retro-100) 50%);
   color: var(--retro-800);
 }
 
-html.tema-retro button.perigo {
-  background: var(--retro-vermelho);
+html.tema-retro button.perigo:not(.link) {
+  background-color: var(--retro-vermelho);
+  background-image: linear-gradient(#c22b34 50%, var(--retro-vermelho) 50%);
   color: #fff;
 }
 
@@ -173,21 +196,24 @@ html.tema-retro button.link {
   color: var(--retro-700);
 }
 
-/* --- Campos --- */
+/* --- Campos (16 bits): borda de 2 px e chanfro afundado de 1 px --- */
 html.tema-retro input,
 html.tema-retro select,
 html.tema-retro textarea {
-  border: var(--borda-retro);
+  border: var(--borda-16-controle);
   background: #fff;
   color: var(--retro-950);
-  box-shadow: var(--chanfro-afundado) !important;
+  box-shadow: var(--chanfro-16-afundado) !important;
 }
 
+/* Foco: o amarelo sozinho some no painel claro; o fio escuro por fora
+   garante que o contorno apareça (3:1 para indicador de foco). */
 html.tema-retro input:focus,
 html.tema-retro select:focus,
 html.tema-retro textarea:focus {
-  outline: 3px solid var(--retro-amarelo);
+  outline: 2px solid var(--retro-amarelo);
   outline-offset: 0;
+  box-shadow: var(--chanfro-16-afundado), 0 0 0 4px var(--retro-800) !important;
 }
 
 /* --- Painéis: todo conteúdo fica num painel sólido, nunca na cena --- */
@@ -225,7 +251,8 @@ html.tema-retro .creditos {
   box-shadow: var(--chanfro) !important;
 }
 
-/* Cartões dentro do painel: brancos, borda grossa, chanfro. */
+/* Cartões dentro do painel (16 bits): claros, borda de 2 px num tom da
+   rampa e chanfro de 1 px. */
 html.tema-retro .dex-card,
 html.tema-retro .post,
 html.tema-retro .pessoa,
@@ -243,8 +270,8 @@ html.tema-retro .perfil-numeros li,
 html.tema-retro .detalhe-bloco,
 html.tema-retro .especie-foto-campos,
 html.tema-retro .config fieldset {
-  border: var(--borda-retro);
-  box-shadow: var(--chanfro) !important;
+  border: var(--borda-16);
+  box-shadow: var(--chanfro-16) !important;
 }
 
 html.tema-retro .dex-card,
@@ -253,24 +280,46 @@ html.tema-retro .pessoa,
 html.tema-retro .notificacao,
 html.tema-retro .dex-modal,
 html.tema-retro .login-card {
-  background: var(--retro-50);
+  background-color: var(--retro-50);
+}
+
+/* Card da Dex: chapado em cima e escurecendo no pé por pontilhado, como o
+   corpo do post do feed. A cor de fundo é o tom mais escuro do pontilhado:
+   o contraste do texto é medido contra o pior caso. */
+html.tema-retro .dex-card {
+  background:
+    linear-gradient(var(--retro-50), var(--retro-50)) top / 100% 70% no-repeat,
+    var(--pontilhado-suave);
+  background-color: var(--retro-100);
 }
 
 html.tema-retro .dex-card:hover {
-  transform: translate(-2px, -2px);
+  transform: translate(-1px, -1px);
 }
 
-/* Não lida: faixa grossa e fundo azul-claro, como antes, sem curva. */
+/* Ficha da espécie: faixa pontilhada no alto, atrás da foto e do X. */
+html.tema-retro .dex-modal {
+  background:
+    linear-gradient(var(--retro-50), var(--retro-50)) 0 4.5rem / 100% 100% no-repeat,
+    var(--pontilhado-claro);
+  background-color: var(--retro-50);
+  /* A ficha rola por dentro: a faixa rola junto com o conteúdo. */
+  background-attachment: local;
+}
+
+/* Não lida: faixa à esquerda e fundo pontilhado entre dois azuis-claros
+   (16 bits), no lugar do bloco chapado. */
 html.tema-retro .notificacao.nao-lida {
-  background: var(--retro-100);
-  border-left-width: 8px;
+  background: var(--pontilhado-claro);
+  background-color: var(--retro-150);
+  border-left-width: 6px;
   border-left-color: var(--retro-600);
 }
 
-/* Selos: blocos de cor chapada com borda. */
+/* Selos: blocos de cor com fio de 1 px. */
 html.tema-retro .raridade,
 html.tema-retro .dex-status {
-  border: 2px solid var(--retro-950);
+  border: 1px solid var(--retro-800);
   font-size: 0.68rem;
 }
 
@@ -330,8 +379,9 @@ html.tema-retro .layout-aba.active::before {
 
 /* --- Abas do feed: botões de seleção, a ativa afundada --- */
 html.tema-retro .feed-abas {
-  border: var(--borda-retro);
+  border: var(--borda-16-controle);
   background: var(--retro-50);
+  box-shadow: var(--chanfro-16) !important;
 }
 
 html.tema-retro .feed-aba {
@@ -353,9 +403,10 @@ html.tema-retro .feed-aba {
 }
 
 html.tema-retro .feed-aba.ativa {
-  background: var(--retro-700) !important;
+  background-color: var(--retro-700) !important;
+  background-image: linear-gradient(var(--retro-650) 50%, var(--retro-700) 50%) !important;
   color: #fff !important;
-  box-shadow: var(--chanfro-afundado) !important;
+  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.45) !important;
 }
 
 /* --- Fotos de espécie --- */
@@ -363,87 +414,46 @@ html.tema-retro .especie-foto {
   background: var(--retro-800);
 }
 
-/* No lugar da vinheta suave, uma moldura dura. */
+/* No lugar da vinheta suave, uma moldura de 2 px. */
 html.tema-retro .especie-foto::after {
-  box-shadow: inset 0 0 0 3px var(--retro-950) !important;
+  box-shadow: inset 0 0 0 2px var(--retro-950) !important;
 }
 
-/* "Créditos das fotos": botão do tema, como os outros. */
+/* "Créditos das fotos" na Dex: link com cara de botão secundário do tema. */
 html.tema-retro .dex-creditos {
-  border: var(--borda-retro);
-  background: var(--retro-50);
+  border: var(--borda-16-controle);
+  background-color: var(--retro-100);
+  background-image: linear-gradient(var(--retro-50) 50%, var(--retro-100) 50%);
   color: var(--retro-800);
   font-family: var(--fonte-pixel);
-  box-shadow: var(--chanfro) !important;
+  box-shadow: var(--chanfro-16-botao) !important;
 }
 
 html.tema-retro .dex-creditos:active {
-  box-shadow: var(--chanfro-afundado) !important;
+  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.35) !important;
 }
 
-/* --- Feed em 16 bits ---------------------------------------------------
-   O resto do tema é 8 bits: blocos chapados, borda de 3–4 px, chanfro de
-   3 px. Nos cards do feed, 16 bits: mais tons intermediários, borda de 2 px,
-   chanfro de 1 px e sombreado pontilhado (xadrez de 2×2 px entre dois tons
-   vizinhos) no lugar do degrau seco de cor. Só no feed, por enquanto. */
-html.tema-retro {
-  /* Xadrez de 2×2 px entre dois tons: o "dithering" de 16 bits. */
-  --pontilhado-claro: repeating-conic-gradient(var(--retro-75) 0 25%, var(--retro-150) 0 50%) 0 0 / 4px 4px;
-  --pontilhado-suave: repeating-conic-gradient(var(--retro-50) 0 25%, var(--retro-100) 0 50%) 0 0 / 4px 4px;
-  --chanfro-16: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(19, 29, 79, 0.25);
-  --chanfro-16-botao: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(6, 10, 31, 0.35);
-}
-
-html.tema-retro .feed .post {
-  border: 2px solid var(--retro-750);
-  background-color: var(--retro-50);
-  box-shadow: var(--chanfro-16) !important;
-}
+/* --- Post do feed ------------------------------------------------------ */
 
 /* Cabeçalho do post: faixa pontilhada entre dois azuis-claros, com um fio
-   de tom intermediário embaixo em vez de borda escura. */
-html.tema-retro .feed .post-cabecalho {
+   de tom intermediário embaixo em vez de borda escura. A cor de fundo é o
+   tom mais escuro do pontilhado (contraste medido contra o pior caso). */
+html.tema-retro .post-cabecalho {
   background: var(--pontilhado-claro);
-  background-color: var(--retro-100);
+  background-color: var(--retro-150);
   border-bottom: 2px solid var(--retro-200);
 }
 
 /* Corpo: chapado em cima e escurecendo no pé por pontilhado, não por degrau. */
-html.tema-retro .feed .post-corpo {
+html.tema-retro .post-corpo {
   background:
     linear-gradient(var(--retro-50), var(--retro-50)) top / 100% 65% no-repeat,
     var(--pontilhado-suave);
-  background-color: var(--retro-50);
-}
-
-html.tema-retro .feed .post-galeria {
-  border-bottom: 2px solid var(--retro-750);
-}
-
-/* Botões dentro do card: borda de 2 px, dois tons (claro em cima, um tom
-   abaixo embaixo) e chanfro de 1 px. O seletor repete a lista de :not() da
-   regra geral de botão do tema para ficar mais específico que ela. */
-html.tema-retro .feed .post button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta) {
-  border: 2px solid var(--retro-800);
-  /* Cor sólida por baixo do degradê: é ela que garante o contraste se o
-     degradê não for desenhado (e é a que as ferramentas de contraste leem). */
-  background-color: var(--retro-650);
-  background-image: linear-gradient(var(--retro-550) 50%, var(--retro-650) 50%);
-  box-shadow: var(--chanfro-16-botao) !important;
-}
-
-html.tema-retro .feed .post button.secundario:not(.link) {
   background-color: var(--retro-100);
-  background-image: linear-gradient(var(--retro-50) 50%, var(--retro-100) 50%);
-  color: var(--retro-800);
 }
 
-html.tema-retro .feed .post button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):active {
-  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.35) !important;
-}
-
-html.tema-retro .feed .post .raridade {
-  border-width: 1px;
+html.tema-retro .post-galeria {
+  border-bottom: var(--borda-16);
 }
 
 /* Avisos e textos de apoio com contraste suficiente sobre o painel. */

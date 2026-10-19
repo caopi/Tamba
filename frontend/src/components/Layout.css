@@ -9,7 +9,10 @@
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* minmax(0, …): sem isso, um @apelido comprido alarga a coluna da direita
+     e empurra o título para fora do centro. Quem não cabe é o apelido, que
+     ganha reticências (abaixo). */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 1rem;
   padding: calc(0.75rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.75rem
@@ -28,6 +31,8 @@
 .layout-user {
   display: flex;
   justify-self: end;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: 1.1rem;
   font-size: 0.9rem;
@@ -52,6 +57,7 @@
 
 .layout-perfil {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 0.4rem;
   color: inherit;
@@ -70,6 +76,11 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
   font-weight: 600;
+  /* Apelido que não cabe na metade da direita termina em reticências. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- Barra de abas embaixo ---
@@ -129,6 +140,7 @@
 }
 
 .layout-admin {
+  flex-shrink: 0;
   padding: 0.05rem 0.4rem;
   border-radius: 999px;
   background: #f6e7c1;

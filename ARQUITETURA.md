@@ -537,8 +537,10 @@ abre uma janela entre a conferência e o INSERT.
   espécie pescada ganha a cor da raridade na borda e no pé do card, a mesma do
   selo: incomum verde, raro rosa, muito raro ouro velho (escuro, longe do
   amarelo de ativo; o foco do card é outro desenho, um anel amarelo com fio
-  escuro por fora). Comum e bloqueadas, neutras. A barra de progresso é
-  verde em blocos de 4 px e vira ouro, com um brilho que passa, em 100% (sem
+  escuro por fora). Comum e bloqueadas, neutras. A barra de progresso é a
+  de console da referência — corpo retangular de cantos retos e, em cada
+  ponta, uma tampa reta da altura do miolo, num degrau só em ângulo reto —,
+  verde em blocos de 4 px, e vira ouro, com um brilho que passa, em 100% (sem
   o brilho com `prefers-reduced-motion`); tudo em pixel inteiro, até a ponta:
   a largura da barra é arredondada para múltiplo de 4 e o miolo também, para
   o preenchido fechar a 100% sem fresta (e o respiro lateral do painel no

@@ -925,10 +925,34 @@ html.tema-retro :is(.layout-abas, .layout-header) [class*="icone-barra-"] {
     drop-shadow(0 1px 0 var(--madeira-300)) drop-shadow(0 -1px 0 var(--madeira-300));
 }
 
-/* O tambaqui da barra vai também ao lado do nome, no topo e no login. */
-html.tema-retro :is(.layout-logo, .login-card h1) .icone-barra-dex {
-  margin-right: 0.4rem;
-  vertical-align: -4px;
+/* O tambaqui da barra é também o logo: ao lado do nome no topo, em 2×, e
+   em cima do nome no login, em 3× — sempre múltiplo inteiro do tamanho
+   natural (34 × 21), senão os pixels borram. No topo o contorno claro cresce
+   junto (2 px = um pixel do desenho em 2×). */
+html.tema-retro .layout-logo .icone-barra-dex {
+  width: 68px;
+  height: 42px;
+  background-size: 68px 42px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+html.tema-retro .layout-header .layout-logo .icone-barra-dex {
+  filter: drop-shadow(2px 0 0 var(--madeira-300)) drop-shadow(-2px 0 0 var(--madeira-300))
+    drop-shadow(0 2px 0 var(--madeira-300)) drop-shadow(0 -2px 0 var(--madeira-300));
+}
+
+/* Logo em cima: título e subtítulo centralizados embaixo dele. */
+html.tema-retro .login-card :is(h1, h1 + p) {
+  text-align: center;
+}
+
+html.tema-retro .login-card h1 .icone-barra-dex {
+  display: block;
+  width: 102px;
+  height: 63px;
+  margin: 0 auto 0.5rem;
+  background-size: 102px 63px;
 }
 
 /* Ações do post: os cinco ícones da folha "Ícones feed", 1×, numa caixa

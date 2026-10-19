@@ -460,9 +460,17 @@ abre uma janela entre a conferência e o INSERT.
   - **Efeitos.** Raios de luz, bolhas e peixes, nas margens ao lado do painel
     (no celular o painel cobre quase tudo), em pixels da cena: linha d'água
     na linha 91, água aberta até a 178. `cena-efeitos-parados` no `<html>` os
-    congela. Os peixes são os PNGs de `styles/retro/peixes/` — hoje nenhum
-    (ver o LEIAME ali; o tambaqui nadando, extraído de uma folha de 25
-    quadros, espera aprovação para entrar). A cena se mexe no Dex, Feed,
+    congela. Os peixes são cinco tambaquis (a tira de 8 quadros de
+    `sprites/tambaqui.png`): cada um uma janela do tamanho de um quadro, com
+    a tira dentro andando um quadro por vez (a cauda) e a janela
+    atravessando a água (o nado), em escala inteira do sprite (1×, 2×, 3×),
+    cada um numa profundidade, velocidade e sentido — os que vão para a
+    esquerda espelhados, os mais fundos menores e mais apagados. Entram e
+    saem desbotando, já na tela (0 → cheio nos primeiros 15% da travessia e
+    de volta nos últimos 15%), o que também disfarça o que sobra de
+    diferença entre os quadros. Custo medido: nenhum layout; a cauda põe
+    ~35–40 ms de recálculo de estilo a cada 5 s (≈1,5% do processamento
+    principal), o resto da cena fica na GPU. A cena se mexe no Dex, Feed,
     Registrar Captura e Notificações; nas outras telas (Configurações,
     Perfil, edição...) e, com `prefers-reduced-motion`, em qualquer uma,
     nada se mexe: só a cena parada.
@@ -531,7 +539,13 @@ abre uma janela entre a conferência e o INSERT.
   amarelo de ativo; o foco do card é outro desenho, um anel amarelo com fio
   escuro por fora). Comum e bloqueadas, neutras. A barra de progresso é
   verde em blocos de 4 px e vira ouro, com um brilho que passa, em 100% (sem
-  o brilho com `prefers-reduced-motion`). O admin tem "Ver Dex completa" no
+  o brilho com `prefers-reduced-motion`); tudo em pixel inteiro, até a ponta:
+  a largura da barra é arredondada para múltiplo de 4 e o miolo também, para
+  o preenchido fechar a 100% sem fresta (e o respiro lateral do painel no
+  celular é em px, não rem, para nada começar em meio pixel). O muito raro é
+  ouro vivo, separado do amarelo de ativo pelo tratamento: borda de ouro
+  escuro com chanfro claro e médio por dentro e pé em xadrez de dois ouros
+  (metal), e selo em dois tons. O admin tem "Ver Dex completa" no
   Perfil: uma prévia (`?previa=completa`) com toda espécie como pescada, só
   na tela — nada é gravado e o RGN-10 não muda.
 - **Navegação de app.** As abas principais ficam numa barra embaixo — Dex |
@@ -547,7 +561,9 @@ abre uma janela entre a conferência e o INSERT.
   No tema retrô, as abas não têm caixa (fio fino entre elas), ícone e rótulo
   ficam centralizados, e no celular o rótulo visível de Registrar Captura é
   só "Registrar" (o nome acessível é o inteiro).
-  No topo ficam só o título, centralizado (no tema, com o tambaqui ao lado),
+  No topo ficam só o título, centralizado (no tema, com o tambaqui ao lado —
+  é o logo: 2× no topo, 3× em cima do nome no login, sempre múltiplo inteiro
+  do sprite),
   e o perfil (a foto, ou o @apelido de quem não tem foto). Configurações (em
   destaque, como botão), Créditos e Sair saíram do topo e estão no Perfil. A
   busca de pessoas virou a aba "Pessoas" do Feed, ao lado de Seguindo,

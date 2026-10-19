@@ -229,8 +229,6 @@ abre uma janela entre a conferência e o INSERT.
 
 - **JWT sem refresh token.** Um access token de 7 dias no `localStorage`. Não há
   tabela de sessões nem rota `/auth/refresh`. Suficiente para o escopo acadêmico.
-- **Foto é só uma URL de texto.** Não há upload de arquivo. A estratégia real
-  (Cloudinary, S3, disco local) fica para quando a tela de captura estiver madura.
 - **CSS puro.** Sem Tailwind, sem styled-components.
 - **Sem testes automatizados** por enquanto.
 - **Sem ORM.** O Prisma foi removido em 03/09/2026 a pedido do Lucas, que já sabe
@@ -426,7 +424,7 @@ abre uma janela entre a conferência e o INSERT.
   Registrar Captura | Feed | Notificações (com o número de não lidas no
   ícone) —, ícone sobre o rótulo, como em app de celular:
   rodapé encaixado, na largura toda da tela em qualquer tamanho, separado do
-  conteúdo por um fio (sem sombra); na tela larga só os três itens ficam
+  conteúdo por um fio (sem sombra); na tela larga só os itens ficam
   centralizados. A ativa tem um traço curto em cima e a cor de destaque. O
   padding de baixo usa `env(safe-area-inset-bottom)` (com `viewport-fit=cover`
   no `index.html`, senão vale 0 no iPhone), e o conteúdo reserva embaixo a

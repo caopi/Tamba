@@ -54,7 +54,7 @@ export function PublicProfilePage() {
   return (
     <section className="perfil-publico">
       <header className="perfil-publico-cabecalho">
-        <Avatar name={perfil.name} avatarUrl={perfil.avatarUrl} tamanho={64} />
+        <Avatar id={perfil.id} name={perfil.name} avatarUrl={perfil.avatarUrl} tamanho={64} />
         <div className="perfil-publico-nome">
           <h2>{perfil.name}</h2>
           <p>@{perfil.nickname}</p>

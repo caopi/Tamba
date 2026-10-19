@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { ResendVerification } from "../components/ResendVerification";
+import { Icone } from "../components/Icone";
 import "./LoginPage.css";
 
 //login e cadastro na mesma tela, alternando por botão
@@ -62,7 +63,9 @@ export function LoginPage() {
   return (
     <div className="login-pagina">
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>🎣 Tamba</h1>
+        <h1>
+          <Icone nome="barra-dex" padrao="🎣" /> Tamba
+        </h1>
         <p className="login-subtitulo">Seu diário de pescarias</p>
 
         {avisoSessao && !erro && <p className="aviso">{avisoSessao}</p>}

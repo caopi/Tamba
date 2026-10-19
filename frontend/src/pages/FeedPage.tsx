@@ -46,7 +46,8 @@ export function FeedPage() {
   const pessoas = aba === "pessoas";
   const scope: FeedScope = ESCOPO_DA_ABA[aba] ?? "following";
   const irPara = (nova: string) => setParams(nova === "seguindo" ? {} : { aba: nova }, { replace: true });
-  const [order, setOrder] = useState<FeedOrder>("recent");
+  // A ordem é preferência do usuário (Configurações); padrão, engajamento.
+  const order: FeedOrder = user?.feedOrder ?? "engagement";
   const [itens, setItens] = useState<Catch[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [acabou, setAcabou] = useState(false);
@@ -178,20 +179,6 @@ export function FeedPage() {
           )}
         </div>
 
-        {!pessoas && (
-        <div className="feed-controles">
-          <label className="feed-ordem">
-            Ordem
-            <select value={order} onChange={(e) => setOrder(e.target.value as FeedOrder)}>
-              <option value="recent">Mais recentes</option>
-              <option value="engagement">Mais curtidas e comentários</option>
-            </select>
-          </label>
-          <button type="button" className="secundario" onClick={() => carregar(true)} disabled={carregando}>
-            ↻ Atualizar
-          </button>
-        </div>
-        )}
       </header>
 
       {pessoas ? (

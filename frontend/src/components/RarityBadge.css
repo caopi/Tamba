@@ -19,9 +19,11 @@
   color: #1e6b33;
 }
 
+/* Rosa (era azul): o azul se perdia no painel e na cena, que já são azuis.
+   Texto 6,99:1 sobre o fundo. */
 .raridade-raro {
-  background: #dbe8fb;
-  color: #1f4f9c;
+  background: #fbe1ee;
+  color: #8f1a55;
 }
 
 .raridade-muito_raro {

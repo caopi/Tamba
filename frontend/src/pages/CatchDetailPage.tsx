@@ -107,7 +107,7 @@ export function CatchDetailPage() {
         <ul className="comentarios">
           {comentarios.map((c) => (
             <li key={c.id}>
-              <Avatar name={c.author.name} avatarUrl={c.author.avatarUrl} tamanho={30} />
+              <Avatar id={c.author.id} name={c.author.name} avatarUrl={c.author.avatarUrl} tamanho={30} />
               <div>
                 <Link to={c.author.id === user?.id ? "/perfil" : `/u/${c.author.id}`}>
                   <strong>@{c.author.nickname}</strong>

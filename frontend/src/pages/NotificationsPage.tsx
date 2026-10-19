@@ -134,7 +134,7 @@ export function NotificationsPage() {
         {itens.map((n) => (
           <li key={n.id} className={n.isRead ? "notificacao" : "notificacao nao-lida"}>
             <button type="button" className="notificacao-abrir" onClick={() => abrir(n)}>
-              <Avatar name={n.actor.name} avatarUrl={n.actor.avatarUrl} tamanho={40} />
+              <Avatar id={n.actor.id} name={n.actor.name} avatarUrl={n.actor.avatarUrl} tamanho={40} />
               <span className="notificacao-texto">
                 <span>
                   <strong>{n.actor.name}</strong> {textoDa(n)}

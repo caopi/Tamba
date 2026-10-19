@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { dexApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { RarityBadge } from "../components/RarityBadge";
+import { Icone } from "../components/Icone";
 import { formatarData } from "../format";
 import { useUnidades } from "../units";
 import { useAuth } from "../context/AuthContext";
@@ -9,8 +10,8 @@ import { adminApi } from "../api/admin";
 import { SpeciesForm } from "../components/SpeciesForm";
 import { SpeciesImage } from "../components/SpeciesImage";
 import { PhotoCredit } from "../components/PhotoCredit";
-import { Link } from "react-router-dom";
-import type { Catch, Dex, DexSpecies } from "../types";
+import { useSearchParams } from "react-router-dom";
+import type { Catch, Dex, DexSpecies, Rarity } from "../types";
 import "./FishDexPage.css";
 
 /**
@@ -31,6 +32,26 @@ interface Recorde {
   ultimaCaptura: string;
 }
 
+/** Ordem da grade: a mais rara primeiro. */
+const PESO_RARIDADE: Record<Rarity, number> = { muito_raro: 0, raro: 1, incomum: 2, comum: 3 };
+
+/**
+ * Ordena a grade. Por raridade (padrão): da mais rara para a mais comum e,
+ * dentro de cada uma, pelo nome; "nome": só alfabética, para achar um peixe
+ * específico. Nos dois casos as desativadas (só o admin vê) vão para o fim.
+ * O nome compara em português (acento não muda a ordem: Cará fica entre
+ * Cachara e Carpa).
+ */
+function ordenar(especies: DexSpecies[], ordem: "raridade" | "nome") {
+  const nome = (a: DexSpecies, b: DexSpecies) => a.name.localeCompare(b.name, "pt-BR");
+  return [...especies].sort(
+    (a, b) =>
+      Number(a.archived) - Number(b.archived) ||
+      (ordem === "raridade" ? PESO_RARIDADE[a.rarity] - PESO_RARIDADE[b.rarity] : 0) ||
+      nome(a, b),
+  );
+}
+
 /** 'massa, milho, minhoca' -> ['massa', 'milho', 'minhoca'] */
 const separarIscas = (iscas: string | null) =>
   (iscas ?? "")
@@ -49,6 +70,33 @@ export function FishDexPage() {
   // UC010: o admin edita o catálogo daqui mesmo (não há área de admin).
   const ehAdmin = user?.role === "admin";
   const [criando, setCriando] = useState(false);
+  // A ordem fica na URL (?ordem=nome), como a aba do Feed: sobrevive à
+  // recarga e ao voltar da ficha.
+  const [parametros, setParametros] = useSearchParams();
+  const ordem = parametros.get("ordem") === "nome" ? "nome" : "raridade";
+  const escolherOrdem = (nova: "raridade" | "nome") =>
+    setParametros(
+      (atuais) => {
+        const novos = new URLSearchParams(atuais);
+        if (nova === "raridade") novos.delete("ordem");
+        else novos.set("ordem", nova);
+        return novos;
+      },
+      { replace: true },
+    );
+  // "Ver Dex completa" (admin, aberta pelo Perfil): prévia em que toda espécie
+  // aparece como pescada. Só na tela e só na URL (?previa=completa) — nada é
+  // gravado, e a Dex de verdade (RGN-10: só conta captura válida) não muda.
+  const previa = ehAdmin && parametros.get("previa") === "completa";
+  const sairDaPrevia = () =>
+    setParametros(
+      (atuais) => {
+        const novos = new URLSearchParams(atuais);
+        novos.delete("previa");
+        return novos;
+      },
+      { replace: true },
+    );
 
   useEffect(() => {
     Promise.all([dexApi.get(), catchesApi.list()])
@@ -92,7 +140,11 @@ export function FishDexPage() {
   if (carregando) return <p className="estado-carregando">Carregando a Dex…</p>;
   if (erro || !dex) return <p className="erro">{erro ?? "Erro ao carregar a Dex"}</p>;
 
-  const porcentagem = dex.total ? Math.round((dex.captured / dex.total) * 100) : 0;
+  // Na prévia, tudo como pescado: contador cheio, cards coloridos, sem cadeado.
+  const capturadas = previa ? dex.total : dex.captured;
+  const especiesDaTela = previa ? dex.species.map((e) => ({ ...e, captured: true })) : dex.species;
+  const porcentagem = dex.total ? Math.round((capturadas / dex.total) * 100) : 0;
+  const completa = dex.total > 0 && capturadas >= dex.total;
 
   return (
     <section>
@@ -105,30 +157,66 @@ export function FishDexPage() {
             </button>
           )}
           <strong className="dex-contador">
-            {dex.captured}/{dex.total} espécies capturadas
+            {capturadas}/{dex.total} espécies capturadas
           </strong>
-          <Link to="/creditos" className="dex-creditos">
-            Créditos das fotos
-          </Link>
         </div>
 
+        {/* --progresso (0 a 1) é para o tema retrô, que arredonda a largura
+            em blocos de pixel; a largura em % vale fora dele. */}
         <div
-          className="dex-barra"
+          className={completa ? "dex-barra dex-barra-completa" : "dex-barra"}
           role="progressbar"
-          aria-valuenow={dex.captured}
+          aria-label="Espécies capturadas"
+          aria-valuenow={capturadas}
           aria-valuemin={0}
           aria-valuemax={dex.total}
         >
-          <div className="dex-barra-preenchida" style={{ width: `${porcentagem}%` }} />
+          <div
+            className="dex-barra-preenchida"
+            style={{ width: `${porcentagem}%`, "--progresso": porcentagem / 100 } as React.CSSProperties}
+          />
+        </div>
+
+        <div className="feed-abas dex-ordem" role="group" aria-label="Ordem da Dex">
+          <button
+            type="button"
+            className={ordem === "raridade" ? "feed-aba ativa" : "feed-aba"}
+            aria-pressed={ordem === "raridade"}
+            onClick={() => escolherOrdem("raridade")}
+          >
+            Raridade
+          </button>
+          <button
+            type="button"
+            className={ordem === "nome" ? "feed-aba ativa" : "feed-aba"}
+            aria-pressed={ordem === "nome"}
+            onClick={() => escolherOrdem("nome")}
+          >
+            A–Z
+          </button>
         </div>
       </header>
 
+      {previa && (
+        <div className="aviso dex-previa" role="status">
+          <span>
+            <strong>Prévia da Dex completa</strong> — todas as espécies aparecem como pescadas. Só nesta tela: nada
+            foi gravado e a sua Dex de verdade continua igual.
+          </span>
+          <button type="button" className="secundario" onClick={sairDaPrevia}>
+            Sair da prévia
+          </button>
+        </div>
+      )}
+
       <ul className="dex-grade">
-        {dex.species.map((especie) => {
+        {ordenar(especiesDaTela, ordem).map((especie) => {
           const recorde = recordes.get(especie.id);
           const classes = [
             "dex-card",
             !especie.captured && "bloqueado",
+            // A cor da raridade é a recompensa: só depois de pescada.
+            especie.captured && `capturada-${especie.rarity}`,
             especie.archived && "arquivada",
           ]
             .filter(Boolean)
@@ -139,7 +227,11 @@ export function FishDexPage() {
               <button type="button" className={classes} onClick={() => setSelecionada(especie)}>
                 <div className="dex-figura">
                   <SpeciesImage especie={especie} bloqueada={!especie.captured} />
-                  {!especie.captured && <span className="dex-cadeado">🔒</span>}
+                  {!especie.captured && (
+                    <span className="dex-cadeado" aria-hidden="true">
+                      <Icone nome="cadeado" padrao="🔒" />
+                    </span>
+                  )}
                 </div>
 
                 <h3>{especie.name}</h3>
@@ -151,7 +243,9 @@ export function FishDexPage() {
                     ? "Arquivada · fora da contagem"
                     : recorde
                       ? `Recorde: ${unidades.peso(recorde.melhorPeso)}`
-                      : "Não capturado"}
+                      : previa
+                        ? "Prévia"
+                        : "Não capturado"}
                 </span>
               </button>
             </li>
@@ -365,7 +459,7 @@ function DetalheEspecie({
             </div>
           ) : (
             <p className="dex-bloqueado-aviso">
-              🔒 Você ainda não registrou nenhum <strong>{especie.name}</strong>.
+              <Icone nome="cadeado" padrao="🔒" /> Você ainda não registrou nenhum <strong>{especie.name}</strong>.
             </p>
           )}
           </>

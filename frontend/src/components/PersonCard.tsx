@@ -16,7 +16,7 @@ export function PersonCard({
   return (
     <li className="pessoa">
       <Link to={`/u/${pessoa.id}`} className="pessoa-link">
-        <Avatar name={pessoa.name} avatarUrl={pessoa.avatarUrl} tamanho={42} />
+        <Avatar id={pessoa.id} name={pessoa.name} avatarUrl={pessoa.avatarUrl} tamanho={42} />
         <span className="pessoa-textos">
           <strong>{pessoa.name}</strong>
           <span>@{pessoa.nickname}</span>

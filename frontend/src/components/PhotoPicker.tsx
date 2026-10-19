@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { uploadPhoto } from "../api/uploads";
 import { compressImage } from "../imageCompression";
+import { Icone } from "./Icone";
 import "./PhotoPicker.css";
 
 /**
@@ -22,9 +23,12 @@ export const MAX_FOTOS = 10;
 export interface FotoItem {
   /** Chave local, só para o React. */
   chave: string;
-  /** Arquivo original, guardado para reenviar se falhar. */
-  arquivo: File;
-  /** Miniatura (object URL do arquivo original). */
+  /**
+   * Arquivo original, guardado para reenviar se falhar. Não existe nas fotos
+   * que a captura já tinha (edição): essas já estão no servidor.
+   */
+  arquivo?: File;
+  /** Miniatura: object URL do arquivo original, ou a URL da foto já enviada. */
   previa: string;
   status: "comprimindo" | "enviando" | "ok" | "erro";
   /** 0 a 1, durante o envio. */
@@ -35,6 +39,16 @@ export interface FotoItem {
 }
 
 let contador = 0;
+
+/** Solta a miniatura local (object URL); a URL de foto já enviada não precisa. */
+function liberarPrevia(item: FotoItem) {
+  if (item.previa.startsWith("blob:")) URL.revokeObjectURL(item.previa);
+}
+
+/** Fotos que a captura já tem, no formato da lista (edição). */
+export function fotosExistentes(urls: string[]): FotoItem[] {
+  return urls.map((url, i) => ({ chave: `existente-${i}`, previa: url, status: "ok", progresso: 1, url }));
+}
 
 export function PhotoPicker({
   fotos,
@@ -55,13 +69,15 @@ export function PhotoPicker({
   useEffect(() => {
     atuais.current = fotos;
   }, [fotos]);
-  useEffect(() => () => atuais.current.forEach((f) => URL.revokeObjectURL(f.previa)), []);
+  useEffect(() => () => atuais.current.forEach(liberarPrevia), []);
 
   const atualizar = (chave: string, mudancas: Partial<FotoItem>) =>
     setFotos((lista) => lista.map((f) => (f.chave === chave ? { ...f, ...mudancas } : f)));
 
   /** Comprime e envia uma foto, atualizando o status dela na lista. */
   async function processar(item: FotoItem) {
+    // Foto que já estava na captura (edição): nada a enviar.
+    if (!item.arquivo) return;
     atualizar(item.chave, { status: "comprimindo", progresso: 0, erro: undefined });
     try {
       const comprimida = await compressImage(item.arquivo);
@@ -100,7 +116,7 @@ export function PhotoPicker({
   }
 
   function remover(item: FotoItem) {
-    URL.revokeObjectURL(item.previa);
+    liberarPrevia(item);
     setFotos((lista) => lista.filter((f) => f.chave !== item.chave));
     setAviso(null);
   }
@@ -117,9 +133,11 @@ export function PhotoPicker({
         {/* capture: no celular abre direto a câmera traseira. Num botão
             separado porque, com capture, o Android não oferece a galeria. */}
         <button type="button" className="secundario" onClick={() => camera.current?.click()} disabled={cheio}>
+          <Icone nome="camera" />
           Tirar foto
         </button>
         <button type="button" className="secundario" onClick={() => galeria.current?.click()} disabled={cheio}>
+          <Icone nome="galeria" />
           Galeria
         </button>
         <span className="campo-dica">

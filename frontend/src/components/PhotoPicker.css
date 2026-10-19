@@ -66,7 +66,9 @@
   top: 0.25rem;
   right: 0.25rem;
   padding: 0.1rem 0.4rem;
-  background: rgba(0, 0, 0, 0.55);
+  /* Sobre a foto do usuário, que pode ser de qualquer cor: com 0,7 de preto,
+     o branco passa de 8,5:1 até sobre uma foto toda branca. */
+  background: rgba(0, 0, 0, 0.7);
   font-size: 0.75rem;
   line-height: 1.2;
 }

@@ -103,7 +103,7 @@ export function Layout() {
               saem Configurações, Créditos e Sair. */}
           <NavLink to="/perfil" className="layout-perfil" title="Meu perfil" aria-label="Meu perfil">
             {user?.avatarUrl ? (
-              <Avatar name={user.name} avatarUrl={user.avatarUrl} tamanho={32} />
+              <Avatar id={user.id} name={user.name} avatarUrl={user.avatarUrl} tamanho={32} />
             ) : (
               <span className="layout-apelido">@{user?.nickname}</span>
             )}

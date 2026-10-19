@@ -36,6 +36,7 @@ export default function App() {
               <Route path="/registrar" element={<LogCatchPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/capturas/:id" element={<CatchDetailPage />} />
+              <Route path="/capturas/:id/editar" element={<LogCatchPage />} />
               <Route path="/u/:id" element={<PublicProfilePage />} />
               {/* A busca de pessoas virou aba do Feed; o endereço antigo leva para lá. */}
               <Route path="/pessoas" element={<Navigate to="/feed?aba=pessoas" replace />} />

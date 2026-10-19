@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { speciesApi, spotsApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { ApiError } from "../api/client";
 import { useUnidades } from "../units";
-import { PhotoPicker, type FotoItem } from "../components/PhotoPicker";
-import type { CatchInput, FishSpecies, FishingSpot, OutOfRangeDetail } from "../types";
+import { PhotoPicker, fotosExistentes, type FotoItem } from "../components/PhotoPicker";
+import type { Catch, CatchInput, FishSpecies, FishingSpot, OutOfRangeDetail } from "../types";
 import "./LogCatchPage.css";
 
 /**
@@ -20,11 +20,16 @@ import "./LogCatchPage.css";
  * responder 422 OUT_OF_RANGE, a tela guarda o que tentou enviar, abre a
  * confirmação e, se o usuário confirmar, reenvia o MESMO corpo com
  * `confirmOutOfRange: true` — a captura entra sinalizada para revisão.
+ *
+ * Edição (/capturas/:id/editar): o mesmo formulário, preenchido com a captura.
+ * Salvar manda PUT com tudo; a API confere que é o autor (RGN-09) e refaz o
+ * RGN-08 com os valores finais — corrigir um peso digitado errado para dentro
+ * da faixa tira a sinalização de revisão. Excluir mora aqui, embaixo, como
+ * ação secundária e destrutiva.
  */
 
-/** Data de hoje no formato que o <input type="date"> espera (aaaa-mm-dd). */
-function hoje() {
-  const agora = new Date();
+/** Data (hoje, por padrão) no formato que o <input type="date"> espera (aaaa-mm-dd). */
+function hoje(agora = new Date()) {
   // toISOString() converteria para UTC e, de madrugada, cairia no dia anterior.
   return [
     agora.getFullYear(),
@@ -53,6 +58,11 @@ interface ForaDaFaixa {
 }
 
 export function LogCatchPage() {
+  // Com id na rota, é edição de uma captura do próprio usuário.
+  const { id } = useParams<{ id: string }>();
+  const editando = Boolean(id);
+  const [original, setOriginal] = useState<Catch | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
   const [especies, setEspecies] = useState<FishSpecies[]>([]);
   const [pesqueiros, setPesqueiros] = useState<FishingSpot[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -110,15 +120,40 @@ export function LogCatchPage() {
   const unidades = useUnidades();
 
   useEffect(() => {
-    Promise.all([speciesApi.list(), spotsApi.list()])
-      .then(([especies, pesqueiros]) => {
+    // Na edição, a captura vem do histórico do próprio usuário: se não estiver
+    // lá, ou não existe ou é de outra pessoa (RGN-09) — e a API recusaria.
+    Promise.all([speciesApi.list(), spotsApi.list(), editando ? catchesApi.list() : Promise.resolve(null)])
+      .then(([especies, pesqueiros, minhas]) => {
         setEspecies(especies);
         setPesqueiros(pesqueiros);
+        if (!minhas) return;
+        const captura = minhas.find((c) => c.id === id);
+        if (!captura) {
+          setErroGeral("Captura não encontrada. Só quem registrou pode editar.");
+          return;
+        }
+        setOriginal(captura);
+        setNomeEspecie(captura.species.name);
+        // A API fala kg e cm; o formulário, a unidade do usuário.
+        setWeight(String(Number(unidades.pesoDe(captura.weight).toFixed(2))));
+        setLength(String(Number(unidades.comprimentoDe(captura.length).toFixed(1))));
+        setSpotId(captura.spotId ?? "");
+        setSpotName(captura.spotName ?? "");
+        setRegion(captura.spotId ? "" : (captura.region ?? ""));
+        setCaughtAt(hoje(new Date(captura.caughtAt)));
+        setFotos(fotosExistentes(captura.photos.map((p) => p.url)));
+        setNotes(captura.notes ?? "");
+        setCoordenada(
+          captura.latitude != null && captura.longitude != null
+            ? { latitude: captura.latitude, longitude: captura.longitude }
+            : null,
+        );
       })
       .catch((e) =>
         setErroGeral(e instanceof Error ? e.message : "Não foi possível carregar o formulário"),
       )
       .finally(() => setCarregando(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carrega uma vez, ao abrir
   }, []);
 
   // Nome digitado -> espécie do catálogo. A collation do banco é
@@ -178,7 +213,8 @@ export function LogCatchPage() {
     setErroGeral(null);
     setEnviando(true);
     try {
-      await catchesApi.create(corpo);
+      if (editando) await catchesApi.update(id!, corpo);
+      else await catchesApi.create(corpo);
       navigate("/perfil");
     } catch (e) {
       if (e instanceof ApiError && e.code === "OUT_OF_RANGE" && !corpo.confirmOutOfRange) {
@@ -199,6 +235,18 @@ export function LogCatchPage() {
     setErros(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
+    const pesoKg = unidades.pesoParaKg(Number(weight));
+    const comprimentoCm = unidades.comprimentoParaCm(Number(length));
+    // Edição de captura já sinalizada, sem mexer em espécie, peso nem
+    // comprimento: a medida já foi confirmada uma vez, não pergunta de novo.
+    const jaConfirmada =
+      editando &&
+      original !== null &&
+      original.isFlaggedForReview &&
+      original.speciesId === especieEscolhida!.id &&
+      Math.abs(original.weight - pesoKg) < 0.005 &&
+      Math.abs(original.length - comprimentoCm) < 0.05;
+
     enviar(
       {
         speciesId: especieEscolhida!.id,
@@ -208,8 +256,8 @@ export function LogCatchPage() {
         spotName: spotId ? null : spotName.trim() || null,
         region: spotId ? null : region.trim() || null,
         // Digitado na unidade do usuário; a API recebe sempre kg e cm.
-        weight: unidades.pesoParaKg(Number(weight)),
-        length: unidades.comprimentoParaCm(Number(length)),
+        weight: pesoKg,
+        length: comprimentoCm,
         // A ordem da lista é a ordem das fotos: a primeira é a capa.
         photoUrls: fotos.map((f) => f.url!),
         notes: notes.trim() || null,
@@ -218,9 +266,24 @@ export function LogCatchPage() {
         // O <input type="date"> só dá o dia. Fixando meio-dia local, a conversão
         // para UTC não empurra o registro para o dia anterior ou seguinte.
         caughtAt: new Date(`${caughtAt}T12:00:00`).toISOString(),
+        ...(jaConfirmada && { confirmOutOfRange: true }),
       },
       especieEscolhida!,
     );
+  }
+
+  /** RGN-09: só o autor apaga (a API confere de novo). */
+  async function excluir() {
+    if (!confirm("Excluir esta captura? Ela some do feed, da Dex e das estatísticas, e não dá para desfazer.")) return;
+    setErroGeral(null);
+    setExcluindo(true);
+    try {
+      await catchesApi.remove(id!);
+      navigate("/perfil");
+    } catch (e) {
+      setErroGeral(e instanceof Error ? e.message : "Não foi possível excluir a captura");
+      setExcluindo(false);
+    }
   }
 
   const faixaPeso = especieEscolhida
@@ -232,9 +295,11 @@ export function LogCatchPage() {
 
   return (
     <section className="captura">
-      <h2>Registrar captura</h2>
+      <h2>{editando ? "Editar captura" : "Registrar captura"}</h2>
       <p className="captura-ajuda">
-        Todo peixe registrado desbloqueia a espécie na sua Dex.
+        {editando
+          ? "Peso e comprimento são conferidos de novo com a faixa da espécie ao salvar."
+          : "Todo peixe registrado desbloqueia a espécie na sua Dex."}
       </p>
 
       {/* noValidate: a validação é a nossa, para as mensagens saírem em português. */}
@@ -387,10 +452,21 @@ export function LogCatchPage() {
 
         {erroGeral && <p className="erro">{erroGeral}</p>}
 
-        <button type="submit" disabled={enviando || carregando}>
-          {enviando ? "Salvando…" : "Salvar captura"}
+        <button type="submit" disabled={enviando || carregando || excluindo || (editando && !original)}>
+          {enviando ? "Salvando…" : editando ? "Salvar alterações" : "Salvar captura"}
         </button>
       </form>
+
+      {/* Excluir: separado do formulário, embaixo e em vermelho — é a única
+          ação daqui que não dá para desfazer. */}
+      {editando && original && (
+        <div className="captura-perigo">
+          <p className="campo-dica">Excluir apaga a captura, as fotos dela, as curtidas e os comentários.</p>
+          <button type="button" className="perigo" onClick={excluir} disabled={excluindo || enviando}>
+            {excluindo ? "Excluindo…" : "Excluir captura"}
+          </button>
+        </div>
+      )}
 
       {foraDaFaixa && (
         <ConfirmacaoForaDaFaixa

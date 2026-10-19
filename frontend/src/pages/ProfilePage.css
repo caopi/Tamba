@@ -150,12 +150,18 @@
   color: var(--texto-fraco);
 }
 
-.perfil-excluir {
+.perfil-editar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.7rem;
-  background: none;
-  color: var(--erro);
-  border: 1px solid var(--borda);
+  border: 1px solid var(--agua);
+  border-radius: var(--raio);
+  background: #fff;
+  color: var(--agua);
   font-size: 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 /* Cabeçalho da coluna de ações: existe para o leitor de tela, não para a vista. */
@@ -211,8 +217,24 @@
   color: var(--texto-fraco);
 }
 
-/* Configurações, créditos e sair: saíram do topo e moram aqui (o avatar do
-   topo abre esta tela). */
+/* Configurações (em destaque), créditos e sair: saíram do topo e moram aqui
+   (o avatar do topo abre esta tela). Configurações é a única ação frequente
+   das três, então ganha cara de botão; créditos e sair ficam como links. */
+.perfil-config {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--agua);
+  border-radius: var(--raio);
+  background: #fff;
+  color: var(--agua);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .perfil-links {
   display: flex;
   flex-wrap: wrap;

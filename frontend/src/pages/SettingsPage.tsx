@@ -4,7 +4,7 @@ import { uploadPhoto } from "../api/uploads";
 import { useAuth } from "../context/AuthContext";
 import { Avatar } from "../components/Avatar";
 import { compressImage } from "../imageCompression";
-import type { MeasurementUnit } from "../types";
+import type { FeedOrder, MeasurementUnit } from "../types";
 import "./SettingsPage.css";
 
 /**
@@ -20,6 +20,7 @@ export function SettingsPage() {
   const [nickname, setNickname] = useState(user?.nickname ?? "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl ?? null);
   const [unidade, setUnidade] = useState<MeasurementUnit>(user?.measurementUnit ?? "kg");
+  const [ordemFeed, setOrdemFeed] = useState<FeedOrder>(user?.feedOrder ?? "engagement");
   const [compartilhar, setCompartilhar] = useState(user?.shareExactLocation ?? false);
   const [notifyLikes, setNotifyLikes] = useState(user?.notifyLikes ?? true);
   const [notifyComments, setNotifyComments] = useState(user?.notifyComments ?? true);
@@ -62,6 +63,7 @@ export function SettingsPage() {
         nickname: nickname.trim(),
         avatarUrl,
         measurementUnit: unidade,
+        feedOrder: ordemFeed,
         shareExactLocation: compartilhar,
         notifyLikes,
         notifyComments,
@@ -84,7 +86,7 @@ export function SettingsPage() {
         <fieldset>
           <legend>Perfil</legend>
           <div className="config-avatar">
-            <Avatar name={name || user.name} avatarUrl={avatarUrl} tamanho={72} />
+            <Avatar id={user.id} name={name || user.name} avatarUrl={avatarUrl} tamanho={72} />
             <div className="config-avatar-botoes">
               <button type="button" className="secundario" onClick={() => seletor.current?.click()} disabled={enviandoFoto}>
                 {enviandoFoto ? "Enviando…" : "Trocar foto"}
@@ -134,6 +136,23 @@ export function SettingsPage() {
           <label className="config-opcao">
             <input type="radio" name="unidade" checked={unidade === "lb"} onChange={() => setUnidade("lb")} />
             Imperial — libras e polegadas
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Feed</legend>
+          <label className="config-opcao">
+            <input
+              type="radio"
+              name="ordem-feed"
+              checked={ordemFeed === "engagement"}
+              onChange={() => setOrdemFeed("engagement")}
+            />
+            Mais curtidas e comentários primeiro (padrão)
+          </label>
+          <label className="config-opcao">
+            <input type="radio" name="ordem-feed" checked={ordemFeed === "recent"} onChange={() => setOrdemFeed("recent")} />
+            Mais recentes primeiro
           </label>
         </fieldset>
 

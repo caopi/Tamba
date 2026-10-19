@@ -17,6 +17,8 @@ export interface User {
    * métrico (kg, cm); "lb" = imperial (libras, polegadas). Ver src/units.ts.
    */
   measurementUnit: MeasurementUnit;
+  /** Ordem padrão do feed: engajamento (padrão) ou mais recentes. */
+  feedOrder: FeedOrder;
   shareExactLocation: boolean;
   notifyLikes: boolean;
   notifyComments: boolean;
@@ -32,6 +34,7 @@ export type ProfileUpdate = Partial<
     | "nickname"
     | "avatarUrl"
     | "measurementUnit"
+    | "feedOrder"
     | "shareExactLocation"
     | "notifyLikes"
     | "notifyComments"

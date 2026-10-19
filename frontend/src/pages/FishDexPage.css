@@ -101,18 +101,6 @@
   align-items: center;
 }
 
-/* "Créditos das fotos": link com cara de botão secundário. */
-.dex-creditos {
-  display: inline-block;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--agua);
-  border-radius: var(--raio);
-  background: #fff;
-  color: var(--agua);
-  font-size: 0.8rem;
-  text-decoration: none;
-}
-
 .dex-status {
   display: inline-block;
   font-size: 0.72rem;
@@ -325,4 +313,44 @@
 .dex-admin button {
   padding: 0.35rem 0.7rem;
   font-size: 0.82rem;
+}
+
+/* Ordem da grade (Raridade | A–Z): o mesmo seletor em pílula das abas do
+   Feed, só que do tamanho do conteúdo. Dois seletores: o FeedPage.css
+   carrega depois e põe width: 100%. */
+.feed-abas.dex-ordem {
+  width: auto;
+  display: inline-flex;
+  margin-top: 0.9rem;
+}
+
+.dex-ordem .feed-aba {
+  flex: 0 0 auto;
+  padding-left: 0.9rem;
+  padding-right: 0.9rem;
+}
+
+/* Espécie pescada ganha a cor da raridade na borda (a comum fica como está).
+   Bloqueada continua neutra: a cor é a recompensa da captura. */
+.dex-card.capturada-incomum {
+  border-color: #2f7a3a;
+}
+
+.dex-card.capturada-raro {
+  border-color: #b0336f;
+}
+
+.dex-card.capturada-muito_raro {
+  border-color: #8f6408;
+}
+
+/* Prévia "Ver Dex completa" (admin): aviso com o botão de sair. */
+.dex-previa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
 }

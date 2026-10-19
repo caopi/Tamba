@@ -17,7 +17,8 @@ Ao mudar algo que se afaste do documento, acrescente uma linha aqui.
 | Banimento de usuário | Desativação simples (ativar/desativar), sem motivo, prazo nem histórico | Cobre o efeito necessário (a pessoa sai do app) sem um sistema de moderação completo |
 | Armazenamento das fotos | Em disco local do servidor durante o desenvolvimento | Ninguém do grupo precisa de conta em serviço externo; produção exigiria armazenamento de objetos (S3, Cloudinary) |
 | RGN-01 — conta só ativa após confirmar o e-mail | A confirmação existe, mas fica desligada por padrão (`REQUIRE_EMAIL_VERIFICATION`); o e-mail sai no terminal da API, sem SMTP | Tira o atrito do desenvolvimento; liga-se com uma variável para a demonstração |
-| REQ-32 — "puxar para atualizar" | Botão "Atualizar" no topo do feed | É o equivalente na web; o gesto de puxar é próprio de app móvel |
+| REQ-32 — "puxar para atualizar" | Não há gesto nem botão: o feed busca de novo cada vez que a tela é aberta ou a aba muda | O botão "Atualizar" saiu para limpar o topo do feed; o gesto de puxar é próprio de app móvel |
+| REQ-35 — escolher a ordem do feed | A escolha (engajamento ou mais recentes) fica nas Configurações, como preferência da conta, e não no próprio feed; o padrão é engajamento (curtidas + comentários) | Tira um controle do topo do feed; quem prefere a ordem cronológica escolhe uma vez |
 
 ## Interpretações
 

@@ -1,4 +1,5 @@
 import type { FishSpecies } from "../types";
+import { Icone } from "./Icone";
 import "./SpeciesImage.css";
 
 /**
@@ -8,7 +9,7 @@ import "./SpeciesImage.css";
  * As fotos vêm de fontes diferentes — Commons, iNaturalist, upload do admin —
  * com ângulo, fundo e proporção diferentes. Em vez de esperar que combinem, o
  * CSS normaliza: moldura 3:2 fixa, `object-fit: cover`, mesmo fundo e a
- * mesma vinheta por cima. Sem foto, o 🐟 no lugar.
+ * mesma vinheta por cima. Sem foto, o 🐟 no lugar (no tema retrô, o tambaqui em pixel art).
  *
  * `bloqueada`: espécie ainda não capturada. A "sombra" sai da própria foto,
  * por filtro, sem precisar de um segundo arquivo.
@@ -37,7 +38,7 @@ export function SpeciesImage({
         />
       ) : (
         <span className="especie-foto-vazia" aria-hidden="true">
-          🐟
+          <Icone nome="tambaqui" padrao="🐟" />
         </span>
       )}
     </div>

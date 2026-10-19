@@ -6,6 +6,7 @@ import { formatarData } from "../format";
 import { useUnidades } from "../units";
 import { Link } from "react-router-dom";
 import { Avatar } from "../components/Avatar";
+import { Icone } from "../components/Icone";
 import type { Catch, Dex, Stats } from "../types";
 import "./ProfilePage.css";
 
@@ -90,30 +91,23 @@ export function ProfilePage() {
 
   const seta = (dessa: Coluna) => (coluna !== dessa ? "" : direcao === "asc" ? " ▲" : " ▼");
 
-  async function excluir(id: string) {
-    if (!confirm("Excluir esta captura?")) return;
-
-    try {
-      await catchesApi.remove(id);
-      // RGN-09: a API recalcula estatísticas e Dex na leitura; basta recarregar.
-      await carregar();
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : "Não foi possível excluir");
-    }
-  }
-
   return (
     <section>
       <header className="perfil-cabecalho">
-        {user && <Avatar name={user.name} avatarUrl={user.avatarUrl} tamanho={64} />}
+        {user && <Avatar id={user.id} name={user.name} avatarUrl={user.avatarUrl} tamanho={64} />}
         <div>
           <h2>{user?.name}</h2>
           <p>
             @{user?.nickname} · {user?.email}
           </p>
           {user && <p className="perfil-desde">Pescando desde {formatarData(user.createdAt)}</p>}
+          {/* Configurações em destaque (botão); créditos e sair, links discretos. */}
+          <Link to="/configuracoes" className="botao secundario perfil-config">
+            <Icone nome="chave" padrao="⚙" /> Configurações
+          </Link>
           <nav className="perfil-links">
-            <Link to="/configuracoes">⚙ Configurações</Link>
+            {/* Admin: prévia da Dex com tudo desbloqueado (nada é gravado). */}
+            {user?.role === "admin" && <Link to="/?previa=completa">Ver Dex completa</Link>}
             <Link to="/creditos">Créditos das fotos</Link>
             <button type="button" className="link" onClick={logout}>
               Sair
@@ -238,13 +232,14 @@ export function ProfilePage() {
                         )}
                       </td>
                       <td>
-                        <button
-                          type="button"
-                          className="perfil-excluir"
-                          onClick={() => excluir(captura.id)}
+                        {/* Excluir mora dentro da edição, como ação destrutiva. */}
+                        <Link
+                          to={`/capturas/${captura.id}/editar`}
+                          className="botao secundario perfil-editar"
+                          aria-label={`Editar captura de ${captura.species.name}`}
                         >
-                          Excluir
-                        </button>
+                          <Icone nome="lapis" padrao="✏️" /> Editar
+                        </Link>
                       </td>
                     </tr>
                   ))}

@@ -17,8 +17,11 @@
      a identidade de console; todo o resto — cartões, ficha, formulários,
      botões — é 16 bits (borda de 2 px num tom da rampa, chanfro de 1 px,
      sombreado pontilhado). Tokens --chanfro/--borda-retro e *-16.
-   - Fundo: cena pixel art noturna (CC0, ver /creditos) atrás do app, mas o
-     conteúdo fica sempre num painel sólido, nunca direto sobre a cena.
+   - Fundo: "Parallax Backgrounds: Dock", de Admurin (ver /creditos), pixel
+     art ampliada por fator inteiro. Parada por padrão; com a classe
+     cena-movel no <html>, as camadas derivam em parallax no Dex e no Feed
+     (CenaAnimada). O conteúdo fica sempre num painel sólido, nunca direto
+     sobre a cena.
    ========================================================================== */
 
 html.tema-retro {
@@ -39,7 +42,28 @@ html.tema-retro {
   --retro-100: #e3e9fc;
   --retro-75: #ecf0fd;
   --retro-50: #f4f6ff;
-  /* Destaques */
+  /* Madeira — a moldura do app (barras, botões, selos, bordas). Marrom é
+     complementar ao azul da cena: a interface se descola do fundo na hora,
+     e moldura de madeira é convenção de RPG de 16 bits (e de píer, de caixa
+     de pesca). O conteúdo (painel, cartões, texto) continua na rampa azul
+     clara, para leitura. Contraste medido: texto ≥ 5,52:1 em todo par usado
+     (o mais justo, branco sobre o tom claro do botão, 6,86:1). */
+  --madeira-950: #1a0f08;
+  --madeira-900: #2a180d;
+  --madeira-800: #3d2414;
+  --madeira-750: #4a2c18;
+  --madeira-700: #573420;
+  --madeira-650: #663d24;
+  --madeira-600: #74462a;
+  --madeira-550: #7f4f2f;
+  --madeira-500: #9a6a42;
+  --madeira-400: #b5875c;
+  --madeira-300: #cda57c;
+  --madeira-200: #e2c6a2;
+  --madeira-150: #ead5b8;
+  --madeira-100: #f2e4cf;
+  --madeira-50: #f9f1e6;
+  /* Destaques: o amarelo é o de ativo e de foco. */
   --retro-amarelo: #ffd23f;
   --retro-vermelho: #b8232c;
   --retro-verde: #1f7a43;
@@ -53,27 +77,27 @@ html.tema-retro {
      grossa. */
   --chanfro: inset -3px -3px 0 rgba(0, 0, 0, 0.35), inset 3px 3px 0 rgba(255, 255, 255, 0.45);
   --chanfro-afundado: inset 3px 3px 0 rgba(0, 0, 0, 0.35), inset -3px -3px 0 rgba(255, 255, 255, 0.3);
-  --borda-retro: 3px solid var(--retro-950);
+  --borda-retro: 3px solid var(--madeira-950);
 
   /* 16 bits — todo o resto (cartões, ficha, formulários, botões): borda de
      2 px num tom da rampa em vez do quase-preto, chanfro de 1 px e
      sombreado pontilhado (xadrez de 2×2 px entre dois tons vizinhos, o
      "dithering") no lugar do degrau seco de cor. */
-  --borda-16: 2px solid var(--retro-750);
-  --borda-16-controle: 2px solid var(--retro-800);
-  --chanfro-16: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(19, 29, 79, 0.25);
+  --borda-16: 2px solid var(--madeira-700);
+  --borda-16-controle: 2px solid var(--madeira-800);
+  --chanfro-16: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(42, 24, 13, 0.25);
   --chanfro-16-botao: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(6, 10, 31, 0.35);
   --chanfro-16-afundado: inset 1px 1px 0 rgba(6, 10, 31, 0.35), inset -1px -1px 0 rgba(255, 255, 255, 0.5);
   --pontilhado-claro: repeating-conic-gradient(var(--retro-75) 0 25%, var(--retro-150) 0 50%) 0 0 / 4px 4px;
   --pontilhado-suave: repeating-conic-gradient(var(--retro-50) 0 25%, var(--retro-100) 0 50%) 0 0 / 4px 4px;
 
   /* Variáveis globais do app, redefinidas para o tema */
-  --agua: var(--retro-700);
-  --agua-clara: var(--retro-100);
+  --agua: var(--madeira-700);
+  --agua-clara: var(--madeira-100);
   --areia: var(--retro-900);
   --texto: var(--retro-950);
   --texto-fraco: #39467a;
-  --borda: var(--retro-950);
+  --borda: var(--madeira-950);
   --erro: var(--retro-vermelho);
   --raio: 0;
 }
@@ -87,10 +111,18 @@ html.tema-retro *::after {
   box-shadow: none !important;
 }
 
-/* --- Fundo: a cena fica num pseudo-elemento fixo, atrás de tudo. O
-   image-rendering fica só nele (é herdado: no body, pixelaria as fotos). --- */
+/* --- Fundo: "Parallax Backgrounds: Dock", de Admurin (ver /creditos) -------
+   Nove camadas PNG de 384 × 216 (parallax/0.png, a do fundo, até 8.png, a
+   da frente), ampliadas por um fator inteiro — o menor que cobre a tela —
+   com vizinho mais próximo: --cena-k, --cena-x e --cena-y vêm de cena.ts.
+
+   Parada (padrão): as nove empilhadas numa camada fixa atrás de tudo. A
+   camada fixa, e não background-attachment: fixed — o iOS ignora o `fixed`
+   e o Chrome repinta o fundo inteiro a cada quadro de rolagem com ele. Vale
+   em toda tela, inclusive login e créditos, fora do Layout. O
+   image-rendering fica só nela (é herdado: no body, pixelaria as fotos). --- */
 html.tema-retro body {
-  background: var(--retro-900);
+  background: #1b1f3a;
 }
 
 html.tema-retro body::before {
@@ -98,8 +130,214 @@ html.tema-retro body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: var(--retro-900) url("./fundo-noite.png") center bottom / auto 100% repeat-x;
+  background-color: #1b1f3a;
+  background-image:
+    url("./parallax/8.png"), url("./parallax/7.png"), url("./parallax/6.png"), url("./parallax/5.png"),
+    url("./parallax/4.png"), url("./parallax/3.png"), url("./parallax/2.png"), url("./parallax/1.png"),
+    url("./parallax/0.png");
+  background-repeat: repeat-x;
+  background-size: calc(384px * var(--cena-k, 4)) calc(216px * var(--cena-k, 4));
+  background-position: var(--cena-x, 0) var(--cena-y, 0);
   image-rendering: pixelated;
+}
+
+/* --- Cena animada (Dex e Feed) ---------------------------------------------
+   CenaAnimada põe por cima da cena parada: as nove camadas, uma por
+   elemento (só com a cena em movimento), e os efeitos — raios de luz,
+   bolhas e peixes.
+
+   Dois interruptores no <html> do index.html, como o do tema:
+   - `cena-movel`: as camadas que emendam sem costura derivam, cada uma na
+     sua velocidade (parallax). Sem a classe, a cena fica parada.
+   - `cena-efeitos-parados`: raios, bolhas e peixes param onde estão.
+   Atrás de formulário (Registrar Captura, Configurações...) a cena inteira
+   fica parada (data-animada="false"), e com prefers-reduced-motion também,
+   em qualquer tela.
+
+   Só transform e opacity animam: o navegador compõe na GPU, sem refazer
+   layout nem pintura. As posições são em pixels da cena (384 × 216): linha
+   d'água na linha 91, água aberta até a 178 (o fundo começa na 179). */
+.cena {
+  display: none;
+}
+
+html.tema-retro .cena {
+  --k: var(--cena-k, 4);
+  /* Linha y da cena em pixels da tela. */
+  --y0: var(--cena-y, 0px);
+  /* Margem visível de cada lado do painel de conteúdo (max-width 960 px):
+     raios e bolhas ficam nela, onde dá para vê-los. No celular o painel ocupa
+     a largura toda e a margem é zero. */
+  --margem: max(0px, calc((100vw - 960px) / 2));
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+/* Fora do Dex e do Feed e com movimento reduzido (acessibilidade, mesma
+   linha do RNF-13): só a cena parada do body. */
+html.tema-retro .cena[data-animada="false"] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.tema-retro .cena {
+    display: none;
+  }
+}
+
+html.tema-retro .cena > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* --- Camadas (parallax) ---
+   Cada elemento é só a faixa de linhas em que a camada tem desenho (--linha
+   e --altura, em pixels da cena), para não mandar à GPU nove telas inteiras
+   transparentes. Largura: a tela mais uma volta da cena; a camada anda uma
+   volta (384 pixels da cena) por ciclo e recomeça, sem emenda visível.
+   steps(384): anda um pixel da cena por vez, nunca meio — pixel art em
+   posição fracionária borra e treme. */
+html.tema-retro .cena-camada {
+  display: none;
+}
+
+html.tema-retro.cena-movel .cena-camada {
+  display: block;
+  top: calc(var(--y0) + var(--linha) * var(--k) * 1px);
+  width: calc(100vw + 384px * var(--k));
+  height: calc(var(--altura) * var(--k) * 1px);
+  background-repeat: repeat-x;
+  background-size: calc(384px * var(--k)) calc(216px * var(--k));
+  background-position: var(--cena-x, 0) calc(var(--linha) * var(--k) * -1px);
+  image-rendering: pixelated;
+}
+
+/* --linha / --altura: onde a camada tem desenho (medido nos PNGs). */
+html.tema-retro .cena-camada-0 { --linha: 0;   --altura: 216; background-image: url("./parallax/0.png"); }
+html.tema-retro .cena-camada-1 { --linha: 0;   --altura: 22;  background-image: url("./parallax/1.png"); }
+html.tema-retro .cena-camada-2 { --linha: 38;  --altura: 178; background-image: url("./parallax/2.png"); }
+html.tema-retro .cena-camada-3 { --linha: 41;  --altura: 47;  background-image: url("./parallax/3.png"); }
+html.tema-retro .cena-camada-4 { --linha: 42;  --altura: 46;  background-image: url("./parallax/4.png"); }
+html.tema-retro .cena-camada-5 { --linha: 46;  --altura: 42;  background-image: url("./parallax/5.png"); }
+html.tema-retro .cena-camada-6 { --linha: 87;  --altura: 129; background-image: url("./parallax/6.png"); }
+html.tema-retro .cena-camada-7 { --linha: 179; --altura: 37;  background-image: url("./parallax/7.png"); }
+html.tema-retro .cena-camada-8 { --linha: 91;  --altura: 125; background-image: url("./parallax/8.png"); }
+
+/* Velocidades: um ciclo = a camada anda uma volta inteira da cena. A mais
+   próxima (o fundo do lago) leva dois minutos; as distantes, bem mais.
+   Árvores da frente e margem andam juntas, porque as árvores estão em pé
+   nela. Paradas, de propósito:
+   - 0, o céu: é igual em toda a largura, e mexer nele não mudaria nada na
+     tela (só gastaria a camada maior);
+   - 2 e 3, as árvores mais distantes: não emendam sem costura (uma árvore
+     cortada ao meio e um degrau de 9 pixels na borda) — andando, a costura
+     apareceria a cada volta. */
+html.tema-retro.cena-movel .cena-camada-1 { animation: cena-deriva 900s steps(384) infinite; }
+html.tema-retro.cena-movel .cena-camada-4 { animation: cena-deriva 480s steps(384) infinite; }
+html.tema-retro.cena-movel .cena-camada-5,
+html.tema-retro.cena-movel .cena-camada-6 { animation: cena-deriva 300s steps(384) infinite; }
+html.tema-retro.cena-movel .cena-camada-8 { animation: cena-deriva 240s steps(384) infinite; }
+html.tema-retro.cena-movel .cena-camada-7 { animation: cena-deriva 120s steps(384) infinite; }
+
+html.tema-retro.cena-movel :is(.cena-camada-1, .cena-camada-4, .cena-camada-5, .cena-camada-6, .cena-camada-7, .cena-camada-8) {
+  will-change: transform;
+}
+
+@keyframes cena-deriva {
+  to { transform: translate3d(calc(-384px * var(--k)), 0, 0); }
+}
+
+/* --- Efeitos: raios, bolhas e peixes --- */
+html.tema-retro .cena-efeito {
+  will-change: transform, opacity;
+}
+
+html.tema-retro.cena-efeitos-parados .cena-efeito {
+  animation-play-state: paused !important;
+}
+
+/* Raios de luz logo abaixo da superfície: pulsam e derivam devagar. */
+html.tema-retro .cena-raio {
+  top: calc(var(--y0) + 93px * var(--k));
+  width: calc(16px * var(--k));
+  height: calc(70px * var(--k));
+  background: linear-gradient(rgba(255, 252, 220, 0.35), rgba(255, 252, 220, 0));
+  transform-origin: top center;
+  animation: cena-raio 9s ease-in-out infinite alternate;
+}
+
+/* Nas margens dos dois lados do painel, não no meio (que o painel cobre). */
+html.tema-retro .cena-raio-1 { left: calc(var(--margem) * 0.25); }
+html.tema-retro .cena-raio-2 { left: calc(100vw - var(--margem) * 0.55); animation-duration: 12s; animation-delay: -4s; }
+html.tema-retro .cena-raio-3 { left: calc(var(--margem) * 0.65); animation-duration: 10s; animation-delay: -7s; }
+
+@keyframes cena-raio {
+  from { opacity: 0.15; transform: translate3d(0, 0, 0) skewX(-14deg); }
+  to   { opacity: 0.45; transform: translate3d(calc(4px * var(--k)), 0, 0) skewX(-14deg); }
+}
+
+/* Bolhas: sobem do fundo do lago até perto da superfície e somem. Uma
+   bolha é um pixel da cena (k × k), com o mesmo tamanho dos pixels dela. */
+html.tema-retro .cena-bolha {
+  top: calc(var(--y0) + 176px * var(--k));
+  width: calc(1px * var(--k));
+  height: calc(1px * var(--k));
+  background: rgba(220, 245, 255, 0.7);
+  animation: cena-bolha 9s steps(80) infinite;
+}
+
+/* Três em cada margem do painel. */
+html.tema-retro .cena-bolha-1 { left: calc(var(--margem) * 0.3); animation-duration: 8s; }
+html.tema-retro .cena-bolha-2 { left: calc(var(--margem) * 0.34); animation-duration: 11s; animation-delay: -5s; }
+html.tema-retro .cena-bolha-3 { left: calc(var(--margem) * 0.7); animation-duration: 12s; animation-delay: -3s; }
+html.tema-retro .cena-bolha-4 { left: calc(100vw - var(--margem) * 0.4); animation-duration: 9s; animation-delay: -2s; }
+html.tema-retro .cena-bolha-5 { left: calc(100vw - var(--margem) * 0.44); animation-duration: 13s; animation-delay: -8s; }
+html.tema-retro .cena-bolha-6 { left: calc(100vw - var(--margem) * 0.75); animation-duration: 10s; animation-delay: -6s; }
+
+@keyframes cena-bolha {
+  0%   { opacity: 0;   transform: translate3d(0, 0, 0); }
+  10%  { opacity: 0.9; }
+  80%  { opacity: 0.8; }
+  100% { opacity: 0;   transform: translate3d(0, calc(-80px * var(--k)), 0); }
+}
+
+/* Peixes: atravessam a faixa de água aberta, cada um numa profundidade,
+   tamanho, velocidade e sentido. Os que vão para a esquerda são espelhados
+   (os sprites vêm virados para a direita). Os mais fundos, um pouco
+   apagados, dão profundidade. Hoje não há sprite em peixes/ (ver o LEIAME):
+   as regras ficam prontas para quando houver. */
+html.tema-retro .cena-peixe {
+  height: auto;
+  image-rendering: pixelated;
+  animation: cena-nadar-direita 50s linear infinite;
+}
+
+html.tema-retro .cena-peixe-1 { top: calc(var(--y0) + 112px * var(--k)); width: calc(16px * var(--k)); animation-duration: 46s; animation-delay: -10s; }
+html.tema-retro .cena-peixe-2 { top: calc(var(--y0) + 128px * var(--k)); width: calc(25px * var(--k)); animation-name: cena-nadar-esquerda; animation-duration: 60s; animation-delay: -35s; }
+html.tema-retro .cena-peixe-3 { top: calc(var(--y0) + 146px * var(--k)); width: calc(12px * var(--k)); animation-duration: 38s; animation-delay: -22s; opacity: 0.75; }
+html.tema-retro .cena-peixe-4 { top: calc(var(--y0) + 104px * var(--k)); width: calc(9px * var(--k));  animation-name: cena-nadar-esquerda; animation-duration: 32s; animation-delay: -5s; opacity: 0.8; }
+html.tema-retro .cena-peixe-5 { top: calc(var(--y0) + 160px * var(--k)); width: calc(20px * var(--k)); animation-duration: 70s; animation-delay: -50s; opacity: 0.7; }
+
+@keyframes cena-nadar-direita {
+  0%   { transform: translate3d(-15vw, 0, 0); }
+  25%  { transform: translate3d(16.25vw, calc(-1px * var(--k)), 0); }
+  50%  { transform: translate3d(47.5vw, 0, 0); }
+  75%  { transform: translate3d(78.75vw, calc(1px * var(--k)), 0); }
+  100% { transform: translate3d(110vw, 0, 0); }
+}
+
+@keyframes cena-nadar-esquerda {
+  0%   { transform: translate3d(110vw, 0, 0) scaleX(-1); }
+  25%  { transform: translate3d(78.75vw, calc(1px * var(--k)), 0) scaleX(-1); }
+  50%  { transform: translate3d(47.5vw, 0, 0) scaleX(-1); }
+  75%  { transform: translate3d(16.25vw, calc(-1px * var(--k)), 0) scaleX(-1); }
+  100% { transform: translate3d(-15vw, 0, 0) scaleX(-1); }
 }
 
 /* --- Tipografia --- */
@@ -120,8 +358,18 @@ html.tema-retro h2 {
   font-size: 1rem;
 }
 
+/* 24 px: a Press Start 2P é desenhada numa grade de 8 px e só fica nítida
+   em múltiplos dela. */
 html.tema-retro .layout-logo {
-  font-size: 0.95rem;
+  font-size: 24px;
+}
+
+/* No celular, com o título em 24 px, o selo "admin" não cabe ao lado do
+   @apelido: sai, e o apelido fica (o admin se reconhece pelos controles). */
+@media (max-width: 420px) {
+  html.tema-retro .layout-admin {
+    display: none;
+  }
 }
 
 html.tema-retro h3,
@@ -164,32 +412,126 @@ html.tema-retro label {
   color: var(--retro-800);
 }
 
-/* --- Botões (16 bits): borda de 2 px, dois tons (claro em cima, um tom
-   abaixo embaixo) e chanfro de 1 px; afundam ao clicar.
-   A cor sólida por baixo do degradê garante o contraste se o degradê não
-   for desenhado; o texto branco passa de 5,5:1 sobre os dois tons. --- */
-html.tema-retro button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta) {
-  border: var(--borda-16-controle);
-  background-color: var(--retro-650);
-  background-image: linear-gradient(var(--retro-550) 50%, var(--retro-650) 50%);
+/* --- Botões (16 bits, madeira): cantos em degrau ---------------------------
+   "Arredondado" de pixel art: clip-path: polygon() corta cada canto numa
+   escada de pixels inteiros — dois degraus de --u (2 px, a espessura da
+   moldura 16 bits), nunca meio pixel. border-radius daria curva com
+   antialias.
+   O clip-path corta também a borda, então a moldura não é um border: é a
+   cor de fundo do botão, que aparece em volta do miolo; o miolo em dois tons
+   (claro em cima, um tom abaixo embaixo) é uma camada de fundo uma unidade
+   menor de cada lado. Nos quatro cantos de dentro, um quadrado de --u na
+   cor da moldura fecha o degrau: a linha da moldura segue a escada sem
+   buraco. A borda transparente de --u só mantém o tamanho de antes.
+   Foco: a moldura fica amarela (o outline ficaria fora do recorte e
+   sumiria). Ao clicar, o miolo afunda para o tom de baixo.
+   Variantes trocam só as variáveis --b-*. Todas repetem o seletor geral
+   (o :is com a lista de :not), para ganhar das regras dos componentes
+   (.post-acao:hover, .post-acao.ativa...) e umas das outras na ordem certa:
+   variantes, depois clique, depois foco. --- */
+html.tema-retro {
+  --u: 2px;
+  --degraus: polygon(
+    0 calc(2 * var(--u)), var(--u) calc(2 * var(--u)), var(--u) var(--u), calc(2 * var(--u)) var(--u), calc(2 * var(--u)) 0,
+    calc(100% - 2 * var(--u)) 0, calc(100% - 2 * var(--u)) var(--u), calc(100% - var(--u)) var(--u),
+    calc(100% - var(--u)) calc(2 * var(--u)), 100% calc(2 * var(--u)),
+    100% calc(100% - 2 * var(--u)), calc(100% - var(--u)) calc(100% - 2 * var(--u)),
+    calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - 2 * var(--u)) calc(100% - var(--u)), calc(100% - 2 * var(--u)) 100%,
+    calc(2 * var(--u)) 100%, calc(2 * var(--u)) calc(100% - var(--u)), var(--u) calc(100% - var(--u)),
+    var(--u) calc(100% - 2 * var(--u)), 0 calc(100% - 2 * var(--u))
+  );
+}
+
+/* A moldura em degrau, desenhada no fundo (ver acima): cantos de dentro,
+   brilho de 1 px no alto do miolo, miolo em dois tons, cor da moldura.
+   Definida nos próprios elementos, não no <html>: uma variável resolve os
+   var() de dentro onde é declarada, e as --b-* só existem em cada botão. */
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao),
+html.tema-retro .feed-abas {
+  --moldura-degrau:
+    linear-gradient(var(--b-moldura) 0 0) left var(--u) top var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--b-moldura) 0 0) right var(--u) top var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--b-moldura) 0 0) left var(--u) bottom var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--b-moldura) 0 0) right var(--u) bottom var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--b-brilho) 0 0) center top var(--u) / calc(100% - 4 * var(--u)) 1px no-repeat border-box,
+    linear-gradient(var(--b-claro) 50%, var(--b-escuro) 50%) center / calc(100% - 2 * var(--u)) calc(100% - 2 * var(--u))
+      no-repeat border-box,
+    var(--b-moldura);
+}
+
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao) {
+  --b-moldura: var(--madeira-900);
+  --b-claro: var(--madeira-550);
+  --b-escuro: var(--madeira-650);
+  --b-brilho: rgba(255, 255, 255, 0.25);
+  border: var(--u) solid transparent;
+  background: var(--moldura-degrau);
   color: #fff;
-  box-shadow: var(--chanfro-16-botao) !important;
+  clip-path: var(--degraus);
+  box-shadow: none !important;
 }
 
-html.tema-retro button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):active {
-  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.35) !important;
+/* Link com cara de botão (classe "botao"): mesma moldura, sem sublinhado. */
+html.tema-retro a.botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--fonte-pixel);
+  text-decoration: none;
 }
 
-html.tema-retro button.secundario:not(.link) {
-  background-color: var(--retro-100);
-  background-image: linear-gradient(var(--retro-50) 50%, var(--retro-100) 50%);
-  color: var(--retro-800);
+/* Secundário: madeira clara. */
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao):is(.secundario) {
+  --b-moldura: var(--madeira-700);
+  --b-claro: var(--madeira-50);
+  --b-escuro: var(--madeira-100);
+  --b-brilho: rgba(255, 255, 255, 0.7);
+  color: var(--madeira-900);
 }
 
-html.tema-retro button.perigo:not(.link) {
-  background-color: var(--retro-vermelho);
-  background-image: linear-gradient(#c22b34 50%, var(--retro-vermelho) 50%);
+/* Ações do post: madeira clara. Os ícones do feed têm contorno escuro, que
+   some no botão marrom (mediana ≈ 2:1); no claro, 90% da borda de cada ícone
+   passa de 3,3:1. */
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao).post-acao {
+  --b-moldura: var(--madeira-700);
+  --b-claro: var(--madeira-50);
+  --b-escuro: var(--madeira-100);
+  --b-brilho: rgba(255, 255, 255, 0.7);
+  color: var(--madeira-900);
+}
+
+/* Perigo, e "Tentar de novo" de foto que falhou: vermelho. */
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao).perigo,
+html.tema-retro .foto-falha :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao) {
+  --b-moldura: #4a0c10;
+  --b-claro: #c22b34;
+  --b-escuro: var(--retro-vermelho);
   color: #fff;
+}
+
+/* Cabeçalho da tabela de capturas do Perfil: os botões de ordenar são texto
+   (sem fundo, sem padding), como fora do tema — com moldura e recorte, o
+   degrau cortaria as letras. */
+html.tema-retro .perfil-tabela thead :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao) {
+  border: none;
+  background: none;
+  clip-path: none;
+  color: inherit;
+}
+
+/* Fotos faltando no formulário de captura: moldura na cor de erro. */
+html.tema-retro .fotos.invalido .fotos-botoes :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao) {
+  --b-moldura: var(--erro);
+}
+
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao):active {
+  --b-claro: var(--b-escuro);
+  --b-brilho: transparent;
+}
+
+html.tema-retro :is(button:not(.link):not(.dex-card):not(.notificacao-abrir):not(.notificacao-marcar):not(.post-seta):not(.feed-aba), a.botao):focus-visible {
+  --b-moldura: var(--retro-amarelo);
+  outline: none;
 }
 
 html.tema-retro button.link {
@@ -213,14 +555,14 @@ html.tema-retro select:focus,
 html.tema-retro textarea:focus {
   outline: 2px solid var(--retro-amarelo);
   outline-offset: 0;
-  box-shadow: var(--chanfro-16-afundado), 0 0 0 4px var(--retro-800) !important;
+  box-shadow: var(--chanfro-16-afundado), 0 0 0 4px var(--madeira-900) !important;
 }
 
 /* --- Painéis: todo conteúdo fica num painel sólido, nunca na cena --- */
 html.tema-retro .layout-main {
   margin: 0.75rem auto 0;
   background: var(--retro-100);
-  border: 4px solid var(--retro-950);
+  border: 4px solid var(--madeira-950);
   box-shadow: var(--chanfro) !important;
 }
 
@@ -247,7 +589,7 @@ html.tema-retro .login-pagina {
 html.tema-retro .creditos {
   margin: calc(1rem + env(safe-area-inset-top)) auto 1rem;
   background: var(--retro-100);
-  border: 4px solid var(--retro-950);
+  border: 4px solid var(--madeira-950);
   box-shadow: var(--chanfro) !important;
 }
 
@@ -313,59 +655,77 @@ html.tema-retro .notificacao.nao-lida {
   background: var(--pontilhado-claro);
   background-color: var(--retro-150);
   border-left-width: 6px;
-  border-left-color: var(--retro-600);
+  border-left-color: var(--madeira-600);
 }
 
 /* Selos: blocos de cor com fio de 1 px. */
 html.tema-retro .raridade,
 html.tema-retro .dex-status {
-  border: 1px solid var(--retro-800);
+  border: 1px solid var(--madeira-800);
   font-size: 0.68rem;
 }
 
 /* --- Topo --- */
 html.tema-retro .layout-header {
-  background: var(--retro-700);
-  border-bottom: 4px solid var(--retro-950);
+  background: var(--madeira-800);
+  border-bottom: 4px solid var(--madeira-950);
   box-shadow: var(--chanfro) !important;
 }
 
 html.tema-retro .layout-apelido {
-  background: var(--retro-550);
-  border: 2px solid var(--retro-950);
+  background: var(--madeira-600);
+  border: 2px solid var(--madeira-950);
 }
 
 /* --- Barra de abas: HUD de console --- */
 html.tema-retro .layout-abas {
-  background: var(--retro-700);
-  border-top: 4px solid var(--retro-500);
+  background: var(--madeira-800);
+  border-top: 4px solid var(--madeira-550);
   box-shadow: var(--chanfro) !important;
 }
 
-/* Silkscreen é larga: o rótulo pode quebrar em duas linhas embaixo do
-   ícone ("Registrar / Captura") em vez de ser cortado no celular. */
-html.tema-retro .layout-aba {
-  color: var(--retro-200);
-  font-size: 0.7rem;
-  line-height: 1.15;
-  white-space: normal;
-  text-align: center;
-  padding: 0 0.25rem;
+/* Barra mais baixa: ícone de 21 px, rótulo pequeno e pouco respiro. */
+html.tema-retro {
+  --altura-abas: 3.25rem;
 }
 
-/* Quatro abas em 375 px: "Notificações" é a palavra mais longa e não quebra;
-   um pouco menor no celular, para ter respiro dos lados. */
+/* Abas sem caixa própria: separadas só por um fio fino, mais curto que a
+   barra, entre uma e outra. Ícone e rótulo centralizados na aba, em uma
+   linha só: com o rótulo quebrado, o ícone daquela aba subiria e sairia da
+   linha dos outros. */
+html.tema-retro .layout-aba {
+  justify-content: center;
+  gap: 3px;
+  padding: 0 0.25rem;
+  color: var(--madeira-200);
+  font-size: 0.62rem;
+  letter-spacing: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Silkscreen é larga: no celular "Registrar Captura" não cabe em uma linha,
+   e o rótulo visível fica "Registrar" (o nome acessível é o inteiro). */
 @media (max-width: 420px) {
-  html.tema-retro .layout-aba {
-    font-size: 0.62rem;
-    letter-spacing: 0;
+  html.tema-retro .layout-aba-extra {
+    display: none;
   }
 }
 
+html.tema-retro .layout-aba + .layout-aba::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  width: 1px;
+  height: 55%;
+  background: var(--madeira-600);
+}
+
+/* Ativa: ícone e rótulo em amarelo e o bloco amarelo em cima — sem caixa. */
 html.tema-retro .layout-aba.active {
   color: var(--retro-amarelo);
-  background: var(--retro-800);
-  box-shadow: var(--chanfro-afundado) !important;
 }
 
 /* O traço da ativa vira um bloco amarelo sobre a borda da barra. */
@@ -378,17 +738,42 @@ html.tema-retro .layout-aba.active::before {
 }
 
 /* --- Abas do feed: botões de seleção, a ativa afundada --- */
+/* O grupo de abas tem a mesma moldura em degrau dos botões; as abas das
+   pontas perdem o pixel do canto de dentro, para o degrau da moldura
+   aparecer por baixo da aba ativa. */
 html.tema-retro .feed-abas {
-  border: var(--borda-16-controle);
-  background: var(--retro-50);
-  box-shadow: var(--chanfro-16) !important;
+  --b-moldura: var(--madeira-800);
+  --b-claro: var(--madeira-50);
+  --b-escuro: var(--madeira-50);
+  --b-brilho: transparent;
+  border: var(--u) solid transparent;
+  background: var(--moldura-degrau);
+  clip-path: var(--degraus);
+  box-shadow: none !important;
+}
+
+html.tema-retro .feed-aba:first-child {
+  clip-path: polygon(var(--u) 0, 100% 0, 100% 100%, var(--u) 100%, var(--u) calc(100% - var(--u)), 0 calc(100% - var(--u)), 0 var(--u), var(--u) var(--u));
+}
+
+html.tema-retro .feed-aba:last-child {
+  clip-path: polygon(0 0, calc(100% - var(--u)) 0, calc(100% - var(--u)) var(--u), 100% var(--u), 100% calc(100% - var(--u)), calc(100% - var(--u)) calc(100% - var(--u)), calc(100% - var(--u)) 100%, 0 100%);
 }
 
 html.tema-retro .feed-aba {
   border: none !important;
   background: transparent !important;
-  color: var(--retro-800) !important;
+  color: var(--madeira-900) !important;
   box-shadow: none !important;
+}
+
+/* Silkscreen é larga: no tamanho padrão, "Denunciadas" (com o ícone, só do
+   admin) passava da aba e encostava na moldura. Um pouco menor, e com menos
+   respiro dos lados, as quatro cabem. */
+html.tema-retro .feed-aba {
+  font-size: 0.8rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 /* A fonte pixel é mais larga que a sans-serif: no celular, as quatro abas
@@ -403,34 +788,28 @@ html.tema-retro .feed-aba {
 }
 
 html.tema-retro .feed-aba.ativa {
-  background-color: var(--retro-700) !important;
-  background-image: linear-gradient(var(--retro-650) 50%, var(--retro-700) 50%) !important;
+  background-color: var(--madeira-700) !important;
+  background-image: linear-gradient(var(--madeira-650) 50%, var(--madeira-700) 50%) !important;
   color: #fff !important;
   box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.45) !important;
 }
 
 /* --- Fotos de espécie --- */
 html.tema-retro .especie-foto {
-  background: var(--retro-800);
+  background: var(--madeira-900);
 }
 
 /* No lugar da vinheta suave, uma moldura de 2 px. */
 html.tema-retro .especie-foto::after {
-  box-shadow: inset 0 0 0 2px var(--retro-950) !important;
+  box-shadow: inset 0 0 0 2px var(--madeira-950) !important;
 }
 
-/* "Créditos das fotos" na Dex: link com cara de botão secundário do tema. */
-html.tema-retro .dex-creditos {
-  border: var(--borda-16-controle);
-  background-color: var(--retro-100);
-  background-image: linear-gradient(var(--retro-50) 50%, var(--retro-100) 50%);
-  color: var(--retro-800);
-  font-family: var(--fonte-pixel);
-  box-shadow: var(--chanfro-16-botao) !important;
-}
-
-html.tema-retro .dex-creditos:active {
-  box-shadow: inset 1px 1px 0 rgba(6, 10, 31, 0.35) !important;
+/* X da ficha da espécie e X de remover foto do formulário: mais respiro em
+   cima e embaixo, para a linha do texto não encostar no brilho de 1 px nem no
+   degrau do canto. */
+html.tema-retro :is(.dex-modal-fechar, .foto-remover) {
+  padding: 6px 10px;
+  line-height: 1;
 }
 
 /* --- Post do feed ------------------------------------------------------ */
@@ -456,9 +835,364 @@ html.tema-retro .post-galeria {
   border-bottom: var(--borda-16);
 }
 
+/* --- Ícones pixel (Streamline "Pixel - Free", CC BY 4.0) ------------------
+   <Icone> põe no HTML a versão padrão (emoji ou SVG de traço) e um span
+   vazio para a pixel. Sem o tema, o span não tem tamanho e some; aqui a
+   padrão sai e a pixel é desenhada por máscara na cor do texto
+   (currentColor), então segue o tema sem cor própria.
+   Tamanho: 21 px, nunca outro. O desenho é uma grade de 21 × 21 (não 32,
+   apesar do viewBox original), e só em múltiplos inteiros dela cada pixel
+   do desenho cai num pixel da tela; em px, não rem, para o zoom de fonte
+   não desalinhar. Os SVGs de icones/px/ saem do npm run pixel-icons. */
+html.tema-retro .icone-padrao {
+  display: none;
+}
+
+html.tema-retro .icone-pixel {
+  display: inline-block;
+  flex: none;
+  width: 21px;
+  height: 21px;
+  /* Centro do ícone na altura do meio da letra. */
+  vertical-align: -5px;
+  background-color: currentColor;
+  -webkit-mask: center / 21px 21px no-repeat;
+  mask: center / 21px 21px no-repeat;
+}
+
+html.tema-retro .icone-camera { -webkit-mask-image: url("./icones/px/camera.svg"); mask-image: url("./icones/px/camera.svg"); }
+html.tema-retro .icone-galeria { -webkit-mask-image: url("./icones/px/galeria.svg"); mask-image: url("./icones/px/galeria.svg"); }
+html.tema-retro .icone-denunciar { -webkit-mask-image: url("./icones/px/denunciar.svg"); mask-image: url("./icones/px/denunciar.svg"); }
+html.tema-retro .icone-chave { -webkit-mask-image: url("./icones/px/chave.svg"); mask-image: url("./icones/px/chave.svg"); }
+html.tema-retro .icone-lapis { -webkit-mask-image: url("./icones/px/lapis.svg"); mask-image: url("./icones/px/lapis.svg"); }
+
+/* Sprites coloridos (npm run sprites, imagens geradas por IA — ver
+   /creditos): desenhados como imagem, não como máscara, e sempre em escala
+   inteira. As medidas são as que o script imprime (tambaqui em quadros de
+   65 × 37, oito numa tira de 520; cadeado de 19 × 24; os ícones da barra e
+   do feed abaixo). Aqui só o primeiro quadro do tambaqui, parado — é o "sem
+   foto". --k é a escala. */
+html.tema-retro :is(.icone-tambaqui, .icone-cadeado, [class*="icone-barra-"], [class*="icone-feed-"]) {
+  -webkit-mask: none;
+  mask: none;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: auto;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+html.tema-retro .icone-cadeado {
+  width: 19px;
+  height: 24px;
+  background-image: url("./sprites/cadeado.png");
+  background-size: 19px 24px;
+}
+
+html.tema-retro .icone-tambaqui {
+  --k: 2;
+  width: calc(65px * var(--k));
+  height: calc(37px * var(--k));
+  background-image: url("./sprites/tambaqui.png");
+  background-size: calc(520px * var(--k)) calc(37px * var(--k));
+  background-position: 0 0;
+}
+
+html.tema-retro .especie-foto-mini .icone-tambaqui { --k: 1; }
+html.tema-retro :is(.especie-foto-grande, .post-sem-foto) .icone-tambaqui { --k: 3; }
+
+/* Barra de baixo e topo: os quatro ícones da folha "Ícones principais", em
+   tamanho natural (1×), centralizados numa caixa igual para todos — com
+   alturas diferentes, os rótulos embaixo sairiam desalinhados. */
+html.tema-retro [class*="icone-barra-"] {
+  width: 34px;
+  height: 29px;
+  background-position: center;
+}
+
+html.tema-retro .icone-barra-dex { background-image: url("./sprites/barra-dex.png"); }
+html.tema-retro .icone-barra-registrar { background-image: url("./sprites/barra-registrar.png"); }
+html.tema-retro .icone-barra-feed { background-image: url("./sprites/barra-feed.png"); }
+html.tema-retro .icone-barra-notificacoes { background-image: url("./sprites/barra-notificacoes.png"); }
+
+/* Sobre as barras marrom-escuras o contorno escuro dos sprites some (≈1,3:1):
+   um contorno de 1 px em madeira clara (6,3:1 contra a barra), feito com
+   quatro sombras sem desfoque — pixel inteiro, nada borrado. */
+html.tema-retro :is(.layout-abas, .layout-header) [class*="icone-barra-"] {
+  filter: drop-shadow(1px 0 0 var(--madeira-300)) drop-shadow(-1px 0 0 var(--madeira-300))
+    drop-shadow(0 1px 0 var(--madeira-300)) drop-shadow(0 -1px 0 var(--madeira-300));
+}
+
+/* O tambaqui da barra vai também ao lado do nome, no topo e no login. */
+html.tema-retro :is(.layout-logo, .login-card h1) .icone-barra-dex {
+  margin-right: 0.4rem;
+  vertical-align: -4px;
+}
+
+/* Ações do post: os cinco ícones da folha "Ícones feed", 1×, numa caixa
+   igual (o denunciar continua o da Streamline, que não tem par na folha). */
+html.tema-retro [class*="icone-feed-"] {
+  width: 25px;
+  height: 24px;
+  background-position: center;
+}
+
+html.tema-retro .icone-feed-curtir { background-image: url("./sprites/feed-curtir.png"); }
+html.tema-retro .icone-feed-curtido { background-image: url("./sprites/feed-curtido.png"); }
+html.tema-retro .icone-feed-comentar { background-image: url("./sprites/feed-comentar.png"); }
+html.tema-retro .icone-feed-compartilhar { background-image: url("./sprites/feed-compartilhar.png"); }
+html.tema-retro .icone-feed-moderar { background-image: url("./sprites/feed-moderar.png"); }
+
+/* O lugar do 🐟 tinha tamanho de fonte; o sprite tem o próprio. */
+html.tema-retro :is(.especie-foto-vazia, .post-sem-foto) {
+  font-size: 0;
+  line-height: 0;
+}
+
+/* Ícone dentro de botão ou ação: um respiro antes do texto. Nas ações do
+   post que são só ícone (compartilhar, moderar, denunciar), o ícone é o último
+   elemento e fica sem margem, centralizado. (Só ali: em "Tirar foto" o ícone
+   também é o último *elemento* — :last-child não enxerga texto solto.) */
+html.tema-retro :is(button, .post-acao, a.botao) .icone-pixel {
+  margin-right: 0.3rem;
+}
+
+html.tema-retro .post-acao .icone-pixel:last-child {
+  margin-right: 0;
+}
+
 /* Avisos e textos de apoio com contraste suficiente sobre o painel. */
 html.tema-retro .aviso {
   background: #fff3c4;
   color: #4a3600;
   border: 2px solid #4a3600;
 }
+
+/* --- Avatar sem foto: uma cor por conta ------------------------------------
+   <Avatar> escolhe a cor pelo id da conta (hash, ver Avatar.tsx): estável em
+   qualquer aparelho. Paleta fechada de oito tons fundos, que convivem com a
+   madeira e com o lago — sem marrom, para não sumir na moldura. Letra
+   branca, conferida em todos: a menor razão é 7,29:1 (musgo). */
+html.tema-retro .avatar-inicial {
+  color: #fff;
+}
+
+html.tema-retro .avatar-inicial[data-cor="0"] { background: #3f5f2a; } /* musgo */
+html.tema-retro .avatar-inicial[data-cor="1"] { background: #24573f; } /* pinheiro */
+html.tema-retro .avatar-inicial[data-cor="2"] { background: #1f5868; } /* lago */
+html.tema-retro .avatar-inicial[data-cor="3"] { background: #34468f; } /* anil */
+html.tema-retro .avatar-inicial[data-cor="4"] { background: #5e2f63; } /* ameixa */
+html.tema-retro .avatar-inicial[data-cor="5"] { background: #7a2433; } /* vinho */
+html.tema-retro .avatar-inicial[data-cor="6"] { background: #8a3b1c; } /* ferrugem */
+html.tema-retro .avatar-inicial[data-cor="7"] { background: #3e4a5a; } /* ardósia */
+
+/* No topo, sobre a barra marrom-escura, os tons fundos somem (≈1,5:1): um
+   fio de madeira clara (8,8:1 contra a barra) separa o avatar — foto ou
+   inicial. Na tela do próprio perfil o fio branco de "ativo" continua. */
+html.tema-retro .layout-perfil:not(.active) .avatar {
+  outline: 2px solid var(--madeira-200);
+  outline-offset: 0;
+}
+
+/* --- Barra de progresso da Dex: verde, moldura escura, blocos de pixel -----
+   Moldura grossa (4 px) com cantos em degrau e um "polo" à direita, como
+   barra de vida de console; o miolo verde vivo tem uma linha clara em cima e
+   uma escura embaixo. A largura anda em blocos de 4 px (round(), a partir
+   de --progresso, que a página manda de 0 a 1), nunca em meio pixel. */
+html.tema-retro .dex-barra {
+  position: relative;
+  height: 20px;
+  margin-top: 0.8rem;
+  overflow: visible;
+  background:
+    linear-gradient(var(--madeira-900) 0 0) 4px 4px / calc(100% - 14px) calc(100% - 8px) no-repeat,
+    linear-gradient(var(--madeira-950) 0 0) 0 0 / calc(100% - 6px) 100% no-repeat,
+    linear-gradient(var(--madeira-950) 0 0) right center / 6px 8px no-repeat;
+  clip-path: polygon(
+    0 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0,
+    calc(100% - 10px) 0, calc(100% - 10px) 2px, calc(100% - 8px) 2px, calc(100% - 8px) 4px, calc(100% - 6px) 4px,
+    calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px),
+    calc(100% - 6px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) calc(100% - 2px),
+    calc(100% - 10px) calc(100% - 2px), calc(100% - 10px) 100%,
+    4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+
+html.tema-retro .dex-barra-preenchida {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  height: calc(100% - 8px);
+  width: round(down, calc((100% - 14px) * var(--progresso, 0)), 4px) !important;
+  overflow: hidden;
+  background: linear-gradient(#b4f26a 0 2px, #66d12e 2px calc(100% - 2px), #3e9a1f calc(100% - 2px));
+  transition: none;
+}
+
+/* 100%: a barra vira ouro, e um brilho de pixel atravessa a cada poucos
+   segundos (só transform, e parado com prefers-reduced-motion). */
+html.tema-retro .dex-barra-completa .dex-barra-preenchida {
+  background: linear-gradient(#fff3a8 0 2px, #f2c232 2px calc(100% - 2px), #b8860b calc(100% - 2px));
+}
+
+html.tema-retro .dex-barra-completa .dex-barra-preenchida::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent calc(100% - 16px), rgba(255, 255, 255, 0.45) calc(100% - 16px) calc(100% - 12px),
+    rgba(255, 255, 255, 0.85) calc(100% - 12px) calc(100% - 4px), transparent calc(100% - 4px));
+  transform: translateX(-100%);
+  animation: dex-ouro 3s steps(40) infinite;
+}
+
+@keyframes dex-ouro {
+  0%   { transform: translateX(-100%); }
+  55%  { transform: translateX(16px); }
+  100% { transform: translateX(16px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.tema-retro .dex-barra-completa .dex-barra-preenchida::after {
+    animation: none;
+    display: none;
+  }
+}
+
+/* --- Cor da raridade nos cards pescados -------------------------------------
+   Só depois de pescada (a bloqueada fica neutra: a cor é a recompensa). A
+   comum fica como está. A cor vai na borda e no pé pontilhado do card, onde
+   fica o selo — no mesmo tom do selo, para somar com ele em vez de brigar.
+   - incomum: verde;
+   - raro: rosa (o selo "raro" também) — prata seria cinza, que aqui já é a
+     comum e o card bloqueado, e o azul se perdia no painel e na cena;
+   - muito raro: ouro, não vermelho — vermelho no app é erro e "perigo"
+     (botão Desativar, denúncia); ouro é a cor do selo. É um ouro velho,
+     escuro e puxado para o bronze, longe do amarelo vivo de ativo e foco; e o
+     foco do card é outro desenho (anel amarelo com fio escuro por fora, ver
+     abaixo), então um card de ouro não passa por selecionado. */
+html.tema-retro .dex-card.capturada-incomum    { --raridade: #2f7a3a; --raridade-claro: #eef8ec; --raridade-escuro: #d8efd3; }
+html.tema-retro .dex-card.capturada-raro       { --raridade: #b0336f; --raridade-claro: #fdf0f6; --raridade-escuro: #f6d9e8; }
+html.tema-retro .dex-card.capturada-muito_raro { --raridade: #8f6408; --raridade-claro: #fbf4df; --raridade-escuro: #f0e1b5; }
+
+html.tema-retro .dex-card:is(.capturada-incomum, .capturada-raro, .capturada-muito_raro) {
+  border-color: var(--raridade);
+  background:
+    linear-gradient(var(--retro-50), var(--retro-50)) top / 100% 70% no-repeat,
+    repeating-conic-gradient(var(--raridade-claro) 0 25%, var(--raridade-escuro) 0 50%) 0 0 / 4px 4px;
+  background-color: var(--raridade-escuro);
+  box-shadow: var(--chanfro-16), inset 0 -3px 0 var(--raridade) !important;
+}
+
+/* Foco do card: anel amarelo por fora com um fio escuro em volta — desenho
+   que nenhuma borda de raridade tem. */
+html.tema-retro .dex-card:focus-visible {
+  outline: none;
+  box-shadow: var(--chanfro-16), 0 0 0 3px var(--retro-amarelo), 0 0 0 5px var(--madeira-900) !important;
+}
+
+/* --- Experimento: painel translúcido ----------------------------------------
+   Interruptor de uma linha no <html> do index.html, como os da cena:
+   `painel-translucido` deixa o fundo em movimento aparecer um pouco através
+   do painel. Os cartões e campos dentro dele continuam sólidos. */
+html.tema-retro.painel-translucido :is(.layout-main, .creditos) {
+  background: rgb(227 233 252 / var(--painel-opacidade, 0.88));
+}
+
+/* ==========================================================================
+   INTENSIDADE MENOR FORA DA DEX
+   A Dex é a única tela de conteúdo "de jogo" (cartas, itens bloqueados), e
+   a moldura pesada combina com ela. Feed, Registrar Captura, Notificações,
+   Perfil e Configurações têm foto, texto corrido e campo de formulário, e a
+   moldura grossa briga com isso. Mesma paleta, mesmas fontes, mesmos
+   ícones — só menos intensidade: fio fino no lugar da borda, sem chanfro
+   nem pontilhado nos cartões, painel sem a moldura grossa, mais respiro e
+   foto em moldura limpa. Não é um estilo à parte: as barras de cima e de
+   baixo, os botões em dois tons e a tipografia continuam os mesmos.
+   O Layout marca a tela em data-tela ("dex" ou "outra"); login e créditos,
+   fora do Layout, seguem a versão leve.
+   ========================================================================== */
+
+/* Painel: fio de 1 px no lugar da moldura de 4 px, e mais respiro. */
+html.tema-retro .layout[data-tela="outra"] .layout-main,
+html.tema-retro .creditos {
+  border: 1px solid var(--madeira-700);
+  box-shadow: none !important;
+}
+
+html.tema-retro .layout[data-tela="outra"] .layout-main {
+  padding-top: 1.75rem;
+}
+
+@media (min-width: 600px) {
+  html.tema-retro .layout[data-tela="outra"] .layout-main {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (max-width: 420px) {
+  html.tema-retro .layout[data-tela="outra"] .layout-main {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+}
+
+/* Cartões: fio de 1 px num tom claro da rampa, fundo chapado. */
+html.tema-retro .layout[data-tela="outra"] :is(.post, .pessoa, .notificacao, .notificacoes-vazio, .feed-vazio,
+  .dialogo, .captura-dialogo, .moderacao, .perfil-numeros li, .detalhe-bloco, .config fieldset),
+html.tema-retro .login-card {
+  border: 1px solid var(--madeira-200);
+  box-shadow: none !important;
+  background: var(--retro-50);
+}
+
+html.tema-retro .layout[data-tela="outra"] :is(.post-cabecalho, .post-corpo) {
+  background: var(--retro-50);
+}
+
+html.tema-retro .layout[data-tela="outra"] .post-cabecalho {
+  border-bottom: 1px solid var(--madeira-150);
+}
+
+/* Foto em moldura limpa: só um fio, sem borda escura grossa embaixo. */
+html.tema-retro .layout[data-tela="outra"] .post-galeria {
+  border-bottom: 1px solid var(--madeira-150);
+}
+
+/* Não lida: faixa fina e fundo chapado um tom acima, sem pontilhado. */
+html.tema-retro .layout[data-tela="outra"] .notificacao.nao-lida {
+  background: var(--retro-100);
+  border-left: 3px solid var(--madeira-600);
+}
+
+/* Mais respiro entre os cartões. */
+html.tema-retro .layout[data-tela="outra"] .feed-lista {
+  gap: 1.5rem;
+}
+
+html.tema-retro .layout[data-tela="outra"] .notificacoes-lista {
+  gap: 0.75rem;
+}
+
+/* Formulários: campos com fio de 1 px, sem chanfro afundado. O tom é o
+   --madeira-500, que passa de 3:1 contra o branco (4,65:1; borda de campo,
+   WCAG 1.4.11). O foco continua o mesmo de todo o app. */
+html.tema-retro .layout[data-tela="outra"] :is(input, select, textarea),
+html.tema-retro .login-card :is(input, select, textarea) {
+  border: 1px solid var(--madeira-500);
+  box-shadow: none !important;
+}
+
+html.tema-retro .layout[data-tela="outra"] :is(input, select, textarea):focus,
+html.tema-retro .login-card :is(input, select, textarea):focus {
+  box-shadow: 0 0 0 4px var(--madeira-900) !important;
+}
+
+html.tema-retro .layout[data-tela="outra"] .captura-form {
+  border: 1px solid var(--madeira-200);
+  background: var(--retro-50);
+}
+
+/* Botões e abas: a mesma moldura em degrau de todo o app. Ela não afina
+   para 1 px aqui: o degrau é feito na unidade de 2 px, e com moldura de
+   1 px a escada perderia o desenho. */

@@ -13,7 +13,9 @@
     "credits": "node database/credits.js",
     "pixel": "node database/thumbs.js --pixel",
     "thumbs": "node database/thumbs.js",
-    "icons": "node database/icons.js"
+    "icons": "node database/icons.js",
+    "pixel-icons": "node database/pixel-icons.js",
+    "sprites": "node database/sprites.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -3,6 +3,8 @@ import { Link, NavLink, Outlet, useLocation, useOutletContext } from "react-rout
 import { notificationsApi } from "../api/notifications";
 import { useAuth } from "../context/AuthContext";
 import { Avatar } from "./Avatar";
+import { CenaAnimada } from "./CenaAnimada";
+import { Icone } from "./Icone";
 import "./Layout.css";
 
 // Ícones das abas: traço simples, herdam a cor da aba (currentColor).
@@ -50,6 +52,9 @@ function IconeFeed() {
 // de atraso não faz diferença.
 const INTERVALO_SINO = 60_000;
 
+/** Telas em que a cena de fundo se mexe (as demais ficam paradas). */
+const TELAS_ANIMADAS = ["/", "/feed", "/registrar", "/notificacoes"];
+
 interface LayoutContexto {
   /** A tela de notificações avisa o topo quando marca algo como lido. */
   definirNaoLidas: (total: number) => void;
@@ -89,13 +94,20 @@ export function Layout() {
   const rotuloSino = naoLidas > 0 ? `Notificações (${naoLidas} não lidas)` : "Notificações";
 
   return (
-    <div className="layout">
+    // A Dex é a única tela "de jogo" (coleção de cartas com itens
+    // bloqueados): o tema retrô carrega mais na moldura só nela (retro.css).
+    <div className="layout" data-tela={pathname === "/" ? "dex" : "outra"}>
+      {/* Cena de fundo do tema retrô: anima no Dex, Feed, Registrar Captura e
+          Notificações; nas outras telas (Configurações, Perfil...) fica parada. */}
+      <CenaAnimada animada={TELAS_ANIMADAS.some((t) => (t === "/" ? pathname === "/" : pathname.startsWith(t)))} />
+
       {/* Topo: título centralizado, perfil à direita. O espaço vazio da
           esquerda equilibra o perfil, para o título ficar no centro de fato. */}
       <header className="layout-header">
         <span className="layout-topo-lado" aria-hidden="true" />
+        {/* No tema retrô, o tambaqui ao lado do nome (fora dele, só o nome). */}
         <Link to="/" className="layout-logo">
-          Tamba
+          <Icone nome="barra-dex" /> Tamba
         </Link>
 
         <div className="layout-user">
@@ -120,21 +132,26 @@ export function Layout() {
           Captura | Feed | Notificações. */}
       <nav className="layout-abas" aria-label="Navegação principal">
         <NavLink to="/" end className="layout-aba">
-          <IconeDex />
+          <Icone nome="barra-dex" padrao={<IconeDex />} />
           <span>Dex</span>
         </NavLink>
-        <NavLink to="/registrar" className="layout-aba">
-          <IconeRegistrar />
-          <span>Registrar Captura</span>
+        {/* No tema retrô, no celular, o rótulo visível encolhe para
+            "Registrar" (a fonte pixel não cabe em uma linha); o nome
+            acessível continua o inteiro. */}
+        <NavLink to="/registrar" className="layout-aba" aria-label="Registrar Captura">
+          <Icone nome="barra-registrar" padrao={<IconeRegistrar />} />
+          <span>
+            Registrar<span className="layout-aba-extra"> Captura</span>
+          </span>
         </NavLink>
         <NavLink to="/feed" className="layout-aba">
-          <IconeFeed />
+          <Icone nome="barra-feed" padrao={<IconeFeed />} />
           <span>Feed</span>
         </NavLink>
         {/* Notificações: saiu do topo; o número de não lidas fica no ícone. */}
         <NavLink to="/notificacoes" className="layout-aba layout-sino" aria-label={rotuloSino}>
           <span className="layout-aba-icone">
-            <IconeSino />
+            <Icone nome="barra-notificacoes" padrao={<IconeSino />} />
             {naoLidas > 0 && <span className="layout-sino-contador">{naoLidas > 99 ? "99+" : naoLidas}</span>}
           </span>
           <span>Notificações</span>

@@ -70,12 +70,31 @@ no banco, com autor e licença obrigatórios, e aparecem na tela \`/creditos\`.
 
 ## Tema retrô
 
-- **Cena de fundo** (\`frontend/src/styles/retro/fundo-noite.png\`):
-  "Parallax Background Forest Pixel Art", de **MatiasVME** —
-  [CC0](https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br) —
-  [origem](https://opengameart.org/content/parallax-background-forest-pixel-art).
-  Alterações: reduzida à resolução original (1280×360, a publicada é 4× maior)
-  e recolorida, cor a cor, para uma paleta noturna em azul.
+- **Cena de fundo** (\`frontend/src/styles/retro/parallax/\`): "Parallax
+  Backgrounds: Dock", de **Admurin** —
+  [página do pacote](https://admurin.itch.io/parallax-backgrounds-dock) ·
+  [perfil no itch.io](https://admurin.itch.io/). Os termos de uso da página
+  estão copiados em \`parallax/LICENCA.md\` (por eles o crédito é opcional;
+  damos mesmo assim). Alterações: nenhum pixel editado; o app só amplia as
+  camadas por um fator inteiro e as desloca no parallax.
+- **Ícones** (\`frontend/src/styles/retro/icones/\`; cinco: câmera, galeria,
+  denunciar, configurações e editar): "Pixel - Free", da **Streamline** —
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) —
+  [origem](https://www.streamlinehq.com/icons/pixel). Alterações: redesenhados
+  por \`backend/database/pixel-icons.js\` (\`npm run pixel-icons\`) — o
+  desenho, uma grade de 21 × 21 num viewBox de 32, passou para coordenadas
+  inteiras, o meio pixel de deslocamento de alguns foi alinhado à grade e a
+  cor saiu (o CSS pinta na cor do tema). Detalhes em \`icones/LICENCA.md\`.
+- **Sprites do tema** (\`frontend/src/styles/retro/sprites/\`): o tambaqui
+  (no lugar da foto que falta), o cadeado das espécies
+  não pescadas, os ícones da barra de baixo e do topo (tambaqui, diário,
+  lista, sino) e os do feed (curtir, curtido, comentar, compartilhar,
+  moderar): imagens **geradas por inteligência artificial** (IA generativa)
+  pela **Equipe Tamba** — todos os direitos reservados. Alterações: fundo
+  cinza removido, quadros separados (do tambaqui, 8 dos 25, os de cabeça
+  consistente) e alinhados pela cabeça, reduzidas a pixel art por
+  \`backend/database/sprites.js\` (\`npm run sprites\`); os originais ficam fora
+  do git.
 - **Fontes**: Press Start 2P (CodeMan38) e Silkscreen (Jason Kottke), ambas
   sob a [SIL Open Font License 1.1](https://openfontlicense.org), carregadas
   do Google Fonts.

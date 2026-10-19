@@ -57,15 +57,33 @@ export function CreditsPage() {
       <h2 className="creditos-secao">Tema retrô</h2>
       <ul className="creditos-tema">
         <li>
-          <strong>Cena de fundo</strong>: “Parallax Background Forest Pixel Art”, de MatiasVME ·{" "}
-          <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br" target="_blank" rel="noreferrer">
-            CC0
+          <strong>Cena de fundo</strong>: “Parallax Backgrounds: Dock”, de{" "}
+          <a href="https://admurin.itch.io/" target="_blank" rel="noreferrer">
+            Admurin
           </a>{" "}
           ·{" "}
-          <a href="https://opengameart.org/content/parallax-background-forest-pixel-art" target="_blank" rel="noreferrer">
+          <a href="https://admurin.itch.io/parallax-backgrounds-dock" target="_blank" rel="noreferrer">
+            página do pacote
+          </a>
+          . Sem edição: o app só amplia as camadas e as desloca no parallax.
+        </li>
+        <li>
+          <strong>Ícones</strong> (câmera, galeria, denunciar, configurações e editar): “Pixel - Free”, da
+          Streamline ·{" "}
+          <a href="https://creativecommons.org/licenses/by/4.0/deed.pt-br" target="_blank" rel="noreferrer">
+            CC BY 4.0
+          </a>{" "}
+          ·{" "}
+          <a href="https://www.streamlinehq.com/icons/pixel" target="_blank" rel="noreferrer">
             origem
           </a>
-          . Reduzida à resolução original e recolorida para uma paleta noturna.
+          . Alterados: redesenhados numa grade de 21 pixels inteiros, com o meio pixel de deslocamento alinhado, e
+          sem cor própria (pintados na cor do tema).
+        </li>
+        <li>
+          <strong>Sprites do tema</strong> (tambaqui, cadeado e os ícones da barra, do topo e do feed): imagens{" "}
+          <strong>geradas por inteligência artificial</strong> (IA generativa) pela Equipe Tamba · Todos os direitos
+          reservados. Fundo removido, quadros separados e alinhados e reduzidos a pixel art pelo próprio projeto.
         </li>
         <li>
           <strong>Fontes</strong>: Press Start 2P (CodeMan38) e Silkscreen (Jason Kottke) ·{" "}

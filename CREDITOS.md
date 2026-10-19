@@ -36,7 +36,8 @@ gênero ("spp.") é uma espécie do gênero.
 | Catfish | *Ictalurus punctatus* | Sam Stukel (USFWS) | Domínio público | [origem](https://commons.wikimedia.org/wiki/File:Channel_Catfish_(Ictalurus_punctatus)_(53025368170).jpg) | redimensionada e convertida para WebP; fundo estendido para a proporção 3:2 |
 | Pirarucu | *Arapaima gigas* | Cliff | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/deed.pt-br) | [origem](https://commons.wikimedia.org/wiki/File:Arapaima_(Arapaima_gigas)_2.jpg) | redimensionada e convertida para WebP |
 | Tucunaré | *Cichla piquiti* | André Ambrozio | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) | [origem](https://www.inaturalist.org/observations/223062807) | fundo completado até 3:2 com o próprio recorte desfocado; redimensionada e convertida para WebP. Na foto: Cichla piquiti (tucunaré-azul), uma das espécies do gênero estocadas em São Paulo; a outra comum é C. kelberi. |
-| Traíra | *Hoplias malabaricus* | Vassil | [CC0](https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br) | [origem](https://commons.wikimedia.org/wiki/File:Hoplias_Aquarium_tropical_du_Palais_de_la_Porte_Dor%C3%A9e_10_04_2016_1.jpg) | redimensionada e convertida para WebP |
+| Bagre-africano | *Clarias gariepinus (forma albina, a comum em pesqueiro)* | Equipe Tamba | Todos os direitos reservados | foto da equipe | recortada no peixe (ficam as mãos de quem segura e parte do braço); texto impresso no saco plástico (telefone e site) borrado; metadados removidos (sem GPS); fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP |
+| Traíra | *Hoplias malabaricus* | Equipe Tamba | Todos os direitos reservados | foto da equipe | recortada no peixe (sem pessoas no quadro; fica a ponta de um alicate de pesca); metadados removidos (sem GPS); fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP |
 | Black Bass | *Micropterus salmoides* | Equipe Tamba | Todos os direitos reservados | foto da equipe | recortada no peixe e girada 90° (sem pessoas no quadro); metadados removidos (sem GPS); fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP |
 | Jacundá | *Crenicichla lacustris* | Pablo Cauã da Silva Toledo | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) | [origem](https://www.inaturalist.org/observations/206001980) | redimensionada e convertida para WebP. Na foto: Crenicichla lacustris (nome aceito). Parte dos peixes chamados de jacundá foi transferida para o gênero Saxatilia em 2023 (ex.: Crenicichla lepidota = Saxatilia lepidota); C. lacustris continua em Crenicichla. |
 | Cará (Acará) | *Geophagus brasiliensis* | Cezary Porycki | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/deed.pt-br) | [origem](https://commons.wikimedia.org/wiki/File:Geophagus_brasiliensis_c01.jpg) | redimensionada e convertida para WebP |
@@ -69,12 +70,31 @@ no banco, com autor e licença obrigatórios, e aparecem na tela `/creditos`.
 
 ## Tema retrô
 
-- **Cena de fundo** (`frontend/src/styles/retro/fundo-noite.png`):
-  "Parallax Background Forest Pixel Art", de **MatiasVME** —
-  [CC0](https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br) —
-  [origem](https://opengameart.org/content/parallax-background-forest-pixel-art).
-  Alterações: reduzida à resolução original (1280×360, a publicada é 4× maior)
-  e recolorida, cor a cor, para uma paleta noturna em azul.
+- **Cena de fundo** (`frontend/src/styles/retro/parallax/`): "Parallax
+  Backgrounds: Dock", de **Admurin** —
+  [página do pacote](https://admurin.itch.io/parallax-backgrounds-dock) ·
+  [perfil no itch.io](https://admurin.itch.io/). Os termos de uso da página
+  estão copiados em `parallax/LICENCA.md` (por eles o crédito é opcional;
+  damos mesmo assim). Alterações: nenhum pixel editado; o app só amplia as
+  camadas por um fator inteiro e as desloca no parallax.
+- **Ícones** (`frontend/src/styles/retro/icones/`; cinco: câmera, galeria,
+  denunciar, configurações e editar): "Pixel - Free", da **Streamline** —
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) —
+  [origem](https://www.streamlinehq.com/icons/pixel). Alterações: redesenhados
+  por `backend/database/pixel-icons.js` (`npm run pixel-icons`) — o
+  desenho, uma grade de 21 × 21 num viewBox de 32, passou para coordenadas
+  inteiras, o meio pixel de deslocamento de alguns foi alinhado à grade e a
+  cor saiu (o CSS pinta na cor do tema). Detalhes em `icones/LICENCA.md`.
+- **Sprites do tema** (`frontend/src/styles/retro/sprites/`): o tambaqui
+  (no lugar da foto que falta), o cadeado das espécies
+  não pescadas, os ícones da barra de baixo e do topo (tambaqui, diário,
+  lista, sino) e os do feed (curtir, curtido, comentar, compartilhar,
+  moderar): imagens **geradas por inteligência artificial** (IA generativa)
+  pela **Equipe Tamba** — todos os direitos reservados. Alterações: fundo
+  cinza removido, quadros separados (do tambaqui, 8 dos 25, os de cabeça
+  consistente) e alinhados pela cabeça, reduzidas a pixel art por
+  `backend/database/sprites.js` (`npm run sprites`); os originais ficam fora
+  do git.
 - **Fontes**: Press Start 2P (CodeMan38) e Silkscreen (Jason Kottke), ambas
   sob a [SIL Open Font License 1.1](https://openfontlicense.org), carregadas
   do Google Fonts.

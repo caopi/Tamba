@@ -67,7 +67,8 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   `admin`. `measurement_unit` é só preferência de exibição (`kg` = métrico,
   `lb` = imperial); `share_exact_location` controla o RGN-13; `notify_likes`,
   `notify_comments` e `notify_follows` são as preferências de notificação
-  (migration 012).
+  (migration 012); `feed_order` (`engagement`, o padrão, ou `recent`) é a
+  ordem do feed escolhida nas Configurações (migration 017).
 - **fish_species** — catálogo da Dex. O seed popula; depois disso só **admin**
   cria e edita (RGN-16). `name` é UNIQUE: é a chave do upsert do seed.
   Foto: `image_url` + `image_credit`, `image_license`, `image_source_url`
@@ -312,7 +313,14 @@ abre uma janela entre a conferência e o INSERT.
   preenche o que está NULL. Corrigir um dado no `seed.js` não altera espécie que
   já está no banco — isso se faz pela rota de admin.
 - **Feed.** Padrão "Seguindo" (REQ-26), "Descobrir" com `scope=all`
-  (REQ-28). Ordem cronológica ou por engajamento (REQ-35), em que a nota é
+  (REQ-28). Ordem por engajamento (padrão) ou cronológica (REQ-35): a
+  escolha é preferência da conta, nas Configurações (`users.feed_order`), e
+  não um seletor no feed; também não há botão "Atualizar" — o feed busca de
+  novo ao abrir a tela e ao trocar de aba (as duas coisas estão no
+  DIVERGENCIAS.md). Ações do post só com ícone, cada uma com nome acessível
+  completo (`aria-label`, "Curtir (2 curtidas)", "Denunciar captura"...) e o
+  mesmo texto no `title`; os números de curtidas e comentários ficam à
+  vista. No engajamento a nota é
   curtidas + 2 × comentários (comentar dá mais trabalho que curtir), sem janela
   de tempo — com o volume do projeto, isso basta. Paginação com um `cursor`
   opaco: no cronológico é a data do último item (post novo no topo não
@@ -322,6 +330,15 @@ abre uma janela entre a conferência e o INSERT.
   quem postou mais recentemente, e só quem tem pelo menos uma captura visível —
   seguir um perfil vazio não resolveria o feed vazio. Ficam no estado vazio do
   feed e na tela de busca de pessoas.
+- **Edição de captura.** `/capturas/:id/editar` reaproveita o formulário de
+  Registrar Captura, preenchido (espécie, peso, comprimento, data, pesqueiro,
+  local, região, observações, coordenada e fotos — as que já estavam no
+  servidor entram na lista sem arquivo local). Salvar manda `PUT` com tudo;
+  a API confere o autor (RGN-09) e refaz o RGN-08 com os valores finais:
+  corrigir para dentro da faixa tira a sinalização; captura já sinalizada e
+  salva sem mexer em espécie, peso nem comprimento não pede a confirmação de
+  novo. Excluir mora embaixo da edição, separado e em vermelho, com
+  confirmação; no histórico do Perfil, cada linha tem só "Editar".
 - **Fotos em disco local — escolha deliberada de desenvolvimento.** O upload
   (`POST /api/uploads`, multer) grava em `backend/uploads/` e a própria API
   serve os arquivos em `/uploads`. Assim ninguém do grupo precisa de conta ou
@@ -353,13 +370,18 @@ abre uma janela entre a conferência e o INSERT.
   lê e o `npm run credits` transforma no `CREDITOS.md` da raiz. Legenda
   opcional (`image_caption`, "Na foto: ...") nas entradas de gênero, quando a
   foto mostra uma espécie do gênero e não a entrada inteira.
-  - **Fotos da equipe.** Seis espécies usam foto da própria equipe ("Equipe
+  - **Fotos da equipe.** Oito espécies usam foto da própria equipe ("Equipe
     Tamba", todos os direitos reservados — não são CC). Os originais ficam
     fora do git (pasta `peixes/`, só local) porque tinham pessoas no quadro e
     podiam carregar o GPS do pesqueiro (RGN-13). No repositório só entra o
     recorte no peixe, regravado a partir dos pixels, sem nenhum metadado; o
     recorte mais largo que 3:2 é completado com uma cópia desfocada dele
-    mesmo, para o card não cortar cabeça e cauda.
+    mesmo, para o card não cortar cabeça e cauda. Na do bagre-africano ficam
+    as mãos de quem segura (não dá para recortar sem cortar o peixe) e o
+    texto impresso no saco plástico (telefone e site) foi borrado. A foto é a
+    forma albina, rosada, de propósito: é a que aparece em pesqueiro (a
+    curiosidade da espécie explica). Troca de foto de espécie que já está nos
+    bancos vira migration de dados, para o crédito acompanhar (016, Traíra).
   - **Duas origens, um caminho.** A espécie que o admin cadastra pelo app
     ganha foto por upload comum. No banco, `image_url` é um caminho relativo
     à API (`/assets/species/tambaqui.webp`) ou a URL absoluta do upload; o
@@ -398,16 +420,57 @@ abre uma janela entre a conferência e o INSERT.
 - **Tema retrô (8/16 bits) — experimento reversível.** Fica inteiro em
   `frontend/src/styles/retro/` (`retro.css` + a cena de fundo) e só vale com
   a classe `tema-retro` no `<html>` do `index.html`: tirar a classe desliga o
-  tema, e nenhum componente tem estilo retrô no próprio CSS. Paleta em
-  variáveis `--retro-*` (rampa de azul-escuro), que também redefinem as
-  variáveis globais (`--agua`, `--texto`...). Fonte pixel (Press Start 2P nos
+  tema, e nenhum componente tem estilo retrô no próprio CSS. Duas rampas: a
+  moldura (barras, botões, selos, bordas, foco) em madeira, `--madeira-*` —
+  marrom é complementar ao azul da cena, então a interface se descola do
+  fundo, e moldura de madeira é convenção de RPG de 16 bits —, e o conteúdo
+  (painel, cartões, texto) na rampa azul clara `--retro-*`, para leitura. As
+  variáveis globais (`--agua`, `--texto`...) são redefinidas a partir delas.
+  O amarelo é o de ativo e de foco. Fonte pixel (Press Start 2P nos
   títulos, Silkscreen em rótulos, botões, números e na barra de abas); texto
   corrido, descrições e campos continuam sans-serif, porque fonte pixel
   pequena reprova no RNF-13. Sem canto arredondado nem sombra difusa; as
   barras de cima e de baixo (um HUD) e o painel são 8 bits, o resto é 16
   bits (abaixo). O conteúdo fica
-  sempre num painel sólido, nunca direto sobre a cena (CC0, crédito em
-  `/creditos`). Contraste conferido em todas as telas: mínimo 5,5:1.
+  sempre num painel sólido, nunca direto sobre a cena. Contraste conferido em
+  todas as telas, nas duas larguras, medido nos pixels renderizados (texto
+  escondido, cada trecho comparado com todo pixel atrás dele): mínimo
+  5,52:1. Ícone sobre fundo: o contorno precisa passar de 3:1.
+  - **Cena de fundo.** "Parallax Backgrounds: Dock", de Admurin (itch.io;
+    termos copiados em `styles/retro/parallax/LICENCA.md`, crédito em
+    `/creditos`): nove camadas PNG de 384 × 216. Pixel art só fica nítida
+    ampliada por inteiro, e o CSS não arredonda isso de forma confiável:
+    `styles/retro/cena.ts` calcula o menor fator inteiro que cobre a tela
+    (×4 no celular, ×5 em 1280 × 900) e o deslocamento em pixel inteiro, e
+    põe em `--cena-k/-x/-y`. Parada, as nove camadas ficam empilhadas numa
+    camada `position: fixed` (não `background-attachment: fixed`: o iOS
+    ignora esse valor e o Chrome repinta o fundo a cada quadro de rolagem).
+  - **Parallax (`CenaAnimada`).** Interruptor de uma linha no `<html>`, como
+    o do tema: `cena-movel`. Com ele, no Dex e no Feed, cada camada vira um
+    elemento e as que emendam sem costura derivam uma volta (384 px da cena)
+    por ciclo, um pixel da cena por vez (`steps(384)`), nunca meio — do fundo
+    do lago, 2 min por ciclo, às nuvens, 15 min. Paradas de propósito: o céu
+    (igual em toda a largura) e as duas fileiras de árvores do fundo, que não
+    emendam (uma árvore cortada, um degrau de 9 px). Conferido: a volta
+    inteira de cada camada é idêntica, pixel a pixel, ao início, e a cena
+    móvel em repouso é idêntica à parada. Cada elemento é só a faixa de
+    linhas em que a camada tem desenho, para não pôr nove telas transparentes
+    na GPU. Medido: nenhum layout nem recálculo de estilo a mais com a cena
+    andando.
+  - **Efeitos.** Raios de luz, bolhas e peixes, nas margens ao lado do painel
+    (no celular o painel cobre quase tudo), em pixels da cena: linha d'água
+    na linha 91, água aberta até a 178. `cena-efeitos-parados` no `<html>` os
+    congela. Os peixes são os PNGs de `styles/retro/peixes/` — hoje nenhum
+    (ver o LEIAME ali; o tambaqui nadando, extraído de uma folha de 25
+    quadros, espera aprovação para entrar). A cena se mexe no Dex, Feed,
+    Registrar Captura e Notificações; nas outras telas (Configurações,
+    Perfil, edição...) e, com `prefers-reduced-motion`, em qualquer uma,
+    nada se mexe: só a cena parada.
+  - **Painel translúcido (experimento).** `painel-translucido` no `<html>`
+    deixa o painel a 88% de opacidade. É o limite: com o painel sobre preto
+    puro (mais escuro que qualquer pixel da cena), o texto mais fraco ainda
+    dá 5,68:1; a 85% cairia para 5,29:1. Medido também no laço inteiro da
+    cena (7.200 s, 60 momentos): mínimo 5,86:1.
   - **8 e 16 bits.** Só as barras de cima e de baixo e o painel são 8 bits
     (borda de 3–4 px quase preta, chanfro de 3 px): é a identidade de
     console. Todo o resto — cards da Dex e do feed, ficha da espécie,
@@ -418,6 +481,40 @@ abre uma janela entre a conferência e o INSERT.
     `retro.css` (`--chanfro`/`--borda-retro` e os `*-16`). Onde há
     pontilhado, o `background-color` é o tom mais escuro dele: o contraste
     é medido contra o pior caso.
+  - **Cantos em degrau.** Todo botão (e o grupo de abas do Feed e a ordem
+    da Dex) tem cantos "arredondados" de pixel art: `clip-path: polygon()`
+    com dois degraus de 2 px por canto (`--degraus`), nunca
+    `border-radius`, que daria curva com antialias. Como o `clip-path` corta
+    a borda, a moldura é a cor de fundo do botão em volta de um miolo de dois
+    tons uma unidade menor, com um quadrado de 2 px em cada canto de dentro
+    fechando o degrau (`--moldura-degrau`, definida no próprio elemento: as
+    `--b-*` de cada variante só existem nele). Foco = moldura amarela (o
+    `outline` ficaria fora do recorte). Link com cara de botão usa a classe
+    `botao`. Os botões das ações do post são de madeira clara: os ícones do
+    feed têm contorno escuro, que sumiria no marrom.
+  - **Menos intensidade fora da Dex.** A Dex (cartas, itens bloqueados) é a
+    única tela "de jogo" e fica com a moldura pesada; nas outras o Layout
+    marca `data-tela="outra"`, e painel e cartões ganham fio de 1 px, sem
+    chanfro nem pontilhado, e mais respiro. Mesma paleta, fontes, ícones e
+    botões: um app só, com intensidade menor.
+  - **Ícones e sprites.** `<Icone>` põe no HTML a versão padrão (emoji ou
+    SVG de traço) e um span vazio para a pixel; sem o tema, o span não tem
+    tamanho e some. Os sprites coloridos (`styles/retro/sprites/`, `npm run
+    sprites`, todos gerados por IA e declarados em `/creditos`): ícones da
+    barra e do topo, do feed, o cadeado e o tambaqui (no lugar da foto que
+    falta). O script separa o desenho do cinza do fundo, reduz por fator
+    inteiro com pixel só opaco ou transparente e cor média só do desenho (sem
+    halo; confere as bordas) e, na animação, prende a cabeça no lugar — da
+    folha de 25 quadros do tambaqui, só 8 (0–7) têm a cabeça consistente
+    (≤ 5% de mudança por quadro). Sobre as barras escuras, os sprites ganham
+    um contorno de 1 px em madeira clara (sombras sem desfoque). Os poucos
+    ícones sem sprite (câmera, galeria, denunciar, configurações, editar) são
+    da Streamline "Pixel - Free" (CC BY 4.0), redesenhados por `npm run
+    pixel-icons` na grade real deles (21 × 21); só esses cinco originais
+    ficam no repositório.
+  - **Avatar sem foto.** Uma cor por conta, de uma paleta fechada de oito
+    tons fundos, escolhida por hash (FNV-1a) do id: a mesma em qualquer
+    aparelho. Letra branca, mínimo 7,29:1.
 - **Miniaturas na grade da Dex.** A grade nunca baixa a foto inteira: cada
   foto tem uma miniatura de ~400 px, cor cheia, WebP (`lib/pixel.js`, com o
   sharp) — nítida no card e leve (~370 KB a grade toda, contra ~2,1 MB das
@@ -427,6 +524,16 @@ abre uma janela entre a conferência e o INSERT.
   miniatura e o card usa a inteira). A ficha abre a foto inteira. O gerador
   da versão pixel art (96 px, 48 cores), do experimento anterior, continua
   no código: `npm run pixel` gera de novo, se a ideia voltar.
+- **Grade da Dex.** Ordenada por raridade (da mais rara à comum) e, dentro
+  dela, por nome; "A–Z" deixa só alfabética (fica na URL, `?ordem=nome`). A
+  espécie pescada ganha a cor da raridade na borda e no pé do card, a mesma do
+  selo: incomum verde, raro rosa, muito raro ouro velho (escuro, longe do
+  amarelo de ativo; o foco do card é outro desenho, um anel amarelo com fio
+  escuro por fora). Comum e bloqueadas, neutras. A barra de progresso é
+  verde em blocos de 4 px e vira ouro, com um brilho que passa, em 100% (sem
+  o brilho com `prefers-reduced-motion`). O admin tem "Ver Dex completa" no
+  Perfil: uma prévia (`?previa=completa`) com toda espécie como pescada, só
+  na tela — nada é gravado e o RGN-10 não muda.
 - **Navegação de app.** As abas principais ficam numa barra embaixo — Dex |
   Registrar Captura | Feed | Notificações (com o número de não lidas no
   ícone) —, ícone sobre o rótulo, como em app de celular:
@@ -437,8 +544,12 @@ abre uma janela entre a conferência e o INSERT.
   no `index.html`, senão vale 0 no iPhone), e o conteúdo reserva embaixo a
   altura da barra (`--altura-abas`) para o fim do feed e da Dex não ficar
   escondido.
-  No topo ficam só o título, centralizado, e o perfil (a foto, ou o @apelido
-  de quem não tem foto). Configurações, Créditos e Sair saíram do topo e estão no Perfil. A
+  No tema retrô, as abas não têm caixa (fio fino entre elas), ícone e rótulo
+  ficam centralizados, e no celular o rótulo visível de Registrar Captura é
+  só "Registrar" (o nome acessível é o inteiro).
+  No topo ficam só o título, centralizado (no tema, com o tambaqui ao lado),
+  e o perfil (a foto, ou o @apelido de quem não tem foto). Configurações (em
+  destaque, como botão), Créditos e Sair saíram do topo e estão no Perfil. A
   busca de pessoas virou a aba "Pessoas" do Feed, ao lado de Seguindo,
   Descobrir e (admin) Denunciadas; a aba fica na URL (`?aba=pessoas`), e o
   endereço antigo `/pessoas` redireciona para lá. As abas do Feed dividem a
@@ -446,7 +557,7 @@ abre uma janela entre a conferência e o INSERT.
 
 - **App instalável (PWA), sem modo offline.** No celular, o site se instala
   como app: `public/manifest.webmanifest` (nome, `display: standalone`, cor
-  do tema = o azul das barras, `#1d2b73`), ícones de 192 e 512 px, um
+  do tema = a madeira escura das barras, `#3d2414`), ícones de 192 e 512 px, um
   *maskable* com margem para o recorte do Android e o `apple-touch-icon` do
   iOS. **Não há service worker:** o Chrome não exige mais um para oferecer a
   instalação, e cache offline está fora do escopo (ver DIVERGENCIAS.md). O
@@ -487,6 +598,8 @@ npm run dev                       # API em http://localhost:3333
 npm run migrate                   # aplica os .sql novos de database/migrations
 npm run seed                      # popula o catálogo (idempotente)
 npm run credits                   # regera o CREDITOS.md (fotos do catálogo)
+npm run sprites                   # recorta os sprites do tema (originais em peixes/, só local)
+npm run pixel-icons               # redesenha os ícones da Streamline usados
 npm run icons                     # regera os ícones do app instalável (frontend/public)
 
 cd frontend

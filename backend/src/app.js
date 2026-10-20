@@ -6,6 +6,21 @@ import { ASSETS_DIR, UPLOADS_DIR } from "./lib/storage.js";
 
 export const app = express();
 
+// Quantos proxies há entre a internet e a API. Atrás do proxy do Railway, o
+// Express vê o IP do proxy, não o de quem fez a request; com o número certo,
+// req.ip passa a ser o do cliente (lido do X-Forwarded-For). O limite de
+// requisições depende disso: ver DEPLOY.md, seção 7. Sem proxy (na máquina
+// local), 0: aí um X-Forwarded-For mandado pelo cliente é ignorado.
+app.set("trust proxy", lerTrustProxy(process.env.TRUST_PROXY));
+
+function lerTrustProxy(valor) {
+  if (valor === undefined || valor === "") return 0;
+  if (!/^\d+$/.test(valor)) {
+    throw new Error(`TRUST_PROXY inválido: "${valor}" (precisa ser o número de proxies, ex.: 1)`);
+  }
+  return Number(valor);
+}
+
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173" }));
 app.use(express.json());
 

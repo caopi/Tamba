@@ -41,7 +41,7 @@ Tamba/
 │       ├── controllers/   Traduzem HTTP ↔ service (req → argumentos, retorno → res)
 │       ├── services/      Regras de negócio (RGN-xx) + validação Zod
 │       ├── models/        Acesso ao banco: SQL cru via mysql2
-│       ├── middlewares/   requireAuth, requireAdmin, errorHandler
+│       ├── middlewares/   requireAuth, requireAdmin, errorHandler, rateLimit
 │       └── lib/           db.js (pool, transação), jwt.js, mailer.js, storage.js, authz.js, asyncHandler.js
 └── frontend/src/
     ├── api/               Cliente HTTP: client.ts + um arquivo por recurso

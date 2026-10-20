@@ -182,6 +182,7 @@ comentada: `backend/.env.example`.
 | `REQUIRE_EMAIL_VERIFICATION` | `false` | Ver seção 1.3. |
 | `SEED_DEV_USERS` | `false` | **Nunca** `true` em produção: cria contas com a senha pública `admin123`. |
 | `ADMIN_EMAIL` | e-mail do primeiro admin | Usado só pelo seed. Ver seção 4.4. |
+| `TRUST_PROXY` | `1` | Número de proxies na frente da API, para o limite de requisições ver o IP do usuário. **Confira depois do deploy** (seção 7). |
 | `REPORT_HIDE_THRESHOLD` | `3` | Quantas denúncias de pessoas diferentes ocultam uma captura. `1` é só para demonstração. |
 | `UPLOADS_DIR` | `/data/uploads` | Pasta das fotos enviadas, dentro do volume montado em `/data`. **Obrigatória** com `NODE_ENV=production`. Ver seção 1.1. |
 
@@ -510,31 +511,56 @@ Publique o conteúdo de `frontend/dist/` num host de site estático.
 
 ---
 
-## 7. Limite de requisições (fazer antes de divulgar)
+## 7. Limite de requisições (feito)
 
-Hoje a API **não limita** quantas requisições alguém pode fazer. Sem isso,
-dá para testar senhas no login sem parar, criar contas em massa e encher o
-volume das fotos. Não impede o primeiro deploy, mas deve entrar antes de
-divulgar o endereço.
+`express-rate-limit`, em `backend/src/middlewares/rateLimit.js`, só nas
+rotas que alguém de fora abusaria:
 
-Sugestão: o pacote `express-rate-limit`, aplicado só nas rotas sensíveis
-(`backend/src/routes/`):
+| Rota | Limite | Chave | Por quê |
+| --- | --- | --- | --- |
+| `POST /api/auth/login` | 10 **erradas** por 15 min | IP | Só a tentativa que falha conta: quem divide o IP não gasta o limite entrando com a senha certa. |
+| `POST /api/auth/signup` | 20 por hora | IP | Não 5: numa apresentação, a turma se cadastra da mesma rede, atrás de um IP só. |
+| `POST /api/auth/resend-verification` | 3 por hora | IP | |
+| `POST /api/uploads` | 30 por hora | id do usuário logado | Três capturas com 10 fotos. Vem depois do `requireAuth`. |
 
-| Rota | Limite sugerido | Chave |
-| --- | --- | --- |
-| `POST /api/auth/login` | 10 por 15 min | IP |
-| `POST /api/auth/signup` (cadastro) | 5 por hora | IP |
-| `POST /api/auth/resend-verification` | 3 por hora | IP |
-| `POST /api/uploads` | 30 por hora | id do usuário logado |
+Ao estourar: status 429, `{ "error": "...", "code": "RATE_LIMITED" }` (o
+mesmo formato das outras rotas), cabeçalho `RateLimit` padronizado, e uma
+linha no log com a chave, o `req.ip` e o `X-Forwarded-For` cru. A
+contagem é em memória: vale porque a API tem uma instância só (seção 1.1), e
+reiniciar a API zera tudo.
 
-- Atrás do proxy do host, o Express vê o IP do proxy, não o do usuário: sem
-  `app.set("trust proxy", 1)` em `app.js`, todo mundo divide o mesmo limite.
-  Ajuste o número ao total de proxies na frente da API.
-- Resposta ao estourar: status 429, no mesmo formato de erro das outras rotas
-  (`{ error: "mensagem" }`, ver `middlewares/errorHandler.js`), para
-  o frontend mostrar a mensagem.
-- Com mais de uma instância da API, o limite em memória vale por instância.
-  Para o tamanho do projeto, uma instância basta.
+**`trust proxy` (`TRUST_PROXY`).** Atrás do proxy do Railway, o Express vê
+o IP do proxy, não o do usuário: sem ajuste, todo mundo dividiria um limite
+só. `TRUST_PROXY` é o número de proxies entre a internet e a API; o
+`app.js` passa para `app.set("trust proxy", N)`, e o Express usa o N-ésimo
+endereço a partir do fim do `X-Forwarded-For`. Local, sem proxy, fica 0
+(padrão): um `X-Forwarded-For` mandado pelo cliente é ignorado. No Railway,
+**1**.
+
+O Railway não publica quantos saltos há (as respostas da equipe no fórum
+deles se contradizem, e há relato de Fastly na frente). Por isso o 1 é
+**conferido depois do deploy**, não presumido:
+
+1. Descubra seu IP público (abra `https://api.ipify.org`).
+2. Erre a senha 11 vezes no login do site e confira a 11ª: "Muitas
+   tentativas de login".
+3. Nos logs da API no Railway, procure `Limite de requisições: POST
+   /api/auth/login`. O `ip=` tem de ser **o seu IP**. Se for outro endereço
+   (de proxy) e o seu aparecer **antes** dele no `x-forwarded-for=`, suba
+   `TRUST_PROXY` para 2 e repita.
+4. Forjando o cabeçalho, o IP não pode mudar:
+
+   ```powershell
+   1..11 | % { try { Invoke-RestMethod -Method Post -Uri https://<domínio da API>/api/auth/login -ContentType application/json -Headers @{ "X-Forwarded-For" = "203.0.113.$_" } -Body '{"email":"x@example.com","password":"errada"}' } catch { $_.Exception.Response.StatusCode.value__ } }
+   ```
+
+   A 11ª tem de dar 429, e o log tem de mostrar `ip=` com o seu IP, não
+   `203.0.113.x`. Se cada tentativa ganhou um IP novo, o `TRUST_PROXY` está
+   alto demais.
+5. Do celular, pelo 4G (outro IP), o login continua funcionando enquanto o
+   computador está bloqueado.
+
+Espere 15 minutos (ou reinicie a API) para o seu IP sair do limite.
 
 ---
 

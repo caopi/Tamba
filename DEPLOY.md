@@ -335,8 +335,9 @@ Se o `migrate` parar na `007_follows_no_self_trigger.sql` com o erro 1419
 seção 4.5 e depois continue daqui.
 
 - O **migrate** anota o que já rodou na tabela `schema_migrations` e só
-  aplica o que falta. Rodar de novo é seguro; é o que se faz a cada deploy
-  que trouxer migration nova, **antes** de subir a versão nova da API.
+  aplica o que falta. Rodar de novo é seguro. Depois do primeiro deploy,
+  quem roda é o pre-deploy command do Railway, antes de cada versão nova da
+  API (seção 4.6).
 - O **seed** é idempotente: rodar de novo não duplica e não sobrescreve o que
   o admin editou pelo app.
 - Com `NODE_ENV=production` e `SEED_DEV_USERS=false`, nenhuma conta de teste
@@ -424,36 +425,52 @@ mudar para um que permita):
 4. `SHOW TRIGGERS LIKE 'follows';` deve listar `trg_follows_no_self_insert` e
    `trg_follows_no_self_update`.
 
-### 4.6 Quem roda as migrations depois do primeiro deploy
+### 4.6 Migrations depois do primeiro deploy: pre-deploy command
 
-**Hoje: o Lucas, da máquina dele**, com o Public Networking do MySQL ligado
-só durante o comando — o mesmo roteiro da seção 4.3 (só o `npm run migrate`;
-o seed só se o catálogo mudou), terminando com o Public Networking
-desligado. Ninguém mais do grupo roda migration em produção.
+**A regra: o próprio Railway roda o migrate antes de cada deploy da API.**
+No serviço da API, **Settings → Deploy → Pre-deploy Command:
+`npm run migrate`**. Ele roda depois do build e antes de a versão nova
+subir, num container separado, **pela rede privada** e com as variáveis da
+API — sem Public Networking, sem a conexão sem TLS do proxy público (seção
+4.2) e sem depender de alguém lembrar. É isto que cobre o risco de alguém do
+grupo fazer push de uma migration e a API nova subir contra o schema velho.
 
-**O risco que isso cobre.** Alguém do grupo faz push de uma migration nova,
-o deploy da API sai, e ninguém roda o migrate: a API nova sobe contra o
-schema velho e quebra em produção (coluna que não existe, tabela que
-falta). Por isso:
+- **Se o migrate falhar, o deploy novo não acontece.** Veja o log do
+  pre-deploy, corrija com uma migration nova (nunca editando a que já foi
+  aplicada; ver ARQUITETURA, "Migrations") e faça push de novo. O migrate
+  só anota em `schema_migrations` o arquivo que terminou; como DDL no MySQL
+  não tem transação, uma migration que falhe no meio pode deixar parte
+  aplicada — por isso cada migration faz uma coisa só (como a 007).
+- **Sem migration nova, ele não faz nada** ("Nada a fazer, o banco já está
+  atualizado.") e o deploy segue normalmente.
 
-- **Migration nova em `database/migrations/` = avise o Lucas antes do
-  merge**, e diga isso na descrição do commit.
-- **Ordem: migrate primeiro, deploy da API depois.** As migrations do
-  projeto acrescentam (coluna nova, tabela nova, dado corrigido); a API
-  antiga continua funcionando com o schema novo, a nova não funciona com o
-  velho.
-- Se o deploy saiu antes, rode o migrate o quanto antes; não precisa
-  reverter o deploy, só completar o schema.
+**Só o migrate; o seed continua manual.** O seed não volta a desativar nem
+ativar nada (não mexe em `is_active`), mas **recria espécie que o admin
+apagou** (espécie sem captura pode ser apagada) e **devolve a foto que o
+admin tirou** (ARQUITETURA, "Crédito anda com a foto"). Rodar a cada deploy
+desfaria essas escolhas, e não é preciso. O seed se roda à mão, da máquina
+local, quando o catálogo do `seed.js` mudar ou para promover um admin
+(seções 4.3 e 4.4) — com Public Networking ligado só durante o comando.
 
-**Alternativa a considerar: pre-deploy command do Railway.** Nas Settings
-do serviço da API, um *Pre-deploy Command* `npm run migrate` roda depois do
-build e antes de cada deploy, num container separado, **pela rede privada**
-e com as variáveis da API — sem Public Networking e sem depender de alguém
-lembrar. Se o migrate falhar, o deploy não acontece. O motivo para não
-ligar no primeiro deploy era a 007 talvez precisar ser resolvida à mão
-(seção 4.5); como ela passou direto, esse motivo não existe mais. Se ligar,
-o seed continua manual, e esta seção muda: o migrate deixa de ser tarefa de
-alguém.
+**Rollback.** Voltar para um deploy anterior no Railway roda (ou não) o
+pre-deploy com o código antigo; nos dois casos ele não faz nada, porque as
+migrations do código antigo já estão todas em `schema_migrations`. O
+código antigo funciona com o schema novo **porque as migrations acrescentam**
+(coluna nova com padrão, tabela nova, dado corrigido). **Isso é uma regra
+para toda migration daqui em diante, não uma descrição do passado:** a 011
+apagou `catches.photo_url` e a 008/009 mudaram o tipo de `rarity`. Em
+produção isso não pesa — as 18 já estavam aplicadas antes do primeiro
+deploy, então nenhum rollback cai em código mais velho que o schema.
+
+**Se um dia precisar apagar ou renomear coluna**, em dois deploys: primeiro
+o código para de usar a coluna (com a migration que acrescenta a nova, se
+houver); só num deploy seguinte — quando não houver mais motivo para voltar ao
+código que ainda usava a coluna — entra a migration que apaga. Se isso não for seguido, a
+regra do rollback acima deixa de valer: voltar um deploy passa a exigir
+reverter o schema à mão.
+
+**Migration nova no PR:** diga na descrição do commit, para quem revisa saber
+que o deploy vai mexer no banco de produção.
 
 ---
 
@@ -529,7 +546,8 @@ API; nada disso vai para o repositório.
    e o seed roda da máquina local (seção 4.4).
 6. **Health check.** **Settings → Deploy → Healthcheck Path:**
    `/api/health`.
-7. **Pre-deploy Command** (opcional; ver seção 4.6): `npm run migrate`.
+7. **Pre-deploy Command:** `npm run migrate` (só ele; o seed fica manual —
+   ver seção 4.6).
 8. **Deploy.** Aplique as mudanças pendentes (**Deploy**).
 
 **Conferência do primeiro deploy:**

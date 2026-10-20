@@ -10,7 +10,7 @@ import * as speciesModel from "../models/species.model.js";
 import * as spotModel from "../models/spot.model.js";
 import * as userModel from "../models/user.model.js";
 import { withTransaction } from "../lib/db.js";
-import { belongsTo } from "../lib/storage.js";
+import { ownedKey, storedRef } from "../lib/storage.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
 // Folga para relógio de celular um pouco adiantado: sem ela, quem registra a
@@ -87,14 +87,19 @@ const feedSchema = z.object({
  * `jaAnexadas`: na edição, as fotos que a captura já tem continuam valendo,
  * para dar para reordenar ou remover fotos antigas (de antes do upload ou da
  * pasta por usuário) sem precisar reenviar.
+ *
+ * Devolve o que vai para o banco, na mesma ordem: a chave de cada foto, não
+ * a URL (ver lib/storage.js).
  */
-function conferirDonoDasFotos(urls, userId, jaAnexadas = []) {
-  const alheia = urls.find((url) => !belongsTo(url, userId) && !jaAnexadas.includes(url));
-  if (alheia) {
+function chavesDasFotos(urls, userId, jaAnexadas = []) {
+  return urls.map((url) => {
+    const chave = ownedKey(url, userId);
+    if (chave) return chave;
+    if (jaAnexadas.includes(url)) return storedRef(url);
     throw httpError(422, "Use fotos enviadas por você pelo app (não links externos nem fotos de outra pessoa)", {
       code: "PHOTO_NOT_OWNED",
     });
-  }
+  });
 }
 
 function conferirCoordenadas(latitude, longitude) {
@@ -262,7 +267,7 @@ export async function getFeed(viewerId, entrada, { isAdmin = false } = {}) {
 export async function createCatch(userId, entrada) {
   // RGN-07: o "pelo menos uma foto" está no próprio schema (photoUrls.min).
   const dados = createSchema.parse(entrada);
-  conferirDonoDasFotos(dados.photoUrls, userId);
+  dados.photoUrls = chavesDasFotos(dados.photoUrls, userId);
   conferirCoordenadas(dados.latitude, dados.longitude);
 
   const especie = await especieParaCaptura(dados.speciesId);
@@ -294,10 +299,7 @@ export async function updateCatch(userId, catchId, entrada) {
 
   // Fotos são opcionais na edição (não mandou = não mexe), mas se mandou, a
   // lista nova segue o mesmo schema: pelo menos uma (RGN-07).
-  const fotos = dados.photoUrls;
-  if (fotos) {
-    conferirDonoDasFotos(fotos, userId, atual.photos.map((p) => p.url));
-  }
+  const fotos = dados.photoUrls && chavesDasFotos(dados.photoUrls, userId, atual.photos.map((p) => p.url));
 
   conferirCoordenadas(
     "latitude" in dados ? dados.latitude : atual.latitude,

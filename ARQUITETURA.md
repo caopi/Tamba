@@ -99,8 +99,11 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   quando o autor não compartilha `latitude`/`longitude`. `is_flagged_for_review`
   marca medida fora da faixa da espécie (RGN-08); `is_hidden` é a moderação (RGN-14).
 - **catch_photos** — 1..10 fotos por captura, ordenadas por `position`; a de
-  posição 0 é a capa. `url` aponta para o armazenamento do `lib/storage.js` — a
-  API só aceita foto enviada por `POST /api/uploads` (REQ-15), não link externo.
+  posição 0 é a capa. `url` guarda a **chave** do arquivo no armazenamento do
+  `lib/storage.js` (`<id do usuário>/<nome>.jpg`), não a URL — a API monta o
+  endereço na resposta (ver "Fotos em disco local" em Decisões). A API só
+  aceita foto enviada por `POST /api/uploads` (REQ-15), não link externo.
+  O mesmo vale para `users.avatar_url` e para a foto de espécie enviada pelo admin.
   É a única fonte das fotos: a antiga coluna `catches.photo_url` foi removida
   na migration 011. Capturas antigas podem ter `url` externa, de antes do
   upload; elas continuam valendo.
@@ -343,8 +346,15 @@ abre uma janela entre a conferência e o INSERT.
   (`POST /api/uploads`, multer) grava em `backend/uploads/` e a própria API
   serve os arquivos em `/uploads`. Assim ninguém do grupo precisa de conta ou
   credencial em serviço externo. Fica atrás de `lib/storage.js` (`save` /
-  `getUrl` / `belongsTo`), no mesmo padrão do mailer: trocar de destino é
-  escrever outro driver nesse arquivo. Cada usuário tem a sua pasta
+  `read`), no mesmo padrão do mailer: trocar de destino é escrever outro
+  driver nesse arquivo. **O banco guarda a chave, não a URL** (migration
+  018): `publicUrl` junta `UPLOADS_PUBLIC_URL` em toda resposta e `ownedKey`
+  converte a URL que vem do cliente de volta em chave, conferindo o dono.
+  Da API para fora só existem URLs completas — `POST /api/uploads` devolve
+  `{ id, url }`, com `id` = chave e `url` = endereço completo, e é essa `url`
+  que o frontend manda de volta. Trocar de domínio, de provedor ou pôr uma
+  CDN é trocar a variável, sem mexer no banco. `UPLOADS_PUBLIC_URL` é
+  obrigatória, como o `JWT_SECRET`: sem ela, a API não sobe. Cada usuário tem a sua pasta
   (`uploads/<id do usuário>/`), e a captura só aceita foto cuja URL esteja na
   pasta do próprio autor — ninguém anexa a foto de outra pessoa copiando a URL
   do feed (`PHOTO_NOT_OWNED`). Na edição, as fotos que a captura já tinha
@@ -384,10 +394,10 @@ abre uma janela entre a conferência e o INSERT.
     bancos vira migration de dados, para o crédito acompanhar (016, Traíra).
   - **Duas origens, um caminho.** A espécie que o admin cadastra pelo app
     ganha foto por upload comum. No banco, `image_url` é um caminho relativo
-    à API (`/assets/species/tambaqui.webp`) ou a URL absoluta do upload; o
-    `storage.publicUrl` resolve os dois com `new URL(ref, PUBLIC_API_URL)`, e
-    é chamado só onde as linhas viram resposta (models de espécie e de
-    captura). Da API para fora existe uma URL só. Na escrita
+    à API (`/assets/species/tambaqui.webp`) ou a chave do upload
+    (`<id do admin>/<nome>.jpg`); o `storage.publicUrl` resolve os dois — o
+    que começa com `/` ganha `PUBLIC_API_URL`, a chave ganha
+    `UPLOADS_PUBLIC_URL` —, e é chamado só onde as linhas viram resposta. Da API para fora existe uma URL só. Na escrita
     (`species.service`), a regra também é uma só: a foto atual passa, null
     tira a foto e o crédito, e foto nova tem de ser upload do próprio admin,
     com autor e licença — link externo é recusado.

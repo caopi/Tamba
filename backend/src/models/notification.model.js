@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query, queryOne } from "../lib/db.js";
+import { publicUrl } from "../lib/storage.js";
 
 function mapNotification(linha) {
   return {
@@ -17,7 +18,7 @@ function mapNotification(linha) {
       id: linha.actor_id,
       name: linha.ator_name,
       nickname: linha.ator_nickname,
-      avatarUrl: linha.ator_avatar_url,
+      avatarUrl: publicUrl(linha.ator_avatar_url),
     },
   };
 }

@@ -58,7 +58,7 @@ Abra o `backend/.env` e preencha:
 | `REPORT_HIDE_THRESHOLD` | Quantas denúncias de usuários distintos ocultam uma captura. Padrão `3`. |
 | `ADMIN_EMAIL` | Conta que o `npm run seed` promove a admin (ver "Primeiro admin" abaixo). |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` liga a confirmação de e-mail no cadastro (RGN-01). Padrão `false`: o cadastro já entra logado. |
-| `UPLOADS_PUBLIC_URL` | Endereço público das fotos enviadas. Padrão `http://localhost:3333/uploads` (a própria API). |
+| `UPLOADS_PUBLIC_URL` | Endereço público das fotos enviadas. **Obrigatória** (a API não sobe sem ela); em desenvolvimento, `http://localhost:3333/uploads` (a própria API), como no `.env.example`. |
 | `PUBLIC_API_URL` | Endereço público da própria API, sem `/api`. Base das fotos do catálogo (`/assets/...`). Padrão `http://localhost:3333`. |
 | `SEED_DEV_USERS` | `true` faz o `npm run seed` criar as contas de desenvolvimento (ver abaixo). Ignorado com `NODE_ENV=production`. |
 

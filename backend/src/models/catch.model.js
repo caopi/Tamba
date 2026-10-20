@@ -100,7 +100,7 @@ function mapCatch(linha) {
       id: linha.user_id,
       name: linha.autor_name,
       nickname: linha.autor_nickname,
-      avatarUrl: linha.autor_avatar_url,
+      avatarUrl: publicUrl(linha.autor_avatar_url),
       isFollowedByMe: Boolean(linha.author_followed_by_me),
     },
     authorIsActive: Boolean(linha.autor_is_active),
@@ -125,7 +125,7 @@ async function anexarFotos(capturas, conn) {
   for (const foto of fotos) {
     porCaptura.get(foto.catch_id).photos.push({
       id: foto.id,
-      url: foto.url,
+      url: publicUrl(foto.url),
       position: foto.position,
     });
   }

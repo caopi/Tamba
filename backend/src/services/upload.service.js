@@ -53,5 +53,8 @@ export async function savePhoto(userId, arquivo) {
   }
 
   const id = await storage.save({ buffer: arquivo.buffer, extension, ownerId: userId });
-  return { id, url: storage.getUrl(id) };
+  // Formato fixo, de que o frontend depende: `id` é a chave, `url` a URL
+  // pública completa, que o frontend devolve como está em photoUrls,
+  // avatarUrl ou imageUrl (e `ownedKey` converte de volta em chave).
+  return { id, url: storage.publicUrl(id) };
 }

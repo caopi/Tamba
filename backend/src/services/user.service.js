@@ -7,7 +7,7 @@ import * as socialModel from "../models/social.model.js";
 import { isDuplicateKey } from "../lib/db.js";
 import { httpError } from "../middlewares/errorHandler.js";
 import { nicknameSchema } from "./auth.service.js";
-import { belongsTo } from "../lib/storage.js";
+import { ownedKey } from "../lib/storage.js";
 import { assertAdmin } from "../lib/authz.js";
 
 const updateMeSchema = z
@@ -70,8 +70,11 @@ export async function updateMe(userId, entrada) {
 
   // Avatar só de foto que o próprio usuário enviou (mesma regra das fotos de
   // captura): não dá para usar link externo nem a foto de outra pessoa.
-  if (dados.avatarUrl && !belongsTo(dados.avatarUrl, userId)) {
-    throw httpError(422, "Use uma foto enviada por você pelo app", { code: "PHOTO_NOT_OWNED" });
+  // O banco guarda a chave, não a URL (ver lib/storage.js).
+  if (dados.avatarUrl) {
+    const chave = ownedKey(dados.avatarUrl, userId);
+    if (!chave) throw httpError(422, "Use uma foto enviada por você pelo app", { code: "PHOTO_NOT_OWNED" });
+    dados.avatarUrl = chave;
   }
 
   if (dados.nickname && (await userModel.nicknameTaken(dados.nickname, userId))) {

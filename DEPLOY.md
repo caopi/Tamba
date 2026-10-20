@@ -23,8 +23,8 @@ serve em `/assets`: não precisam de armazenamento externo.
 ## 1. Mudanças de código antes do deploy
 
 Duas mudanças são **obrigatórias** (sem elas o deploy não funciona ou perde
-dados): 1.1 e 1.2. A 1.3 e a 1.4 são decisões a tomar antes do lançamento. O
-limite de requisições está na seção 7.
+dados): 1.1 e 1.2. A 1.3 é decisão a tomar antes do lançamento; a 1.4 já foi
+feita (migration 018). O limite de requisições está na seção 7.
 
 ### 1.1 Driver de armazenamento de objetos para os uploads (obrigatório)
 
@@ -38,18 +38,18 @@ linha `const driver = localDriver;`. Serve qualquer serviço compatível com S3
 (Cloudflare R2, AWS S3, Backblaze B2...), por exemplo com o pacote
 `@aws-sdk/client-s3`.
 
-**O contrato que o driver novo precisa cumprir** (são os quatro métodos do
-`localDriver`, e todos são usados):
+**O contrato que o driver novo precisa cumprir** (são os dois métodos do
+`localDriver`, e os dois são usados):
 
 | Método | Quem usa | O que precisa fazer |
 | --- | --- | --- |
 | `save({ buffer, extension, ownerId })` | upload de foto (`upload.service.js`) e miniatura da foto de espécie (`species.service.js`) | Validar `ownerId` com o regex `UUID` do arquivo, gerar o nome com `randomBytes(16).toString("hex")` + `.` + `extension`, gravar no bucket com a chave `<ownerId>/<nome>` e devolver essa chave. Enviar `ContentType` certo (`image/jpeg`, `image/png` ou `image/webp`) e `Cache-Control: public, max-age=31536000, immutable` (o nome é aleatório e nunca muda). |
-| `getUrl(id)` | depois do `save` | Devolver `` `${URL_PUBLICA}/${id}` `` — igual ao local. |
-| `belongsTo(url, ownerId)` | captura, avatar e foto de espécie: impede anexar a foto de outra pessoa copiando a URL do feed | Pode ficar **idêntico** ao do `localDriver`: só compara o prefixo `UPLOADS_PUBLIC_URL/<ownerId>/` e o formato do nome. |
-| `readUrl(url, ownerId)` | gera a miniatura quando o admin troca a foto de uma espécie | Conferir `belongsTo`, tirar o prefixo `UPLOADS_PUBLIC_URL/` da URL para obter a chave e baixar o objeto do bucket (`GetObject`), devolvendo um `Buffer`. |
+| `read(chave)` | gera a miniatura quando o admin troca a foto de uma espécie | Conferir o formato da chave (como o `localDriver` faz) e baixar o objeto do bucket (`GetObject`), devolvendo um `Buffer`. |
 
-Mantenha o formato de chave `<ownerId>/<32 hex>.<ext>`: é dele que o
-`belongsTo` depende.
+O resto não depende do driver e fica como está: `publicUrl` monta
+`UPLOADS_PUBLIC_URL/<chave>` e `ownedKey` confere o dono pela URL que vem do
+cliente (seção 1.4). Mantenha o formato de chave `<ownerId>/<32 hex>.<ext>`:
+é dele que o `ownedKey` depende.
 
 **Credenciais.** Ficam só no ambiente do servidor, nunca no git. Os nomes
 abaixo são sugestão (ainda não existem no código); se mudar, atualize a
@@ -70,23 +70,20 @@ precisa de leitura pública (no R2: domínio próprio ligado ao bucket; o
 endereço `*.r2.dev` é limitado e não é para produção). `UPLOADS_PUBLIC_URL`
 aponta para esse endereço, por exemplo `https://fotos.exemplo.com.br`.
 
-> **Atenção: `UPLOADS_PUBLIC_URL` não pode mudar depois do lançamento.** O
-> banco guarda a URL **absoluta** de cada foto enviada
-> (`https://fotos.exemplo.com.br/<id>/<nome>.jpg`), e o `belongsTo` compara
-> esse prefixo. Trocar o domínio depois quebra todas as fotos antigas e
-> impede de editar capturas antigas. Escolha o domínio definitivo antes.
+> **`UPLOADS_PUBLIC_URL` pode mudar** (seção 1.4): o banco guarda só a
+> chave, e trocar o domínio é trocar a variável e copiar os arquivos. Ela é
+> **obrigatória**: a API não sobe sem ela, nem com um valor que não seja um
+> endereço `http(s)` completo.
 >
-> Isso é consequência de uma escolha de arquitetura que vale rever antes do
-> lançamento: ver a seção 1.4.
->
-> Pelo mesmo motivo, **não copie o banco de desenvolvimento** para produção:
-> as fotos dele apontam para `http://localhost:3333/uploads/...`. Produção
-> começa com um banco novo (seção 4).
+> Mesmo assim, **não copie o banco de desenvolvimento** para produção: as
+> chaves dele apontam para arquivos que só existem no disco da máquina de
+> desenvolvimento, e ele tem contas de teste. Produção começa com um banco
+> novo (seção 4).
 
 **Como testar antes do deploy.** Rode a API local com o driver novo e as
 variáveis do bucket, envie uma foto numa captura, confira que ela abre pela
 URL pública e, logado como admin, troque a foto de uma espécie (isso
-exercita `readUrl`).
+exercita `read`).
 
 ### 1.2 `npm start` sem arquivo `.env` (obrigatório)
 
@@ -109,66 +106,50 @@ nova conseguiria entrar. Para ligar a confirmação, primeiro escreva um driver
 SMTP com o mesmo `send({ to, subject, text })` (ex.: nodemailer) e coloque as
 credenciais no ambiente.
 
-### 1.4 URLs absolutas das fotos no banco (decidir antes do lançamento)
+### 1.4 Chave relativa das fotos no banco (feito)
 
-**O problema.** Para cada foto enviada, o banco guarda o endereço
-**completo**, com domínio:
-`https://fotos.exemplo.com.br/<id do usuário>/<nome>.jpg`. Isso grava o
-domínio dentro dos dados. Qualquer mudança de onde as fotos são servidas
-quebra **todas as linhas já gravadas**:
+**O que era.** Para cada foto enviada, o banco guardava o endereço
+**completo**, com domínio (`http://localhost:3333/uploads/<id>/<nome>.jpg`).
+Isso gravava o domínio dentro dos dados: trocar de bucket, de provedor, pôr
+uma CDN ou trocar o domínio quebraria todas as linhas já gravadas — e, como a
+conferência de dono comparava esse prefixo, as capturas antigas deixariam de
+poder ser editadas.
 
-- trocar de bucket ou de provedor (R2 → S3, por exemplo);
-- pôr uma CDN na frente, com outro domínio;
-- trocar o domínio das fotos.
+**Como ficou.** O banco guarda só a **chave**, `<id do usuário>/<nome>.jpg`,
+e a API monta `UPLOADS_PUBLIC_URL + "/" + chave` em toda resposta
+(`publicUrl`, em `lib/storage.js`) — o mesmo caminho que as fotos do
+catálogo (`/assets/...`) já faziam. Colunas: `catch_photos.url`,
+`users.avatar_url`, `fish_species.image_url` e
+`fish_species.image_thumb_url`. Trocar de bucket, de provedor ou pôr uma
+CDN é trocar a variável de ambiente e copiar os arquivos, sem tocar no banco.
 
-Não é só a imagem que some: o `belongsTo` compara esse prefixo, então as
-capturas antigas também deixam de poder ser editadas (as fotos delas passam a
-parecer "de outra pessoa").
+- **Os três formatos do banco**, que o `publicUrl` distingue: começa com
+  `/` = foto do catálogo, relativa a `PUBLIC_API_URL`; começa com
+  `http(s):` = link externo de antes do upload, passa intacto; o resto = chave
+  de upload, relativa a `UPLOADS_PUBLIC_URL`.
+- **Gravação.** `ownedKey(url, dono)` recebe a URL que veio do cliente,
+  confere o dono (prefixo `UPLOADS_PUBLIC_URL/<dono>/` e formato do nome) e
+  devolve a chave, ou recusa com `PHOTO_NOT_OWNED`. Os três serviços
+  (`catch`, `user`, `species`) gravam essa chave. Na edição de captura, as
+  fotos que ela já tinha voltam ao formato guardado por `storedRef`.
+- **Frontend: nada muda, e isso é um contrato.** `POST /api/uploads` responde
+  `201 { id, url }`: `id` é a chave e `url` é a URL pública completa
+  (`UPLOADS_PUBLIC_URL/<id>`). O frontend manda essa `url` de volta como
+  está em `photoUrls`, `avatarUrl` ou `imageUrl`, e toda resposta devolve
+  URLs completas. Se esse formato mudar, o formulário de captura quebra.
+- **Dados existentes.** A migration 018 tira o prefixo
+  `http(s)://<host>/uploads/` das linhas que o driver local gerou, nos bancos
+  de desenvolvimento. **Em produção não há o que converter**: o banco começa
+  vazio. Links externos antigos e as fotos de antes da pasta por usuário
+  continuam valendo.
 
-Colunas afetadas: `catch_photos.url`, `users.avatar_url` e, quando o admin
-envia a foto de uma espécie, `fish_species.image_url` e
-`fish_species.image_thumb_url`.
-
-**Por que foi feito assim.** Era o caminho mais simples com o driver de
-disco local: `getUrl` devolve a URL pronta, o banco guarda o que o frontend
-mandou, e a leitura não precisa montar nada.
-
-**A alternativa: guardar a chave relativa e montar a URL na leitura.** É o
-que o projeto já faz com as fotos do catálogo: o banco guarda
-`/assets/species/tambaqui.webp` e `publicUrl()` (`lib/storage.js`) junta a
-base na hora de responder. Para os uploads seria igual:
-
-- o banco guarda só a chave, `<id do usuário>/<nome>.jpg`;
-- a API monta `UPLOADS_PUBLIC_URL + "/" + chave` em toda resposta;
-- trocar de bucket, de provedor ou pôr uma CDN vira trocar uma variável de
-  ambiente e copiar os arquivos, sem tocar no banco.
-
-**O que custaria mudar** (estimativa: meio dia a um dia de trabalho, mais
-testes):
-
-| Parte | O que muda |
-| --- | --- |
-| `lib/storage.js` | `getUrl` passa a ser só a montagem da URL a partir da chave; `belongsTo` vira uma função que recebe a URL vinda do cliente, confere o dono e devolve a chave (ou recusa). |
-| Gravação, 3 serviços | `catch.service.js` (fotos da captura, incluindo a regra de aceitar as fotos que a captura já tinha na edição), `user.service.js` (avatar) e `species.service.js` (foto e miniatura da espécie): convertem a URL recebida em chave antes de gravar. |
-| Leitura, 5 models | `catch.model.js` (fotos e avatar do autor), `comment.model.js`, `notification.model.js` e `user.model.js` (avatares) passam a montar a URL; `species.model.js` já passa por `publicUrl` e só precisa reconhecer a chave de upload. |
-| Frontend | Nada: a API continua recebendo e devolvendo URLs completas. |
-| Dados existentes | Uma conversão que tira o prefixo das linhas antigas. Num banco de produção **novo, antes do lançamento, não há linha nenhuma para converter**; os bancos de desenvolvimento podem ser recriados ou convertidos por script. Links externos antigos (de antes do upload existir) continuam absolutos e passam intactos. |
-
-O fluxo inteiro precisa ser testado de novo: enviar foto, criar e editar
-captura (mantendo, trocando e removendo fotos), avatar, foto de espécie com
-miniatura, e as fotos e avatares no feed, nos comentários e nas
-notificações.
-
-**Por que decidir agora.** Antes do lançamento, a mudança é só de código.
-Depois, cada linha real precisa ser convertida no banco de produção, com
-backup antes, a API parada ou compatível com os dois formatos durante a
-troca, e o risco de perder fotos de usuários se algo der errado.
-
-**Se ficar como está**, a forma de reduzir o risco é servir as fotos por um
-**domínio próprio** (`fotos.exemplo.com.br`, apontado por DNS para o bucket)
-e nunca pelo endereço do provedor. Aí trocar de provedor ou pôr uma CDN é
-mudar o DNS desse domínio, e as URLs gravadas continuam valendo. O domínio em
-si continua sem poder mudar.
+**Testado** (20/10/2026): no banco de desenvolvimento, as 265 respostas
+`GET` com foto ou avatar ficaram idênticas antes e depois da migration, e
+as 70 URLs de imagem abrem; num banco **novo**, do zero (`migrate` + `seed`
+com `NODE_ENV=production`), as 60 fotos e miniaturas do catálogo abrem, e o
+upload, a captura (criar, reordenar, trocar, remover), o avatar (no
+comentário, nas notificações, no perfil e no feed), a recusa de foto alheia e
+a foto de espécie com miniatura funcionam de ponta a ponta.
 
 ---
 
@@ -188,7 +169,7 @@ comentada: `backend/.env.example`.
 | `PORT` | o que o host definir | Muitos hosts injetam `PORT` sozinhos; a API usa 3333 se faltar. |
 | `CORS_ORIGIN` | `https://tamba.exemplo.com.br` | Endereço exato do frontend, sem barra no final. Ver seção 3. |
 | `PUBLIC_API_URL` | `https://api.exemplo.com.br` | Endereço público da API, **sem** `/api`. É a base das fotos do catálogo (`/assets/...`). |
-| `UPLOADS_PUBLIC_URL` | `https://fotos.exemplo.com.br` | Endereço público do bucket. **Definitivo**: ver o aviso da seção 1.1. |
+| `UPLOADS_PUBLIC_URL` | `https://fotos.exemplo.com.br` | Endereço público das fotos enviadas. **Obrigatória**: a API não sobe sem ela. Pode mudar depois (o banco guarda só a chave; seção 1.4). |
 | `FRONTEND_URL` | `https://tamba.exemplo.com.br` | Para onde o link de confirmação de e-mail redireciona. |
 | `EMAIL_VERIFICATION_URL` | `https://api.exemplo.com.br/api/auth/verify-email` | Link que vai no e-mail de confirmação. |
 | `REQUIRE_EMAIL_VERIFICATION` | `false` | Ver seção 1.3. |
@@ -264,7 +245,7 @@ banco de produção):
 
 ```bash
 npm ci
-npm run migrate   # aplica as migrations 001 a 017, em ordem
+npm run migrate   # aplica as migrations 001 a 018, em ordem
 npm run seed      # catálogo de espécies e pesqueiros de exemplo
 ```
 
@@ -318,7 +299,7 @@ metade.
    INSERT INTO schema_migrations (filename) VALUES ('007_follows_no_self_trigger.sql');
    ```
 
-3. Rode `npm run migrate` de novo. Ele aplica 008 a 017.
+3. Rode `npm run migrate` de novo. Ele aplica 008 a 018.
 4. Confira que nenhum trigger foi criado pela metade:
    `SHOW TRIGGERS LIKE 'follows';` deve voltar vazio.
 5. Continue com o `npm run seed` (seção 4.3).
@@ -462,7 +443,7 @@ O que **precisa**:
    restaure o dump num banco vazio e abra o app apontando para ele. Backup
    que nunca foi restaurado não é garantia.
 
-Os dois backups andam juntos: o banco guarda as URLs das fotos, o bucket
+Os dois backups andam juntos: o banco guarda as chaves das fotos, o bucket
 guarda as fotos.
 
 ---

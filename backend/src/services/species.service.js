@@ -98,7 +98,8 @@ async function conferirImagem(dados, adminId, atual = null) {
     dados.imageCaption = null;
     return;
   }
-  if (!storage.belongsTo(dados.imageUrl, adminId)) {
+  const chave = storage.ownedKey(dados.imageUrl, adminId);
+  if (!chave) {
     throw httpError(422, "Envie a foto pelo próprio formulário", { code: "PHOTO_NOT_OWNED" });
   }
   // Foto nova sem autor ou licença não entra: CC BY sem atribuição viola a
@@ -106,6 +107,8 @@ async function conferirImagem(dados, adminId, atual = null) {
   if (!dados.imageCredit || !dados.imageLicense) {
     throw httpError(422, "Informe o autor e a licença da foto");
   }
+  // O banco guarda a chave, não a URL (ver lib/storage.js); a miniatura também.
+  dados.imageUrl = chave;
   // Miniatura da grade da Dex (~400 px), gravada na pasta do admin como
   // qualquer upload. As fotos do repositório têm a delas gerada no build
   // (npm run thumbs); esta é a mesma coisa para a foto enviada pelo app.
@@ -113,8 +116,8 @@ async function conferirImagem(dados, adminId, atual = null) {
   // assinatura), a espécie é salva assim mesmo, sem miniatura: a grade usa a
   // foto inteira. Melhor que recusar a foto por causa da miniatura.
   try {
-    const miniatura = await thumbVariant(await storage.readUrl(dados.imageUrl, adminId));
-    dados.imageThumbUrl = storage.getUrl(await storage.save({ buffer: miniatura, extension: "webp", ownerId: adminId }));
+    const miniatura = await thumbVariant(await storage.read(chave));
+    dados.imageThumbUrl = await storage.save({ buffer: miniatura, extension: "webp", ownerId: adminId });
   } catch (err) {
     console.warn(`Miniatura não gerada para ${dados.imageUrl}: ${err.message}`);
     dados.imageThumbUrl = null;

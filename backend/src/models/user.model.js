@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query, queryOne } from "../lib/db.js";
+import { publicUrl } from "../lib/storage.js";
 
 /**
  * O que o próprio usuário vê de si mesmo (camelCase, sem hash nem token).
@@ -12,7 +13,7 @@ function mapUser(linha) {
     name: linha.name,
     nickname: linha.nickname,
     email: linha.email,
-    avatarUrl: linha.avatar_url,
+    avatarUrl: publicUrl(linha.avatar_url),
     role: linha.role,
     measurementUnit: linha.measurement_unit,
     feedOrder: linha.feed_order,
@@ -31,7 +32,7 @@ function mapPublicUser(linha) {
     id: linha.id,
     name: linha.name,
     nickname: linha.nickname,
-    avatarUrl: linha.avatar_url,
+    avatarUrl: publicUrl(linha.avatar_url),
     createdAt: linha.created_at,
   };
 }

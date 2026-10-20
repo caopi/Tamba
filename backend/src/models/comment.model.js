@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query, queryOne } from "../lib/db.js";
+import { publicUrl } from "../lib/storage.js";
 
 const SELECT_COMPLETO = `
   SELECT m.id, m.catch_id, m.user_id, m.body, m.created_at,
@@ -19,7 +20,7 @@ function mapComment(linha) {
       id: linha.user_id,
       name: linha.autor_name,
       nickname: linha.autor_nickname,
-      avatarUrl: linha.autor_avatar_url,
+      avatarUrl: publicUrl(linha.autor_avatar_url),
     },
   };
 }

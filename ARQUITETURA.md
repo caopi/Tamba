@@ -516,11 +516,13 @@ abre uma janela entre a conferência e o INSERT.
     halo; confere as bordas) e, na animação, prende a cabeça no lugar — da
     folha de 25 quadros do tambaqui, só 8 (0–7) têm a cabeça consistente
     (≤ 5% de mudança por quadro). Sobre as barras escuras, os sprites ganham
-    um contorno de 1 px em madeira clara (sombras sem desfoque). Os poucos
-    ícones sem sprite (câmera, galeria, denunciar, configurações, editar) são
-    da Streamline "Pixel - Free" (CC BY 4.0), redesenhados por `npm run
-    pixel-icons` na grade real deles (21 × 21); só esses cinco originais
-    ficam no repositório.
+    um contorno de 1 px em madeira clara (sombras sem desfoque); o de
+    localização, de pergaminho claro, ganha um contorno escuro nos botões de
+    madeira clara. Ícone com borda abaixo de 3:1 contra o fundo ganha
+    contorno. Os dois ícones sem sprite (denunciar e editar) são da Streamline
+    "Pixel - Free" (CC BY 4.0), redesenhados por `npm run pixel-icons` na
+    grade real deles (21 × 21); só esses dois originais ficam no
+    repositório.
   - **Avatar sem foto.** Uma cor por conta, de uma paleta fechada de oito
     tons fundos, escolhida por hash (FNV-1a) do id: a mesma em qualquer
     aparelho. Letra branca, mínimo 7,29:1.
@@ -580,9 +582,13 @@ abre uma janela entre a conferência e o INSERT.
   *maskable* com margem para o recorte do Android e o `apple-touch-icon` do
   iOS. **Não há service worker:** o Chrome não exige mais um para oferecer a
   instalação, e cache offline está fora do escopo (ver DIVERGENCIAS.md). O
-  ícone é um peixe em pixel art descrito como grade de caracteres em
-  `backend/database/icons.js`; `npm run icons` gera os PNGs e o
-  `favicon.svg` em `frontend/public/` (versionados). No iPhone instalado a
+  favicon e os ícones do app saem do mesmo tambaqui do topo
+  (`sprites/barra-dex.png`), com o contorno claro de 1 pixel:
+  `backend/database/icons.js` (`npm run icons`, depois do `npm run sprites`)
+  faz o `favicon.svg` com um retângulo por pixel do desenho (nítido em
+  qualquer tamanho) e os PNGs ampliados por fator inteiro sobre a madeira
+  escura das barras — o maskable com margem para o círculo de 80% que o
+  Android garante (versionados em `frontend/public/`). No iPhone instalado a
   página vai por baixo da barra de status (`black-translucent`): o topo e as
   telas fora do Layout (login, créditos) somam `env(safe-area-inset-top)`,
   e a barra de abas já somava o de baixo; com o celular deitado, os lados

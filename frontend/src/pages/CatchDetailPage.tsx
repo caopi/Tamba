@@ -4,6 +4,7 @@ import { postApi } from "../api/social";
 import { useAuth } from "../context/AuthContext";
 import { CatchCard } from "../components/CatchCard";
 import { Avatar } from "../components/Avatar";
+import { Icone } from "../components/Icone";
 import { formatarData } from "../format";
 import type { Catch, Comment } from "../types";
 import "./CatchDetailPage.css";
@@ -158,7 +159,7 @@ function Localizacao({ captura, minha, compartilha }: { captura: Catch; minha: b
       </p>
       {temCoordenada ? (
         <p>
-          📍 {captura.latitude!.toFixed(5)}, {captura.longitude!.toFixed(5)}{" "}
+          <Icone nome="local" padrao="📍" /> {captura.latitude!.toFixed(5)}, {captura.longitude!.toFixed(5)}{" "}
           <a
             href={`https://www.openstreetmap.org/?mlat=${captura.latitude}&mlon=${captura.longitude}#map=14/${captura.latitude}/${captura.longitude}`}
             target="_blank"

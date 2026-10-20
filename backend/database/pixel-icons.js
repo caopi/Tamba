@@ -28,12 +28,9 @@ const DESTINO = path.join(ORIGEM, "px");
 
 // nome no app -> arquivo da Streamline (sem o sufixo "--Streamline-Pixel.svg")
 const ICONES = {
-  // Os únicos ainda usados: o resto da barra, do topo e do feed virou sprite
-  // colorido (npm run sprites). Estes não têm par nas folhas de sprites.
-  camera: "Photography-Camera-1",
-  galeria: "Interface-Essential-Paginate-Filter-Picture",
+  // Os únicos ainda usados: todo o resto virou sprite colorido (npm run
+  // sprites). Estes dois não têm par nas folhas de sprites.
   denunciar: "Interface-Essential-Alert-Circle-2",
-  chave: "Interface-Essential-Wrench-1",
   lapis: "Interface-Essential-Pencil-Edit-2",
 };
 

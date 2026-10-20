@@ -77,8 +77,8 @@ no banco, com autor e licença obrigatórios, e aparecem na tela `/creditos`.
   estão copiados em `parallax/LICENCA.md` (por eles o crédito é opcional;
   damos mesmo assim). Alterações: nenhum pixel editado; o app só amplia as
   camadas por um fator inteiro e as desloca no parallax.
-- **Ícones** (`frontend/src/styles/retro/icones/`; cinco: câmera, galeria,
-  denunciar, configurações e editar): "Pixel - Free", da **Streamline** —
+- **Ícones** (`frontend/src/styles/retro/icones/`; dois: denunciar e
+  editar): "Pixel - Free", da **Streamline** —
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) —
   [origem](https://www.streamlinehq.com/icons/pixel). Alterações: redesenhados
   por `backend/database/pixel-icons.js` (`npm run pixel-icons`) — o
@@ -86,10 +86,12 @@ no banco, com autor e licença obrigatórios, e aparecem na tela `/creditos`.
   inteiras, o meio pixel de deslocamento de alguns foi alinhado à grade e a
   cor saiu (o CSS pinta na cor do tema). Detalhes em `icones/LICENCA.md`.
 - **Sprites do tema** (`frontend/src/styles/retro/sprites/`): o tambaqui
-  (no lugar da foto que falta, como logo e nadando na cena), o cadeado das espécies
-  não pescadas, os ícones da barra de baixo e do topo (tambaqui, diário,
-  lista, sino) e os do feed (curtir, curtido, comentar, compartilhar,
-  moderar): imagens **geradas por inteligência artificial** (IA generativa)
+  (no lugar da foto que falta, como logo — também no favicon e nos ícones do
+  app instalável — e nadando na cena), o cadeado das espécies não pescadas,
+  os ícones da barra de baixo e do topo (tambaqui, diário, lista, sino), os
+  do feed (curtir, curtido, comentar, compartilhar, moderar) e os do
+  formulário e do perfil (câmera, galeria, localização, configurações):
+  imagens **geradas por inteligência artificial** (IA generativa)
   pela **Equipe Tamba** — todos os direitos reservados. Alterações: fundo
   cinza removido, quadros separados (do tambaqui, 8 dos 25, os de cabeça
   consistente) e alinhados pela cabeça, reduzidas a pixel art por

@@ -68,8 +68,7 @@ export function CreditsPage() {
           . Sem edição: o app só amplia as camadas e as desloca no parallax.
         </li>
         <li>
-          <strong>Ícones</strong> (câmera, galeria, denunciar, configurações e editar): “Pixel - Free”, da
-          Streamline ·{" "}
+          <strong>Ícones</strong> (denunciar e editar): “Pixel - Free”, da Streamline ·{" "}
           <a href="https://creativecommons.org/licenses/by/4.0/deed.pt-br" target="_blank" rel="noreferrer">
             CC BY 4.0
           </a>{" "}
@@ -81,8 +80,8 @@ export function CreditsPage() {
           sem cor própria (pintados na cor do tema).
         </li>
         <li>
-          <strong>Sprites do tema</strong> (o tambaqui — logo, sem foto e nadando na cena —, o cadeado e os ícones da
-          barra, do topo e do feed): imagens{" "}
+          <strong>Sprites do tema</strong> (o tambaqui — logo, favicon, ícone do app, sem foto e nadando na cena —, o
+          cadeado e os ícones da barra, do topo, do feed, das fotos, da localização e das configurações): imagens{" "}
           <strong>geradas por inteligência artificial</strong> (IA generativa) pela Equipe Tamba · Todos os direitos
           reservados. Fundo removido, quadros separados e alinhados e reduzidos a pixel art pelo próprio projeto.
         </li>

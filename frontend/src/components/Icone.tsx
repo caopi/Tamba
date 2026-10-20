@@ -17,10 +17,7 @@ import type { ReactNode } from "react";
 export type NomeIcone =
   // Streamline "Pixel - Free" (máscara, na cor do texto): os que não têm
   // equivalente nas folhas de sprites.
-  | "camera"
-  | "galeria"
   | "denunciar"
-  | "chave"
   | "lapis"
   // Sprites coloridos (styles/retro/sprites, npm run sprites): imagem, não máscara.
   | "tambaqui"
@@ -33,7 +30,11 @@ export type NomeIcone =
   | "feed-curtido"
   | "feed-comentar"
   | "feed-compartilhar"
-  | "feed-moderar";
+  | "feed-moderar"
+  | "foto-camera"
+  | "foto-galeria"
+  | "local"
+  | "config";
 
 export function Icone({ nome, padrao }: { nome: NomeIcone; padrao?: ReactNode }) {
   return (

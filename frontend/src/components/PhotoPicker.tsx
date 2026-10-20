@@ -133,11 +133,11 @@ export function PhotoPicker({
         {/* capture: no celular abre direto a câmera traseira. Num botão
             separado porque, com capture, o Android não oferece a galeria. */}
         <button type="button" className="secundario" onClick={() => camera.current?.click()} disabled={cheio}>
-          <Icone nome="camera" />
+          <Icone nome="foto-camera" />
           Tirar foto
         </button>
         <button type="button" className="secundario" onClick={() => galeria.current?.click()} disabled={cheio}>
-          <Icone nome="galeria" />
+          <Icone nome="foto-galeria" />
           Galeria
         </button>
         <span className="campo-dica">

@@ -133,13 +133,14 @@ function halo({ saida, w, h }, fundo) {
 
 const arred = (v, fator) => Math.ceil(v / fator) * fator;
 
-/** Imagens soltas numa fileira -> um PNG para cada, com os nomes dados. */
+/** Imagens soltas numa fileira -> um PNG para cada, com os nomes dados (null pula). */
 async function icones(arquivo, fator, nomes, juntar) {
   const img = await ler(arquivo);
   const lista = caixas(img, juntar);
   if (lista.length !== nomes.length) throw new Error(`${arquivo}: achei ${lista.length} desenhos, esperava ${nomes.length}`);
   const saidas = [];
   for (const [k, q] of lista.entries()) {
+    if (!nomes[k]) continue; // desenho da folha que o app não usa
     const margem = fator;
     const larg = arred(q.x1 - q.x0 + 1 + 2 * margem, fator), alt = arred(q.y1 - q.y0 + 1 + 2 * margem, fator);
     const r = reduzir(img, q.x0 - margem, q.y0 - margem, larg, alt, fator, q);
@@ -244,6 +245,13 @@ if (!so || so === "icones") {
   // também vai para o topo e para o login.
   console.log("barra:", (await icones("icones principais.jfif", 20, ["barra-dex", "barra-registrar", "barra-feed", "barra-notificacoes"])).join("; "));
   console.log("feed:", (await icones("Icones Feed.jfif", 22, ["feed-curtir", "feed-curtido", "feed-comentar", "feed-compartilhar", "feed-moderar"], 16)).join("; "));
+  // Botões de foto do formulário (Tirar foto, Galeria), localização (Usar
+  // minha localização e a coordenada) e Configurações. Na folha da
+  // engrenagem há também um lápis, que o app não usa (o Editar continua o da
+  // Streamline).
+  console.log("fotos:", (await icones("fotos.jfif", 33, ["foto-camera", "foto-galeria"])).join("; "));
+  console.log("local:", (await icones("local.jfif", 37, ["local"])).join("; "));
+  console.log("config:", (await icones("watermarked_img_3183725576981055292.jpg", 18, [null, "config"])).join("; "));
 }
 if (!so || so === "tambaqui") {
   const quadros = process.env.QUADROS ? process.env.QUADROS.split(",").map(Number) : undefined;

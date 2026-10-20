@@ -103,7 +103,7 @@ export function ProfilePage() {
           {user && <p className="perfil-desde">Pescando desde {formatarData(user.createdAt)}</p>}
           {/* Configurações em destaque (botão); créditos e sair, links discretos. */}
           <Link to="/configuracoes" className="botao secundario perfil-config">
-            <Icone nome="chave" padrao="⚙" /> Configurações
+            <Icone nome="config" padrao="⚙" /> Configurações
           </Link>
           <nav className="perfil-links">
             {/* Admin: prévia da Dex com tudo desbloqueado (nada é gravado). */}

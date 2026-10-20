@@ -4,6 +4,7 @@ import { speciesApi, spotsApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { ApiError } from "../api/client";
 import { useUnidades } from "../units";
+import { Icone } from "../components/Icone";
 import { PhotoPicker, fotosExistentes, type FotoItem } from "../components/PhotoPicker";
 import type { Catch, CatchInput, FishSpecies, FishingSpot, OutOfRangeDetail } from "../types";
 import "./LogCatchPage.css";
@@ -403,7 +404,7 @@ export function LogCatchPage() {
         <div className="captura-coordenada">
           {coordenada ? (
             <p className="campo-dica">
-              📍 {coordenada.latitude}, {coordenada.longitude}{" "}
+              <Icone nome="local" padrao="📍" /> {coordenada.latitude}, {coordenada.longitude}{" "}
               <button type="button" className="link" onClick={() => setCoordenada(null)}>
                 remover
               </button>
@@ -413,7 +414,13 @@ export function LogCatchPage() {
             </p>
           ) : (
             <button type="button" className="secundario" onClick={usarMinhaLocalizacao} disabled={localizando}>
-              {localizando ? "Localizando…" : "📍 Usar minha localização atual (opcional)"}
+              {localizando ? (
+                "Localizando…"
+              ) : (
+                <>
+                  <Icone nome="local" padrao="📍" /> Usar minha localização atual (opcional)
+                </>
+              )}
             </button>
           )}
           {erroLocal && <span className="campo-erro">{erroLocal}</span>}

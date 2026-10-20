@@ -899,10 +899,7 @@ html.tema-retro .icone-pixel {
   mask: center / 21px 21px no-repeat;
 }
 
-html.tema-retro .icone-camera { -webkit-mask-image: url("./icones/px/camera.svg"); mask-image: url("./icones/px/camera.svg"); }
-html.tema-retro .icone-galeria { -webkit-mask-image: url("./icones/px/galeria.svg"); mask-image: url("./icones/px/galeria.svg"); }
 html.tema-retro .icone-denunciar { -webkit-mask-image: url("./icones/px/denunciar.svg"); mask-image: url("./icones/px/denunciar.svg"); }
-html.tema-retro .icone-chave { -webkit-mask-image: url("./icones/px/chave.svg"); mask-image: url("./icones/px/chave.svg"); }
 html.tema-retro .icone-lapis { -webkit-mask-image: url("./icones/px/lapis.svg"); mask-image: url("./icones/px/lapis.svg"); }
 
 /* Sprites coloridos (npm run sprites, imagens geradas por IA — ver
@@ -911,7 +908,7 @@ html.tema-retro .icone-lapis { -webkit-mask-image: url("./icones/px/lapis.svg");
    65 × 37, oito numa tira de 520; cadeado de 19 × 24; os ícones da barra e
    do feed abaixo). Aqui só o primeiro quadro do tambaqui, parado — é o "sem
    foto". --k é a escala. */
-html.tema-retro :is(.icone-tambaqui, .icone-cadeado, [class*="icone-barra-"], [class*="icone-feed-"]) {
+html.tema-retro :is(.icone-tambaqui, .icone-cadeado, [class*="icone-barra-"], [class*="icone-feed-"], [class*="icone-foto-"], .icone-local, .icone-config) {
   -webkit-mask: none;
   mask: none;
   background-color: transparent;
@@ -1005,6 +1002,33 @@ html.tema-retro .icone-feed-curtido { background-image: url("./sprites/feed-curt
 html.tema-retro .icone-feed-comentar { background-image: url("./sprites/feed-comentar.png"); }
 html.tema-retro .icone-feed-compartilhar { background-image: url("./sprites/feed-compartilhar.png"); }
 html.tema-retro .icone-feed-moderar { background-image: url("./sprites/feed-moderar.png"); }
+
+/* Botões de foto (Tirar foto, Galeria), localização e Configurações: 1×,
+   centralizados numa caixa do tamanho do maior de cada grupo. */
+html.tema-retro [class*="icone-foto-"] {
+  width: 32px;
+  height: 27px;
+  background-position: center;
+}
+
+html.tema-retro .icone-foto-camera { background-image: url("./sprites/foto-camera.png"); }
+html.tema-retro .icone-foto-galeria { background-image: url("./sprites/foto-galeria.png"); }
+
+html.tema-retro .icone-local {
+  width: 28px;
+  height: 25px;
+  background-image: url("./sprites/local.png");
+  /* O pergaminho claro some no botão de madeira clara (90% da borda só
+     chegava a 2,8:1): contorno de 1 px em madeira escura, sem desfoque. */
+  filter: drop-shadow(1px 0 0 var(--madeira-800)) drop-shadow(-1px 0 0 var(--madeira-800))
+    drop-shadow(0 1px 0 var(--madeira-800)) drop-shadow(0 -1px 0 var(--madeira-800));
+}
+
+html.tema-retro .icone-config {
+  width: 24px;
+  height: 25px;
+  background-image: url("./sprites/config.png");
+}
 
 /* O lugar do 🐟 tinha tamanho de fonte; o sprite tem o próprio. */
 html.tema-retro :is(.especie-foto-vazia, .post-sem-foto) {

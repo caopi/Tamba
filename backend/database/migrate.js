@@ -10,6 +10,12 @@ import mysql from "mysql2/promise";
 
 const PASTA = path.join(path.dirname(fileURLToPath(import.meta.url)), "migrations");
 
+// Sem isto, o mysql2 tenta conectar sem usuário e o erro ("Access denied for
+// user ''") não diz que o problema é a variável faltando.
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL não definida no .env");
+}
+
 const conexao = await mysql.createConnection({
   uri: process.env.DATABASE_URL,
   // Cada arquivo .sql tem vários comandos separados por ';'.

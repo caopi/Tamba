@@ -2,7 +2,8 @@
 
 Diário de pescarias no formato "Pokédex de peixes": o usuário registra as capturas
 (espécie, peso, tamanho, local, foto) e acompanha quais espécies do catálogo ainda
-faltam. Projeto de faculdade (IFSP), de um semestre, tocado por **um dev sozinho**.
+faltam. Projeto de faculdade (IFSP), de um semestre, feito por um grupo de **seis
+pessoas**; a implementação é do Lucas.
 
 > **Regra geral:** simplicidade acima de tudo. Não é código de produção. Antes de
 > introduzir uma biblioteca, um padrão novo ou uma camada de abstração, verifique
@@ -353,8 +354,9 @@ abre uma janela entre a conferência e o INSERT.
   Da API para fora só existem URLs completas — `POST /api/uploads` devolve
   `{ id, url }`, com `id` = chave e `url` = endereço completo, e é essa `url`
   que o frontend manda de volta. Trocar de domínio, de provedor ou pôr uma
-  CDN é trocar a variável, sem mexer no banco. `UPLOADS_PUBLIC_URL` é
-  obrigatória, como o `JWT_SECRET`: sem ela, a API não sobe. Cada usuário tem a sua pasta
+  CDN é trocar a variável, sem mexer no banco. `UPLOADS_PUBLIC_URL` e
+  `PUBLIC_API_URL` são obrigatórias, como o `JWT_SECRET`: sem elas (ou com
+  valor que não seja `http(s)`), a API não sobe. Cada usuário tem a sua pasta
   (`uploads/<id do usuário>/`), e a captura só aceita foto cuja URL esteja na
   pasta do próprio autor — ninguém anexa a foto de outra pessoa copiando a URL
   do feed (`PHOTO_NOT_OWNED`). Na edição, as fotos que a captura já tinha

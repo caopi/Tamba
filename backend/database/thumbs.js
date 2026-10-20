@@ -9,8 +9,13 @@
 
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { ASSETS_DIR } from "../src/lib/storage.js";
+import { fileURLToPath } from "node:url";
 import { pixelVariant, thumbVariant } from "../src/lib/pixel.js";
+
+// A mesma pasta do ASSETS_DIR do lib/storage.js, mas sem importá-lo: o
+// storage exige as variáveis da API (PUBLIC_API_URL...), e este script roda
+// sem .env.
+const ASSETS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../assets");
 
 const pixel = process.argv.includes("--pixel");
 const origem = path.join(ASSETS_DIR, "species");

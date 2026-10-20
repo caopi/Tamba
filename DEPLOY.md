@@ -23,7 +23,7 @@ serve em `/assets`: não precisam de armazenamento externo.
 ## 1. Mudanças de código antes do deploy
 
 Duas mudanças são **obrigatórias** (sem elas o deploy não funciona ou perde
-dados): 1.1 e 1.2. A 1.3 é decisão a tomar antes do lançamento; a 1.4 já foi
+dados): 1.1 e 1.2 (a 1.2 já foi feita). A 1.3 é decisão a tomar antes do lançamento; a 1.4 já foi
 feita (migration 018). O limite de requisições está na seção 7.
 
 ### 1.1 Driver de armazenamento de objetos para os uploads (obrigatório)
@@ -85,17 +85,27 @@ variáveis do bucket, envie uma foto numa captura, confira que ela abre pela
 URL pública e, logado como admin, troque a foto de uma espécie (isso
 exercita `read`).
 
-### 1.2 `npm start` sem arquivo `.env` (obrigatório)
+### 1.2 `npm start` sem arquivo `.env` (feito)
 
-**Por quê.** Os scripts usam `node --env-file=.env`. Em hospedagem, as
+**O que era.** Os scripts usavam `node --env-file=.env`. Em hospedagem, as
 variáveis vêm do painel e não existe `.env`; nesse caso o Node **sai com
 erro** ("not found") antes de subir a API.
 
-**O que mudar** em `backend/package.json`: trocar `--env-file=.env` por
-`--env-file-if-exists=.env` nos scripts `start`, `migrate` e `seed` (pode
-trocar no `dev` também). Exige Node **22.9 ou mais novo**: fixe a versão do
-Node no host (por exemplo, `"engines": { "node": ">=22.9" }` no
-`package.json` do backend, ou a configuração equivalente do provedor).
+**Como ficou.** `start`, `migrate` e `seed` usam
+`--env-file-if-exists=.env`: sem o arquivo, o Node avisa ".env not found.
+Continuing without it." e segue com as variáveis do ambiente. Com os dois, a
+variável do ambiente vence a do arquivo. O `dev` continua com
+`--env-file=.env` de propósito: na máquina de desenvolvimento, faltar o
+`.env` é erro de instalação e deve parar logo.
+
+**Versão do Node.** O `--env-file-if-exists` existe a partir do Node
+**22.9**. O `backend/package.json` fixa `"engines": { "node": "22" }`: o
+Railpack (o construtor do Railway) passa esse valor ao mise sem mexer, e
+"22" quer dizer a mesma coisa para os dois lados — para o npm, qualquer 22.x;
+para o mise, o 22.x mais novo. Sem `engines`, o Railpack usaria a LTS do dia
+do build, que muda sozinha. Ao trocar de versão maior, troque aqui e teste
+local antes. Confira no log do primeiro build qual versão o Railway instalou
+(seção 5).
 
 ### 1.3 Confirmação de e-mail (decisão, não bloqueia)
 
@@ -168,7 +178,7 @@ comentada: `backend/.env.example`.
 | `JWT_EXPIRES_IN` | `7d` | Não há refresh token. |
 | `PORT` | o que o host definir | Muitos hosts injetam `PORT` sozinhos; a API usa 3333 se faltar. |
 | `CORS_ORIGIN` | `https://tamba.exemplo.com.br` | Endereço exato do frontend, sem barra no final. Ver seção 3. |
-| `PUBLIC_API_URL` | `https://api.exemplo.com.br` | Endereço público da API, **sem** `/api`. É a base das fotos do catálogo (`/assets/...`). |
+| `PUBLIC_API_URL` | `https://api.exemplo.com.br` | Endereço público da API, **sem** `/api`. É a base das fotos do catálogo (`/assets/...`). **Obrigatória**: a API não sobe sem ela, nem com valor que não seja `http(s)`. |
 | `UPLOADS_PUBLIC_URL` | `https://fotos.exemplo.com.br` | Endereço público das fotos enviadas. **Obrigatória**: a API não sobe sem ela. Pode mudar depois (o banco guarda só a chave; seção 1.4). |
 | `FRONTEND_URL` | `https://tamba.exemplo.com.br` | Para onde o link de confirmação de e-mail redireciona. |
 | `EMAIL_VERIFICATION_URL` | `https://api.exemplo.com.br/api/auth/verify-email` | Link que vai no e-mail de confirmação. |

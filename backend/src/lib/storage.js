@@ -39,18 +39,21 @@ export const ASSETS_DIR = path.resolve(
   "../../assets",
 );
 
+// As duas bases de imagem são obrigatórias, como o JWT_SECRET: são a única
+// coisa que transforma o que o banco guarda em endereço que abre. Sem elas
+// (ou com um valor torto), toda foto daria 404 em silêncio e pareceria
+// defeito do upload ou do catálogo, não da configuração.
+
 // Endereço público da própria API, base dos caminhos relativos ("/assets/...").
-const API_PUBLICA = (process.env.PUBLIC_API_URL ?? "http://localhost:3333").replace(/\/+$/, "");
+const API_PUBLICA = lerUrlObrigatoria("PUBLIC_API_URL", "endereço público da API, sem /api");
 
 // Endereço público das fotos enviadas (em desenvolvimento, a própria API).
-// Obrigatório, como o JWT_SECRET: é a única coisa que transforma as chaves do
-// banco em endereço que abre. Sem ela, toda foto daria 404 em silêncio e
-// pareceria defeito do upload, não da configuração.
-const URL_UPLOADS = lerUrlUploads(process.env.UPLOADS_PUBLIC_URL);
+const URL_UPLOADS = lerUrlObrigatoria("UPLOADS_PUBLIC_URL", "endereço público das fotos enviadas");
 
-function lerUrlUploads(valor) {
+function lerUrlObrigatoria(nome, descricao) {
+  const valor = process.env[nome];
   if (!valor) {
-    throw new Error("UPLOADS_PUBLIC_URL não definido no .env (endereço público das fotos enviadas)");
+    throw new Error(`${nome} não definido no .env (${descricao})`);
   }
   let url = null;
   try {
@@ -59,7 +62,7 @@ function lerUrlUploads(valor) {
     // cai no erro abaixo
   }
   if (!url || (url.protocol !== "http:" && url.protocol !== "https:")) {
-    throw new Error(`UPLOADS_PUBLIC_URL inválido: "${valor}" (precisa ser um endereço http(s) completo)`);
+    throw new Error(`${nome} inválido: "${valor}" (precisa ser um endereço http(s) completo)`);
   }
   return valor.replace(/\/+$/, "");
 }

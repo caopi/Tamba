@@ -471,6 +471,81 @@ alguém.
 - `backend/assets/` vai junto com o código (está no git) e é servido em
   `/assets`. Nada a fazer.
 
+### 5.1 No Railway, passo a passo
+
+No mesmo projeto do MySQL. Todos os campos estão no painel do serviço da
+API; nada disso vai para o repositório.
+
+1. **Criar o serviço.** No projeto: **+ New → GitHub Repo →
+   `caopi/Tamba`** (na primeira vez, autorize o app do Railway no GitHub).
+   O primeiro build pode falhar antes do passo 2: a raiz do repositório não
+   tem `package.json`, e o Railpack não sabe o que construir.
+2. **Pasta do backend.** **Settings → Source**:
+   - **Root Directory:** `/backend` — o repositório tem `frontend/` e
+     `backend/` lado a lado; o Railpack lê o `backend/package.json`
+     (`engines`, `npm ci`, `npm start`).
+   - **Watch Paths:** `/backend/**` — commit só no frontend ou nos docs não
+     refaz o deploy da API (e não derruba a API alguns segundos à toa; seção
+     1.1).
+3. **Domínio público.** **Settings → Networking → Generate Domain**. Aceite
+   a porta que ele sugerir: a API escuta na `PORT` que o Railway injeta
+   (não defina `PORT`). Isso cria o `RAILWAY_PUBLIC_DOMAIN` que as
+   variáveis abaixo usam, então vem **antes** delas.
+4. **Volume das fotos.** No canvas do projeto, **Ctrl+K → New Volume** (ou
+   clique com o botão direito no canvas → **Volume**), escolha o serviço da
+   API e ponha o **Mount Path** `/data`. Um serviço só tem um volume; o do
+   MySQL é outro.
+5. **Variáveis.** **Variables → Raw Editor**, cole e salve:
+
+   ```
+   NODE_ENV=production
+   DATABASE_URL=${{MySQL.MYSQL_URL}}
+   JWT_EXPIRES_IN=7d
+   PUBLIC_API_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+   UPLOADS_PUBLIC_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}/uploads
+   UPLOADS_DIR=/data/uploads
+   EMAIL_VERIFICATION_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}/api/auth/verify-email
+   REQUIRE_EMAIL_VERIFICATION=false
+   SEED_DEV_USERS=false
+   REPORT_HIDE_THRESHOLD=3
+   TRUST_PROXY=1
+   ```
+
+   Depois, à parte, **+ New Variable** `JWT_SECRET`, com o valor gerado na
+   sua máquina direto para a área de transferência (não aparece na tela nem
+   fica no histórico):
+
+   ```powershell
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" | Set-Clipboard
+   ```
+
+   O `JWT_SECRET` fica fora do bloco de propósito: sem ele a API **não
+   sobe**, o que é melhor do que subir com um texto de exemplo esquecido no
+   lugar do segredo.
+
+   Ficam para o passo 6 (dependem do domínio da Vercel): `CORS_ORIGIN` e
+   `FRONTEND_URL`. Até lá o CORS libera só `http://localhost:5173`, e o
+   site ainda não existe mesmo. `ADMIN_EMAIL` não vai na API: só o seed usa,
+   e o seed roda da máquina local (seção 4.4).
+6. **Health check.** **Settings → Deploy → Healthcheck Path:**
+   `/api/health`.
+7. **Pre-deploy Command** (opcional; ver seção 4.6): `npm run migrate`.
+8. **Deploy.** Aplique as mudanças pendentes (**Deploy**).
+
+**Conferência do primeiro deploy:**
+
+- [ ] Log do **build**: o Node instalado é 22.x (`engines`, seção 1.2) e o
+      `sharp` instalou sem erro.
+- [ ] Log do **deploy**: `Tamba API rodando ...` e `Fotos enviadas em
+      /data/uploads`. Se em vez disso aparecer um erro de variável
+      (`PUBLIC_API_URL inválido: "https://"`, por exemplo), a referência
+      ao domínio veio vazia: confira o passo 3.
+- [ ] `https://<domínio>/api/health` responde `{"status":"ok"}`.
+- [ ] Em `https://<domínio>/api/species`, o `imageUrl` das espécies começa
+      com `https://<domínio>/assets/` e abre a foto.
+- [ ] Se o log disser que a pasta não aceita escrita (`EACCES`), acrescente
+      `RAILWAY_RUN_UID=0` nas variáveis: o volume é montado como root.
+
 ---
 
 ## 6. Frontend: build e hospedagem

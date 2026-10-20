@@ -21,7 +21,30 @@ function lerTrustProxy(valor) {
   return Number(valor);
 }
 
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173" }));
+app.use(cors({ origin: lerOrigemCors(process.env.CORS_ORIGIN) }));
+
+/**
+ * Uma origem só, a do frontend. Sem a variável, a do Vite local: fechado
+ * para qualquer outro site, nunca "*". Com valor, ele tem de ser exatamente
+ * uma origem — esquema e domínio, sem caminho nem barra no final. O navegador
+ * manda "https://tamba.vercel.app"; um "https://tamba.vercel.app/" nunca
+ * casaria, e o site quebraria por CORS sem nenhum erro na API.
+ */
+function lerOrigemCors(valor) {
+  if (!valor) return "http://localhost:5173";
+  let origem = null;
+  try {
+    origem = new URL(valor).origin;
+  } catch {
+    // cai no erro abaixo
+  }
+  if (origem !== valor) {
+    throw new Error(
+      `CORS_ORIGIN inválido: "${valor}" (precisa ser só esquema e domínio, sem barra no final, ex.: https://tamba.vercel.app)`,
+    );
+  }
+  return valor;
+}
 app.use(express.json());
 
 // Fotos enviadas (driver de disco local do lib/storage.js). Fora de /api:

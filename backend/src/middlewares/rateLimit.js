@@ -43,11 +43,21 @@ export const limiteLogin = limite({
   mensagem: "Muitas tentativas de login. Espere alguns minutos e tente de novo.",
 });
 
-// 20, não 5: numa apresentação, a turma inteira se cadastra da mesma rede,
-// atrás de um IP só.
+// 20 por padrão, não 5: numa apresentação, a turma inteira se cadastra da
+// mesma rede, atrás de um IP só. Vem do ambiente (SIGNUP_LIMIT_PER_HOUR)
+// para dar para subir no dia sem mexer no código: mudar a variável no
+// Railway refaz o deploy, o que também zera as contagens.
+const CADASTROS_POR_HORA = (() => {
+  const valor = Number(process.env.SIGNUP_LIMIT_PER_HOUR ?? 20);
+  if (!Number.isInteger(valor) || valor < 1) {
+    throw new Error("SIGNUP_LIMIT_PER_HOUR precisa ser um inteiro maior ou igual a 1");
+  }
+  return valor;
+})();
+
 export const limiteCadastro = limite({
   minutos: 60,
-  maximo: 20,
+  maximo: CADASTROS_POR_HORA,
   mensagem: "Muitos cadastros feitos desta rede. Tente de novo mais tarde.",
 });
 

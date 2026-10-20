@@ -174,7 +174,7 @@ comentada: `backend/.env.example`.
 | `JWT_SECRET` | valor longo e aleatório | Gere com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. A API não sobe sem ele. Trocar depois desloga todo mundo. |
 | `JWT_EXPIRES_IN` | `7d` | Não há refresh token. |
 | `PORT` | o que o host definir | Muitos hosts injetam `PORT` sozinhos; a API usa 3333 se faltar. |
-| `CORS_ORIGIN` | `https://tamba.exemplo.com.br` | Endereço exato do frontend, sem barra no final. Ver seção 3. |
+| `CORS_ORIGIN` | `https://tamba.exemplo.com.br` | Endereço exato do frontend, sem barra no final. Valor que não seja só esquema e domínio (com barra, caminho ou maiúscula) **impede a API de subir**. Sem a variável, só `http://localhost:5173` é liberado — nunca `*`. Ver seção 3. |
 | `PUBLIC_API_URL` | `https://api.exemplo.com.br` | Endereço público da API, **sem** `/api`. É a base das fotos do catálogo (`/assets/...`). **Obrigatória**: a API não sobe sem ela, nem com valor que não seja `http(s)`. |
 | `UPLOADS_PUBLIC_URL` | `https://api.exemplo.com.br/uploads` | Endereço público das fotos enviadas. **Obrigatória**: a API não sobe sem ela. Pode mudar depois (o banco guarda só a chave; seção 1.4). |
 | `FRONTEND_URL` | `https://tamba.exemplo.com.br` | Para onde o link de confirmação de e-mail redireciona. |
@@ -182,6 +182,7 @@ comentada: `backend/.env.example`.
 | `REQUIRE_EMAIL_VERIFICATION` | `false` | Ver seção 1.3. |
 | `SEED_DEV_USERS` | `false` | **Nunca** `true` em produção: cria contas com a senha pública `admin123`. |
 | `ADMIN_EMAIL` | e-mail do primeiro admin | Usado só pelo seed. Ver seção 4.4. |
+| `SIGNUP_LIMIT_PER_HOUR` | `20` | Cadastros por hora por IP (seção 7). Opcional; inteiro ≥ 1. |
 | `TRUST_PROXY` | `1` | Número de proxies na frente da API, para o limite de requisições ver o IP do usuário. **Confira depois do deploy** (seção 7). |
 | `REPORT_HIDE_THRESHOLD` | `3` | Quantas denúncias de pessoas diferentes ocultam uma captura. `1` é só para demonstração. |
 | `UPLOADS_DIR` | `/data/uploads` | Pasta das fotos enviadas, dentro do volume montado em `/data`. **Obrigatória** com `NODE_ENV=production`. Ver seção 1.1. |
@@ -206,9 +207,13 @@ comentada: `backend/.env.example`.
 ## 3. CORS
 
 - A API libera **uma única origem**, a de `CORS_ORIGIN`
-  (`backend/src/app.js`). Coloque o endereço exato do frontend: esquema,
-  domínio e porta, se houver, sem barra no final
-  (`https://tamba.exemplo.com.br`).
+  (`backend/src/app.js`). Sem a variável, libera só `http://localhost:5173`:
+  o primeiro deploy, antes do passo 6, fica fechado para qualquer site, não
+  aberto. CORS só vale para navegador — a API continua alcançável por
+  `curl`; quem protege é o login e o limite de requisições (seção 7).
+- Coloque o endereço exato do frontend: esquema, domínio e porta, se houver,
+  sem barra no final (`https://tamba.exemplo.com.br`). Outro formato impede
+  a API de subir.
 - `https://tamba.exemplo.com.br` e `https://www.tamba.exemplo.com.br` são
   origens diferentes. Escolha uma e redirecione a outra para ela no host do
   frontend. Se precisar de mais de uma (por exemplo, URLs de preview), mude o
@@ -612,7 +617,7 @@ rotas que alguém de fora abusaria:
 | Rota | Limite | Chave | Por quê |
 | --- | --- | --- | --- |
 | `POST /api/auth/login` | 10 **erradas** por 15 min | IP | Só a tentativa que falha conta: quem divide o IP não gasta o limite entrando com a senha certa. |
-| `POST /api/auth/signup` | 20 por hora | IP | Não 5: numa apresentação, a turma se cadastra da mesma rede, atrás de um IP só. |
+| `POST /api/auth/signup` | 20 por hora (`SIGNUP_LIMIT_PER_HOUR`) | IP | Não 5: numa apresentação, a turma se cadastra da mesma rede, atrás de um IP só. Para subir no dia, mude a variável no Railway: refaz o deploy (alguns segundos fora do ar, seção 1.1) e zera as contagens, sem mexer no código. |
 | `POST /api/auth/resend-verification` | 3 por hora | IP | |
 | `POST /api/uploads` | 30 por hora | id do usuário logado | Três capturas com 10 fotos. Vem depois do `requireAuth`. |
 

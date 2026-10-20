@@ -354,16 +354,84 @@ Env:DATABASE_URL` no PowerShell) e **desligue o Public Networking** do
 serviço MySQL no Railway. Confira que o `MYSQL_PUBLIC_URL` sumiu ou ficou
 vazio na aba Variables.
 
-### 4.4 Primeiro admin
+### 4.4 Primeiro admin (e qualquer seed depois do primeiro deploy)
 
 O seed **não cria** a conta do admin; só promove uma conta que já existe. Não
 há rota para virar admin. Ordem:
 
 1. Com a API e o frontend no ar, cadastre-se pelo app com o e-mail do admin.
-2. Defina `ADMIN_EMAIL` com esse e-mail.
-3. Rode `npm run seed` **de novo**. Deve aparecer "`<e-mail>` promovido a
-   admin."
-4. Saia e entre de novo no app para o papel novo valer.
+2. Rode o seed com `ADMIN_EMAIL` = esse e-mail (abaixo). Deve aparecer
+   "`<e-mail>` promovido a admin."
+3. Saia e entre de novo no app para o papel novo valer.
+
+**Caminho padrão: `railway ssh`, de dentro do container da API.** O
+container já tem `NODE_ENV=production`, `SEED_DEV_USERS=false` e o
+`DATABASE_URL` da **rede privada**: nada passa pelo proxy público, e o
+Public Networking do MySQL continua desligado. Foi assim que o primeiro admin
+foi promovido (20/10/2026).
+
+Preparação, uma vez por máquina (Railway CLI instalado, `railway login` e
+`railway link` feitos **na pasta do repositório** — o vínculo é por pasta:
+fora dela o CLI diz "No linked project found"):
+
+1. **Chave SSH**, se a máquina não tiver (no Windows, `~/.ssh` pode nem
+   existir):
+
+   ```bash
+   mkdir -p ~/.ssh
+   ssh-keygen -t ed25519 -C "railway-tamba" -f ~/.ssh/id_ed25519
+   ```
+
+   Use uma **senha (passphrase)** na chave: sem ela, qualquer programa
+   rodando com o seu usuário abre um shell em produção. Para pôr senha numa
+   chave que já existe: `ssh-keygen -p -f ~/.ssh/id_ed25519`.
+2. **Registrar a chave no Railway pelo comentário, não pelo caminho.** Com o
+   caminho, o CLI responde "Key not found" (no Windows, ao menos):
+
+   ```bash
+   railway ssh keys add --key railway-tamba --name <nome da máquina>
+   railway ssh keys list
+   ```
+3. **Aceitar a chave do servidor na primeira conexão.** Sem terminal (num
+   script, ou com a entrada redirecionada), o SSH não consegue perguntar e
+   falha com "Host key verification failed". O `railway ssh` liga em
+   `ssh.railway.com`, cuja chave, vista em 20/10/2026, é:
+
+   ```
+   ssh.railway.com ED25519 SHA256:+S1xg92FrnHz6pY3bpkmh1OGtWQGNANXilPzlxA7B1g
+   ```
+
+   O Railway não publica essa impressão digital; ela fica registrada **aqui**
+   para que uma troca seja percebida, não aceita em silêncio. Confira antes
+   de aceitar:
+
+   ```bash
+   ssh-keyscan ssh.railway.com 2>/dev/null | ssh-keygen -lf -
+   ```
+
+   Se der o mesmo `SHA256:+S1xg...`, acrescente ao `known_hosts`:
+   `ssh-keyscan ssh.railway.com 2>/dev/null >> ~/.ssh/known_hosts`. **Se der
+   outro valor, pare** e confirme com o Railway antes (pode ser troca legítima
+   da chave deles, ou alguém no meio do caminho). Depois disso, se a chave
+   mudar, o SSH recusa conectar.
+
+O seed, da pasta do repositório (pede a senha da chave):
+
+```bash
+railway ssh -- 'cd /app && ADMIN_EMAIL=<e-mail> npm run seed'
+```
+
+Sem `ADMIN_EMAIL`, o mesmo comando só reaplica o catálogo (depois de mudar o
+`seed.js`, por exemplo). Para conferir antes, sem mexer em nada:
+`railway ssh -- 'echo $NODE_ENV $SEED_DEV_USERS'` tem de mostrar
+`production false`.
+
+**Caminho alternativo: da máquina local, com Public Networking.** Só se o
+`railway ssh` não estiver disponível: o roteiro da seção 4.3 (PowerShell
+com o `MYSQL_PUBLIC_URL` mascarado, `NODE_ENV=production`,
+`SEED_DEV_USERS=false` e `ADMIN_EMAIL` definidos no shell), terminando com o
+Public Networking **desligado** de novo. Passa pelo proxy público sem TLS
+(seção 4.2).
 
 ### 4.5 Sem os triggers da migration 007 (MySQL gerenciado)
 
@@ -448,12 +516,15 @@ grupo fazer push de uma migration e a API nova subir contra o schema velho.
   aplicada — por isso cada migration faz uma coisa só (como a 007).
 - **Sem migration nova, ele não faz nada** ("Nada a fazer, o banco já está
   atualizado.") e o deploy segue normalmente.
-- **Onde ver a saída dele:** no deploy, aba **Deploy Logs**, antes de
-  `Starting Container` (o visualizador às vezes abre no meio: role para
-  cima ou **Load more**), na aba **Observability** do projeto, ou com
-  `railway logs <id do deploy>`. O Railway nem sempre mostra essa saída
-  (há relatos no fórum deles), por isso a conferência abaixo não depende
-  dela.
+- **Onde ver a saída dele** (conferido em 20/10/2026): `railway deployment
+  list` dá o id do deploy, e `railway logs <id>` mostra os dois containers
+  em ordem — primeiro um `Starting Container` **sem** "Mounting volume",
+  com o `> tamba-backend@1.0.0 migrate` e "Nada a fazer..." ou
+  "aplicada: ...", que é o pre-deploy; depois "Mounting volume", outro
+  `Starting Container` e o `npm start`. No painel, é a aba **Deploy Logs**
+  do deploy (o visualizador às vezes abre no meio: role para cima ou **Load
+  more**). Há relatos de o Railway não mostrar essa saída quando o
+  pre-deploy falha, por isso a conferência abaixo não depende dela.
 
 **Conferência obrigatória depois de todo deploy que trouxer migration:**
 abra `https://tamba-production-5fff.up.railway.app/api/health` e confira

@@ -23,7 +23,8 @@ serve em `/assets`: não precisam de armazenamento externo.
 ## 1. Mudanças de código antes do deploy
 
 Duas mudanças são **obrigatórias** (sem elas o deploy não funciona ou perde
-dados). A terceira, limite de requisições, está na seção 7.
+dados): 1.1 e 1.2. A 1.3 e a 1.4 são decisões a tomar antes do lançamento. O
+limite de requisições está na seção 7.
 
 ### 1.1 Driver de armazenamento de objetos para os uploads (obrigatório)
 
@@ -75,6 +76,9 @@ aponta para esse endereço, por exemplo `https://fotos.exemplo.com.br`.
 > esse prefixo. Trocar o domínio depois quebra todas as fotos antigas e
 > impede de editar capturas antigas. Escolha o domínio definitivo antes.
 >
+> Isso é consequência de uma escolha de arquitetura que vale rever antes do
+> lançamento: ver a seção 1.4.
+>
 > Pelo mesmo motivo, **não copie o banco de desenvolvimento** para produção:
 > as fotos dele apontam para `http://localhost:3333/uploads/...`. Produção
 > começa com um banco novo (seção 4).
@@ -104,6 +108,67 @@ o e-mail é impresso no log da API, ninguém o recebe. Portanto, em produção,
 nova conseguiria entrar. Para ligar a confirmação, primeiro escreva um driver
 SMTP com o mesmo `send({ to, subject, text })` (ex.: nodemailer) e coloque as
 credenciais no ambiente.
+
+### 1.4 URLs absolutas das fotos no banco (decidir antes do lançamento)
+
+**O problema.** Para cada foto enviada, o banco guarda o endereço
+**completo**, com domínio:
+`https://fotos.exemplo.com.br/<id do usuário>/<nome>.jpg`. Isso grava o
+domínio dentro dos dados. Qualquer mudança de onde as fotos são servidas
+quebra **todas as linhas já gravadas**:
+
+- trocar de bucket ou de provedor (R2 → S3, por exemplo);
+- pôr uma CDN na frente, com outro domínio;
+- trocar o domínio das fotos.
+
+Não é só a imagem que some: o `belongsTo` compara esse prefixo, então as
+capturas antigas também deixam de poder ser editadas (as fotos delas passam a
+parecer "de outra pessoa").
+
+Colunas afetadas: `catch_photos.url`, `users.avatar_url` e, quando o admin
+envia a foto de uma espécie, `fish_species.image_url` e
+`fish_species.image_thumb_url`.
+
+**Por que foi feito assim.** Era o caminho mais simples com o driver de
+disco local: `getUrl` devolve a URL pronta, o banco guarda o que o frontend
+mandou, e a leitura não precisa montar nada.
+
+**A alternativa: guardar a chave relativa e montar a URL na leitura.** É o
+que o projeto já faz com as fotos do catálogo: o banco guarda
+`/assets/species/tambaqui.webp` e `publicUrl()` (`lib/storage.js`) junta a
+base na hora de responder. Para os uploads seria igual:
+
+- o banco guarda só a chave, `<id do usuário>/<nome>.jpg`;
+- a API monta `UPLOADS_PUBLIC_URL + "/" + chave` em toda resposta;
+- trocar de bucket, de provedor ou pôr uma CDN vira trocar uma variável de
+  ambiente e copiar os arquivos, sem tocar no banco.
+
+**O que custaria mudar** (estimativa: meio dia a um dia de trabalho, mais
+testes):
+
+| Parte | O que muda |
+| --- | --- |
+| `lib/storage.js` | `getUrl` passa a ser só a montagem da URL a partir da chave; `belongsTo` vira uma função que recebe a URL vinda do cliente, confere o dono e devolve a chave (ou recusa). |
+| Gravação, 3 serviços | `catch.service.js` (fotos da captura, incluindo a regra de aceitar as fotos que a captura já tinha na edição), `user.service.js` (avatar) e `species.service.js` (foto e miniatura da espécie): convertem a URL recebida em chave antes de gravar. |
+| Leitura, 5 models | `catch.model.js` (fotos e avatar do autor), `comment.model.js`, `notification.model.js` e `user.model.js` (avatares) passam a montar a URL; `species.model.js` já passa por `publicUrl` e só precisa reconhecer a chave de upload. |
+| Frontend | Nada: a API continua recebendo e devolvendo URLs completas. |
+| Dados existentes | Uma conversão que tira o prefixo das linhas antigas. Num banco de produção **novo, antes do lançamento, não há linha nenhuma para converter**; os bancos de desenvolvimento podem ser recriados ou convertidos por script. Links externos antigos (de antes do upload existir) continuam absolutos e passam intactos. |
+
+O fluxo inteiro precisa ser testado de novo: enviar foto, criar e editar
+captura (mantendo, trocando e removendo fotos), avatar, foto de espécie com
+miniatura, e as fotos e avatares no feed, nos comentários e nas
+notificações.
+
+**Por que decidir agora.** Antes do lançamento, a mudança é só de código.
+Depois, cada linha real precisa ser convertida no banco de produção, com
+backup antes, a API parada ou compatível com os dois formatos durante a
+troca, e o risco de perder fotos de usuários se algo der errado.
+
+**Se ficar como está**, a forma de reduzir o risco é servir as fotos por um
+**domínio próprio** (`fotos.exemplo.com.br`, apontado por DNS para o bucket)
+e nunca pelo endereço do provedor. Aí trocar de provedor ou pôr uma CDN é
+mudar o DNS desse domínio, e as URLs gravadas continuam valendo. O domínio em
+si continua sem poder mudar.
 
 ---
 
@@ -161,16 +226,20 @@ comentada: `backend/.env.example`.
 
 ### 4.1 Requisitos do MySQL
 
+Confira os três itens **antes de contratar o provedor**:
+
 - **MySQL 8.0.19 ou mais novo.** MariaDB não serve: o seed usa
   `INSERT ... AS novo ON DUPLICATE KEY UPDATE` e o banco usa a collation
   `utf8mb4_0900_ai_ci`, ambos exclusivos do MySQL 8.
-- Suporte a **chaves estrangeiras**, **CHECK constraints** e **triggers**.
-  Alguns MySQL gerenciados não aceitam trigger: confirme antes de contratar.
-- **`log_bin_trust_function_creators = 1`.** A migration 007 cria triggers;
-  com binary log ligado (padrão do MySQL 8), sem essa opção o migrate falha
-  com o erro 1419. Em MySQL gerenciado, isso se liga no painel do provedor
-  (grupo de parâmetros ou equivalente), porque o `SET PERSIST` de
-  `setup.sql` exige privilégio de root.
+- Suporte a **chaves estrangeiras** e **CHECK constraints** (obrigatório).
+- **Permissão para criar trigger** (desejável, não obrigatório). A migration
+  007 cria dois triggers; com binary log ligado (padrão do MySQL 8), isso
+  exige privilégio SUPER ou `log_bin_trust_function_creators = 1`. Localmente
+  isso se resolve com `SET PERSIST` como root (`setup.sql`), mas MySQL
+  gerenciado quase nunca dá root. Pergunte ao provedor, ou procure na
+  documentação, se dá para ligar `log_bin_trust_function_creators` no painel
+  (grupo de parâmetros ou equivalente). Se não der, siga a seção 4.5: o app
+  funciona sem os triggers.
 
 ### 4.2 Criar o banco e o usuário
 
@@ -199,6 +268,10 @@ npm run migrate   # aplica as migrations 001 a 017, em ordem
 npm run seed      # catálogo de espécies e pesqueiros de exemplo
 ```
 
+Se o `migrate` parar na `007_follows_no_self_trigger.sql` com o erro 1419
+(ou 1227, "access denied"), o provedor não deixa criar trigger: siga a
+seção 4.5 e depois continue daqui.
+
 - O **migrate** anota o que já rodou na tabela `schema_migrations` e só
   aplica o que falta. Rodar de novo é seguro; é o que se faz a cada deploy
   que trouxer migration nova, **antes** de subir a versão nova da API.
@@ -218,6 +291,65 @@ há rota para virar admin. Ordem:
 3. Rode `npm run seed` **de novo**. Deve aparecer "`<e-mail>` promovido a
    admin."
 4. Saia e entre de novo no app para o papel novo valer.
+
+### 4.5 Sem os triggers da migration 007 (MySQL gerenciado)
+
+**O que os triggers fazem.** Barram no próprio banco que um usuário siga a
+si mesmo (RGN-15), num `INSERT` ou `UPDATE` em `follows`. Seria um `CHECK`,
+mas o MySQL não aceita `CHECK` em coluna com chave estrangeira `ON DELETE
+CASCADE`, por isso trigger.
+
+**O que se perde sem eles: só a segunda trava.** A regra continua valendo
+pela camada de serviço, onde já é conferida hoje:
+`backend/src/services/social.service.js`, função `follow`, recusa com erro
+422 quando `followerId === followingId`. É o único caminho do código que
+grava em `follows` (`socialModel` só faz `INSERT`, e só a partir dali), e
+nenhum faz `UPDATE`. O que deixaria de ser barrado é um `INSERT` feito à mão
+no banco ou por código novo que não passe por esse serviço.
+
+**Como pular a 007 em produção.** A migration foi isolada num arquivo só
+para isso: o primeiro comando dela já falha, então nada fica aplicado pela
+metade.
+
+1. Rode `npm run migrate`. Ele aplica 001 a 006 e para na 007 com erro.
+2. Conecte no banco e marque a 007 como aplicada, sem rodá-la:
+
+   ```sql
+   INSERT INTO schema_migrations (filename) VALUES ('007_follows_no_self_trigger.sql');
+   ```
+
+3. Rode `npm run migrate` de novo. Ele aplica 008 a 017.
+4. Confira que nenhum trigger foi criado pela metade:
+   `SHOW TRIGGERS LIKE 'follows';` deve voltar vazio.
+5. Continue com o `npm run seed` (seção 4.3).
+
+Nenhuma migration depois da 007 depende dos triggers.
+
+**Como aplicar mais tarde**, se o provedor passar a permitir (ou se o banco
+mudar para um que permita):
+
+1. Ligue `log_bin_trust_function_creators = 1` no painel do provedor.
+2. Confira que não há nenhum "seguir a si mesmo" gravado (o trigger só barra
+   linhas novas, não confere as que já existem):
+
+   ```sql
+   SELECT COUNT(*) FROM follows WHERE follower_id = following_id;  -- tem que dar 0
+   ```
+
+   Se der mais que 0, apague essas linhas antes.
+3. Tire a marcação e rode o migrate. Ele aplica só a 007, porque as outras
+   continuam anotadas:
+
+   ```sql
+   DELETE FROM schema_migrations WHERE filename = '007_follows_no_self_trigger.sql';
+   ```
+
+   ```bash
+   npm run migrate
+   ```
+
+4. `SHOW TRIGGERS LIKE 'follows';` deve listar `trg_follows_no_self_insert` e
+   `trg_follows_no_self_update`.
 
 ---
 
@@ -319,7 +451,7 @@ O que **precisa**:
    ```
 
    `--triggers` é necessário: sem ele, o dump perde os triggers da migration
-   007. Guarde os dumps **fora** do servidor do banco (no próprio bucket, numa
+   007 (se eles tiverem sido aplicados; ver a seção 4.5). Guarde os dumps **fora** do servidor do banco (no próprio bucket, numa
    pasta privada separada, por exemplo).
 
 2. **Bucket das fotos.** Ligue o versionamento de objetos ou uma cópia

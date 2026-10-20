@@ -6,6 +6,7 @@ import { speciesRoutes } from "./species.routes.js";
 import { spotRoutes } from "./spot.routes.js";
 import { adminRoutes } from "./admin.routes.js";
 import { uploadRoutes } from "./upload.routes.js";
+import { health } from "../controllers/health.controller.js";
 import {
   feedRoutes,
   dexRoutes,
@@ -16,7 +17,7 @@ import {
 
 export const routes = Router();
 
-routes.get("/health", (_req, res) => res.json({ status: "ok" }));
+routes.get("/health", health);
 
 routes.use("/auth", authRoutes);
 routes.use("/users", userRoutes);

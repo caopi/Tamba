@@ -448,6 +448,42 @@ grupo fazer push de uma migration e a API nova subir contra o schema velho.
   aplicada — por isso cada migration faz uma coisa só (como a 007).
 - **Sem migration nova, ele não faz nada** ("Nada a fazer, o banco já está
   atualizado.") e o deploy segue normalmente.
+- **Onde ver a saída dele:** no deploy, aba **Deploy Logs**, antes de
+  `Starting Container` (o visualizador às vezes abre no meio: role para
+  cima ou **Load more**), na aba **Observability** do projeto, ou com
+  `railway logs <id do deploy>`. O Railway nem sempre mostra essa saída
+  (há relatos no fórum deles), por isso a conferência abaixo não depende
+  dela.
+
+**Conferência obrigatória depois de todo deploy que trouxer migration:**
+abra `https://tamba-production-5fff.up.railway.app/api/health` e confira
+que a resposta é exatamente `{"status":"ok"}`. A API compara os `.sql` de
+`database/migrations/` com `schema_migrations`; se alguma não foi
+aplicada (o pre-deploy não rodou: campo apagado, configuração errada), a
+resposta vem assim:
+
+```json
+{ "status": "degraded", "pendingMigrations": ["019_....sql"], "error": "Há migrations não aplicadas: ..." }
+```
+
+e o log de **toda** subida da API traz uma faixa `MIGRATIONS PENDENTES:` com
+os nomes. Corrija rodando o migrate (confira o Pre-deploy Command e refaça o
+deploy, ou rode da máquina local pelo roteiro da seção 4.3); o `/api/health`
+volta a `ok` sozinho, sem reiniciar a API. `"degraded"` com `"error": "não
+foi possível conferir..."` é outro problema: a API não alcança o banco.
+
+**Por que só avisa e não recusa subir.** Com o volume, o Railway **para o
+deploy antigo antes de subir o novo** (seção 1.1): se o novo recusasse subir,
+não sobraria nada no ar até alguém com acesso ao Railway corrigir — e esse
+alguém é uma pessoa. Um erro de configuração viraria site fora do ar. Só
+avisando, o pior caso é algumas rotas darem 500 (as que usam o que a
+migration criaria) e o resto do app continuar demonstrável; nada é gravado
+errado, porque escrever numa coluna que falta falha em vez de gravar outra
+coisa. O `/api/health` responde **sempre 200** pelo mesmo motivo: o health
+check do Railway continua aprovando o deploy, e quem lê o `status` é gente.
+O risco que sobra — o problema passar dias despercebido — é o que a
+conferência obrigatória acima cobre. A falha **do** migrate no pre-deploy é
+outra história: aí o deploy novo não acontece e o antigo segue no ar.
 
 **Só o migrate; o seed continua manual.** O seed não volta a desativar nem
 ativar nada (não mexe em `is_active`), mas **recria espécie que o admin
@@ -487,7 +523,8 @@ que o deploy vai mexer no banco de produção.
   do build que o `sharp` instalou sem erro.
 - Comando de início: `npm start` (com a mudança da seção 1.2).
 - Teste de saúde: `GET /api/health` responde `{"status":"ok"}`. Use como
-  health check do host.
+  health check do host. Responde **sempre 200**; `"status": "degraded"` no
+  corpo indica migration pendente ou banco inacessível (seção 4.6).
 - Sirva a API por **HTTPS**. O frontend vai estar em HTTPS, e o navegador
   bloqueia chamadas de uma página HTTPS para uma API HTTP.
 - `backend/assets/` vai junto com o código (está no git) e é servido em
@@ -768,7 +805,8 @@ da API guarda as fotos.
 
 ## 9. Conferência depois do deploy
 
-- [ ] `https://api.exemplo.com.br/api/health` responde `{"status":"ok"}`.
+- [ ] `https://tamba-production-5fff.up.railway.app/api/health` responde
+      exatamente `{"status":"ok"}` — não `"degraded"` (seção 4.6).
 - [ ] O site abre e a Dex mostra as fotos do catálogo (testa
       `PUBLIC_API_URL`).
 - [ ] O console do navegador não mostra erro de CORS (testa `CORS_ORIGIN`).

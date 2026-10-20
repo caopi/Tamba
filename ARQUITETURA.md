@@ -368,6 +368,12 @@ abre uma janela entre a conferência e o INSERT.
   segundos fora do ar por deploy e 5 GB no plano Hobby (DEPLOY.md, 1.1). Se
   um dia precisar de bucket, a chave relativa no banco deixa a troca em
   copiar os arquivos e escrever o driver.
+- **Migration pendente avisa, não derruba.** Na subida e no `/api/health`, a
+  API compara os `.sql` de `database/migrations/` com `schema_migrations`
+  (`lib/migrations.js`). Pendente vira faixa `MIGRATIONS PENDENTES` no log e
+  `"status": "degraded"` no health — que responde sempre 200. Não recusa
+  subir de propósito: com o volume, o deploy antigo já parou, e recusar
+  deixaria o site fora do ar por um erro de configuração (DEPLOY.md, 4.6).
 - **Validação do upload pelo conteúdo.** O tipo do arquivo é decidido pelos
   primeiros bytes (JPEG, PNG ou WebP), nunca pelo MIME nem pela extensão que o
   cliente manda. O nome do arquivo é gerado no servidor (32 hex aleatórios); o

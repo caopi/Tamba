@@ -359,6 +359,13 @@ Tudo do tema mora em `frontend/src/styles/retro/`.
 
 ---
 
+## Deploy
+
+O roteiro do primeiro deploy em produção (o que falta no código, variáveis de
+ambiente, banco, hospedagem e backups) está em [DEPLOY.md](DEPLOY.md).
+
+---
+
 ## Problemas comuns
 
 **`Can't reach database server at localhost:3306`** — o serviço do MySQL não está

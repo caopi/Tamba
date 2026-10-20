@@ -173,7 +173,7 @@ comentada: `backend/.env.example`.
 | Variável | Valor em produção | Observação |
 | --- | --- | --- |
 | `NODE_ENV` | `production` | Faz o seed recusar as contas de desenvolvimento. |
-| `DATABASE_URL` | `mysql://usuario:senha@host:3306/tamba` | Senha com `@ : # /` precisa ser codificada em URL (`@` vira `%40`). Se o provedor exigir TLS, acrescente `?ssl={"rejectUnauthorized":true}` (o `mysql2` lê o JSON da query string) e teste a conexão com `npm run migrate`. |
+| `DATABASE_URL` | No Railway: `${{MySQL.MYSQL_URL}}` (referência, ver abaixo). Fora dele: `mysql://usuario:senha@host:3306/tamba` | Senha com `@ : # /` precisa ser codificada em URL (`@` vira `%40`). Se o provedor exigir TLS, acrescente `?ssl={"rejectUnauthorized":true}` (o `mysql2` lê o JSON da query string) e teste a conexão com `npm run migrate`. |
 | `JWT_SECRET` | valor longo e aleatório | Gere com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. A API não sobe sem ele. Trocar depois desloga todo mundo. |
 | `JWT_EXPIRES_IN` | `7d` | Não há refresh token. |
 | `PORT` | o que o host definir | Muitos hosts injetam `PORT` sozinhos; a API usa 3333 se faltar. |
@@ -187,6 +187,15 @@ comentada: `backend/.env.example`.
 | `ADMIN_EMAIL` | e-mail do primeiro admin | Usado só pelo seed. Ver seção 4.4. |
 | `REPORT_HIDE_THRESHOLD` | `3` | Quantas denúncias de pessoas diferentes ocultam uma captura. `1` é só para demonstração. |
 | `S3_*` | credenciais do bucket | Criadas na seção 1.1. |
+
+> **No Railway, `DATABASE_URL` da API é sempre `${{MySQL.MYSQL_URL}}`**, a
+> URL da **rede privada** (`*.railway.internal`), digitada assim mesmo no
+> painel: o Railway troca a referência pelo valor e a senha nunca é copiada à
+> mão. **Nunca** o `MYSQL_PUBLIC_URL`: esse passa pelo proxy TCP público, é
+> mais lento, é cobrado como tráfego de saída e só funciona enquanto o
+> Public Networking do MySQL estiver ligado — que fica **desligado** (seção
+> 4.2). `MySQL` é o nome do serviço do banco no projeto; se ele tiver outro
+> nome, a referência muda junto.
 
 ### 2.2 Frontend (`frontend/`)
 
@@ -217,35 +226,71 @@ comentada: `backend/.env.example`.
 
 ### 4.1 Requisitos do MySQL
 
-Confira os três itens **antes de contratar o provedor**:
-
 - **MySQL 8.0.19 ou mais novo.** MariaDB não serve: o seed usa
   `INSERT ... AS novo ON DUPLICATE KEY UPDATE` e o banco usa a collation
   `utf8mb4_0900_ai_ci`, ambos exclusivos do MySQL 8.
 - Suporte a **chaves estrangeiras** e **CHECK constraints** (obrigatório).
 - **Permissão para criar trigger** (desejável, não obrigatório). A migration
   007 cria dois triggers; com binary log ligado (padrão do MySQL 8), isso
-  exige privilégio SUPER ou `log_bin_trust_function_creators = 1`. Localmente
-  isso se resolve com `SET PERSIST` como root (`setup.sql`), mas MySQL
-  gerenciado quase nunca dá root. Pergunte ao provedor, ou procure na
-  documentação, se dá para ligar `log_bin_trust_function_creators` no painel
-  (grupo de parâmetros ou equivalente). Se não der, siga a seção 4.5: o app
-  funciona sem os triggers.
+  exige privilégio SUPER ou `log_bin_trust_function_creators = 1`. Se não
+  houver nenhum dos dois, siga a seção 4.5: o app funciona sem os triggers.
 
-### 4.2 Criar o banco e o usuário
+**Confira tudo de uma vez com `npm run check-db`** (`database/check.js`),
+apontando o `DATABASE_URL` para o banco novo. Só lê: mostra versão, usuário,
+plugin de autenticação, TLS, binary log, SUPER e se o banco está vazio, e diz
+se a 007 deve passar ou cair na seção 4.5. Não imprime a senha.
 
-`backend/database/setup.sql` foi feito para a máquina local: cria o usuário
-`'tamba'@'localhost'` e usa `SET PERSIST`. Em produção, faça o equivalente
-pelo painel do provedor ou como administrador do banco:
+### 4.2 No Railway: o banco já vem pronto (MySQL 8.4)
+
+O Railway cria o banco e o usuário sozinho, a partir da imagem oficial
+`mysql`. Em 20/10/2026 o serviço subiu com **MySQL 8.4.11** — atende o
+requisito de 8.0.19+. Três diferenças em relação à máquina local, para
+ninguém refazer a investigação:
+
+1. **`setup.sql` não se aplica.** Ele foi feito para a máquina local: cria
+   o banco `tamba` e o usuário `tamba@localhost`, e roda
+   `SET PERSIST log_bin_trust_function_creators` como root. No Railway o
+   banco e o usuário já existem (o nome do banco e o usuário estão nas
+   variáveis do serviço MySQL, aba **Variables**: `MYSQLDATABASE`,
+   `MYSQLUSER`); não rode o `setup.sql` lá. As tabelas declaram a própria
+   collation (`utf8mb4_0900_ai_ci`), então o padrão do banco não importa.
+2. **Triggers da 007.** No 8.4 o binary log continua ligado por padrão, e
+   `log_bin_trust_function_creators` está **obsoleta (deprecated), mas ainda
+   existe** e ainda vale para trigger. Não há painel de parâmetros no Railway
+   para ligá-la, e o `SET PERSIST` do `setup.sql` não é o caminho. Então
+   depende do usuário do `DATABASE_URL`: com SUPER (root tem), a 007 passa
+   direto; sem SUPER, falha com o erro 1419 e segue-se a seção 4.5. O
+   `npm run check-db` diz qual dos dois antes de rodar.
+3. **Autenticação.** No 8.4 o padrão é `caching_sha2_password`, que o
+   `mysql2` suporta; o `mysql_native_password` vem **desligado** (só é
+   removido no 9.0). Se a conexão falhar, leia o código do erro antes de
+   trocar a senha: `ER_ACCESS_DENIED_ERROR` (1045, "Access denied for
+   user") é usuário ou senha errados; "Unknown authentication plugin",
+   "Client does not support authentication protocol" ou
+   `ER_NOT_SUPPORTED_AUTH_MODE` é problema de plugin de autenticação.
+
+**Qual endereço usar.** A API, rodando no próprio Railway, usa o
+`MYSQL_URL` (rede privada; ver a seção 2.1). Para rodar `migrate`, `seed`
+e `check-db` da sua máquina, use o `MYSQL_PUBLIC_URL`, que só existe com o
+**Public Networking** ligado no serviço MySQL (Settings → Networking). Os
+dois têm a senha: copie do painel direto para o shell, nunca para o
+repositório nem para mensagem.
+
+> **O Public Networking do MySQL é temporário.** Ligue só para rodar os
+> comandos da sua máquina e **desligue logo depois** (Settings → Networking,
+> remover o domínio público do TCP Proxy). A API não precisa dele, e um
+> banco alcançável pela internet, com dados reais de usuários, é superfície
+> de ataque à toa. O estado normal do banco em produção é **sem** acesso
+> público.
+
+**Fora do Railway**, num MySQL em que você é administrador, o equivalente
+ao `setup.sql` é:
 
 ```sql
 CREATE DATABASE tamba CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE USER 'tamba'@'%' IDENTIFIED BY '<senha forte>';
 GRANT ALL PRIVILEGES ON tamba.* TO 'tamba'@'%';
 ```
-
-Restrinja o `'%'` ao endereço do servidor da API, se o provedor permitir.
-Monte o `DATABASE_URL` com esse usuário.
 
 ### 4.3 Ordem: migrate, depois seed
 
@@ -259,6 +304,14 @@ npm run migrate   # aplica as migrations 001 a 018, em ordem
 npm run seed      # catálogo de espécies e pesqueiros de exemplo
 ```
 
+> **Rodando da máquina de desenvolvimento:** os scripts leem o
+> `backend/.env` se ele existir, e o de desenvolvimento tem
+> `SEED_DEV_USERS=true`. Variável definida no shell vence a do arquivo, mas
+> só as que você definir. Antes do `seed`, defina no shell, além do
+> `DATABASE_URL`: `NODE_ENV=production`, `SEED_DEV_USERS=false` e
+> `ADMIN_EMAIL` (vazio na primeira vez). Senão o seed cria as contas
+> `admin@tamba.local` com a senha pública `admin123` no banco de produção.
+
 Se o `migrate` parar na `007_follows_no_self_trigger.sql` com o erro 1419
 (ou 1227, "access denied"), o provedor não deixa criar trigger: siga a
 seção 4.5 e depois continue daqui.
@@ -271,6 +324,11 @@ seção 4.5 e depois continue daqui.
 - Com `NODE_ENV=production` e `SEED_DEV_USERS=false`, nenhuma conta de teste
   é criada. Confira no log que o aviso "CONTAS DE DESENVOLVIMENTO" **não**
   aparece.
+
+**Para terminar (não pule):** feche o shell (ou `Remove-Item
+Env:DATABASE_URL` no PowerShell) e **desligue o Public Networking** do
+serviço MySQL no Railway. Confira que o `MYSQL_PUBLIC_URL` sumiu ou ficou
+vazio na aba Variables.
 
 ### 4.4 Primeiro admin
 
@@ -319,7 +377,10 @@ Nenhuma migration depois da 007 depende dos triggers.
 **Como aplicar mais tarde**, se o provedor passar a permitir (ou se o banco
 mudar para um que permita):
 
-1. Ligue `log_bin_trust_function_creators = 1` no painel do provedor.
+1. Garanta a permissão: rode a 007 com um usuário que tenha SUPER, ou ligue
+   `log_bin_trust_function_creators = 1` (no Railway, acrescentando
+   `--log-bin-trust-function-creators=ON` ao comando de início do serviço
+   MySQL). Confira com `npm run check-db`.
 2. Confira que não há nenhum "seguir a si mesmo" gravado (o trigger só barra
    linhas novas, não confere as que já existem):
 
@@ -341,6 +402,35 @@ mudar para um que permita):
 
 4. `SHOW TRIGGERS LIKE 'follows';` deve listar `trg_follows_no_self_insert` e
    `trg_follows_no_self_update`.
+
+### 4.6 Quem roda as migrations depois do primeiro deploy
+
+**Hoje: o Lucas, da máquina dele**, com o Public Networking do MySQL ligado
+só durante o comando — o mesmo roteiro da seção 4.3 (só o `npm run migrate`;
+o seed só se o catálogo mudou), terminando com o Public Networking
+desligado. Ninguém mais do grupo roda migration em produção.
+
+**O risco que isso cobre.** Alguém do grupo faz push de uma migration nova,
+o deploy da API sai, e ninguém roda o migrate: a API nova sobe contra o
+schema velho e quebra em produção (coluna que não existe, tabela que
+falta). Por isso:
+
+- **Migration nova em `database/migrations/` = avise o Lucas antes do
+  merge**, e diga isso na descrição do commit.
+- **Ordem: migrate primeiro, deploy da API depois.** As migrations do
+  projeto acrescentam (coluna nova, tabela nova, dado corrigido); a API
+  antiga continua funcionando com o schema novo, a nova não funciona com o
+  velho.
+- Se o deploy saiu antes, rode o migrate o quanto antes; não precisa
+  reverter o deploy, só completar o schema.
+
+**Alternativa a considerar: pre-deploy command do Railway.** Nas Settings
+do serviço da API, um *Pre-deploy Command* `npm run migrate` roda depois do
+build e antes de cada deploy, num container separado, **pela rede privada**
+e com as variáveis da API — sem Public Networking e sem depender de alguém
+lembrar. Se o migrate falhar, o deploy não acontece. Não está ligado hoje
+porque a 007 precisa ser resolvida à mão no primeiro deploy (seção 4.5);
+depois dela, é a opção mais segura. Se ligar, o seed continua manual.
 
 ---
 

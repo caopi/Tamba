@@ -261,6 +261,13 @@ ninguém refazer a investigação:
    depende do usuário do `DATABASE_URL`: com SUPER (root tem), a 007 passa
    direto; sem SUPER, falha com o erro 1419 e segue-se a seção 4.5. O
    `npm run check-db` diz qual dos dois antes de rodar.
+
+   **O que aconteceu no Railway (20/10/2026): a 007 passou direto**, sem o
+   procedimento da seção 4.5. O `check-db` mostrou binary log **desligado**
+   nessa instância (ao contrário do padrão do MySQL 8.4) e usuário com SUPER
+   — qualquer um dos dois bastaria. Os dois triggers existem em produção.
+   Não planeje em torno do pulo da 007 no Railway; a seção 4.5 fica para
+   outro provedor.
 3. **Autenticação.** No 8.4 o padrão é `caching_sha2_password`, que o
    `mysql2` suporta; o `mysql_native_password` vem **desligado** (só é
    removido no 9.0). Se a conexão falhar, leia o código do erro antes de
@@ -268,6 +275,12 @@ ninguém refazer a investigação:
    user") é usuário ou senha errados; "Unknown authentication plugin",
    "Client does not support authentication protocol" ou
    `ER_NOT_SUPPORTED_AUTH_MODE` é problema de plugin de autenticação.
+
+**O que o Railway entrega** (conferido no primeiro deploy): banco
+`railway`, usuário `root@%`. A API usa esse mesmo usuário pelo
+`${{MySQL.MYSQL_URL}}`. Ter um usuário só com `ALL` em `railway.*` para a
+API seria o mínimo privilégio; não foi feito — para o tamanho do projeto, o
+banco não tem outro dado nem outro serviço a proteger.
 
 **Qual endereço usar.** A API, rodando no próprio Railway, usa o
 `MYSQL_URL` (rede privada; ver a seção 2.1). Para rodar `migrate`, `seed`
@@ -282,6 +295,13 @@ repositório nem para mensagem.
 > banco alcançável pela internet, com dados reais de usuários, é superfície
 > de ataque à toa. O estado normal do banco em produção é **sem** acesso
 > público.
+>
+> **Pelo proxy público, a conexão do primeiro deploy foi sem TLS.** A senha
+> não trafega em claro (o `caching_sha2_password` troca a senha cifrada),
+> mas o resto do tráfego sim. No primeiro deploy só passou schema e o
+> catálogo; com dados reais de usuários no banco, é mais um motivo para as
+> migrations rodarem pela rede privada (pre-deploy command, seção 4.6) em
+> vez da máquina local.
 
 **Fora do Railway**, num MySQL em que você é administrador, o equivalente
 ao `setup.sql` é:
@@ -342,6 +362,9 @@ há rota para virar admin. Ordem:
 4. Saia e entre de novo no app para o papel novo valer.
 
 ### 4.5 Sem os triggers da migration 007 (MySQL gerenciado)
+
+> No Railway não foi preciso: a 007 passou direto (seção 4.2). Isto vale
+> para um provedor que não dê SUPER com binary log ligado.
 
 **O que os triggers fazem.** Barram no próprio banco que um usuário siga a
 si mesmo (RGN-15), num `INSERT` ou `UPDATE` em `follows`. Seria um `CHECK`,
@@ -428,9 +451,11 @@ falta). Por isso:
 do serviço da API, um *Pre-deploy Command* `npm run migrate` roda depois do
 build e antes de cada deploy, num container separado, **pela rede privada**
 e com as variáveis da API — sem Public Networking e sem depender de alguém
-lembrar. Se o migrate falhar, o deploy não acontece. Não está ligado hoje
-porque a 007 precisa ser resolvida à mão no primeiro deploy (seção 4.5);
-depois dela, é a opção mais segura. Se ligar, o seed continua manual.
+lembrar. Se o migrate falhar, o deploy não acontece. O motivo para não
+ligar no primeiro deploy era a 007 talvez precisar ser resolvida à mão
+(seção 4.5); como ela passou direto, esse motivo não existe mais. Se ligar,
+o seed continua manual, e esta seção muda: o migrate deixa de ser tarefa de
+alguém.
 
 ---
 

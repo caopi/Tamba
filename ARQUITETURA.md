@@ -360,12 +360,14 @@ abre uma janela entre a conferência e o INSERT.
   (`uploads/<id do usuário>/`), e a captura só aceita foto cuja URL esteja na
   pasta do próprio autor — ninguém anexa a foto de outra pessoa copiando a URL
   do feed (`PHOTO_NOT_OWNED`). Na edição, as fotos que a captura já tinha
-  continuam aceitas, para dar para reordenar ou remover as antigas. **Em produção isso não serve**: o disco
-  do servidor some a cada novo deploy, não é compartilhado entre instâncias e
-  não tem backup. Produção precisaria de um armazenamento de objetos (S3,
-  Cloudinary ou equivalente), de preferência atrás de uma CDN, com as
-  credenciais no ambiente do servidor — e de `UPLOADS_PUBLIC_URL` apontando
-  para lá.
+  continuam aceitas, para dar para reordenar ou remover as antigas. **Em produção, o mesmo driver grava
+  num volume do Railway** (disco persistente montado no container), na pasta
+  de `UPLOADS_DIR` — obrigatória com `NODE_ENV=production`, porque o disco
+  do container some a cada deploy. Escolhido no lugar de um driver S3: zero
+  código novo, ao custo de uma instância só, uma região só, sem CDN, alguns
+  segundos fora do ar por deploy e 5 GB no plano Hobby (DEPLOY.md, 1.1). Se
+  um dia precisar de bucket, a chave relativa no banco deixa a troca em
+  copiar os arquivos e escrever o driver.
 - **Validação do upload pelo conteúdo.** O tipo do arquivo é decidido pelos
   primeiros bytes (JPEG, PNG ou WebP), nunca pelo MIME nem pela extensão que o
   cliente manda. O nome do arquivo é gerado no servidor (32 hex aleatórios); o

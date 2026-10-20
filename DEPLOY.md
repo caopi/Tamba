@@ -12,7 +12,7 @@ O que vai para o ar são quatro peças:
 | --- | --- | --- |
 | API | Node + Express (`backend/`), sobe com `npm start` | — |
 | Banco | MySQL 8 | — |
-| Fotos enviadas | arquivos das capturas, avatares e fotos de espécie enviadas pelo admin | disco local, `backend/uploads/` (só serve para desenvolvimento) |
+| Fotos enviadas | arquivos das capturas, avatares e fotos de espécie enviadas pelo admin | disco local: `backend/uploads/` no desenvolvimento, um **volume do Railway** em produção (seção 1.1) |
 | Frontend | site estático gerado por `npm run build` (`frontend/dist/`) | — |
 
 As fotos do catálogo (`backend/assets/`) estão no git e a própria API as
@@ -22,68 +22,65 @@ serve em `/assets`: não precisam de armazenamento externo.
 
 ## 1. Mudanças de código antes do deploy
 
-Duas mudanças são **obrigatórias** (sem elas o deploy não funciona ou perde
-dados): 1.1 e 1.2 (a 1.2 já foi feita). A 1.3 é decisão a tomar antes do lançamento; a 1.4 já foi
-feita (migration 018). O limite de requisições está na seção 7.
+Duas mudanças eram **obrigatórias** (sem elas o deploy não funciona ou perde
+dados), e as duas já foram feitas: 1.1 e 1.2. A 1.3 é decisão a tomar antes
+do lançamento; a 1.4 também já foi feita (migration 018). O limite de
+requisições está na seção 7.
 
-### 1.1 Driver de armazenamento de objetos para os uploads (obrigatório)
+### 1.1 Fotos enviadas num volume persistente (feito)
 
-**Por quê.** Hoje as fotos enviadas vão para `backend/uploads/`, no disco do
-servidor. Em hospedagem de aplicação esse disco é apagado a cada deploy, não
-é compartilhado entre instâncias e não tem backup: as fotos sumiriam.
+**Por quê.** No desenvolvimento as fotos vão para `backend/uploads/`, no
+disco do servidor. Em hospedagem esse disco é apagado a cada deploy: as fotos
+sumiriam.
 
-**Onde.** `backend/src/lib/storage.js`. O resto do código só conhece as
-funções exportadas; basta escrever um driver novo nesse arquivo e trocar a
-linha `const driver = localDriver;`. Serve qualquer serviço compatível com S3
-(Cloudflare R2, AWS S3, Backblaze B2...), por exemplo com o pacote
-`@aws-sdk/client-s3`.
+**Decisão: volume do Railway + o driver de disco local que já existe**, em
+vez de escrever um driver S3. O volume é um disco persistente montado no
+container da API; o `localDriver` grava nele como grava no
+`backend/uploads/`, e a própria API serve os arquivos em `/uploads`. Nada
+de cliente S3 novo para escrever e testar, nem credencial de bucket.
 
-**O contrato que o driver novo precisa cumprir** (são os dois métodos do
-`localDriver`, e os dois são usados):
+**Como ficou no código.** A pasta vem de `UPLOADS_DIR`
+(`lib/storage.js`). Sem ela, `backend/uploads/` (desenvolvimento); com
+`NODE_ENV=production`, ela é **obrigatória** — sem a variável, as fotos iriam
+para o disco do container em silêncio e sumiriam no deploy seguinte. Na
+subida, a API cria a pasta se faltar e confere que aceita escrita, e
+escreve no log onde estão as fotos ("Fotos enviadas em ..."). No Railway:
+volume montado em `/data` e `UPLOADS_DIR=/data/uploads` (seção 5).
+
+**O que trocamos por essa simplicidade** (conferido na documentação do
+Railway em 20/10/2026; reveja se algo mudar de escala):
+
+| Limite | O que significa |
+| --- | --- |
+| **Uma instância só** | O Railway não permite réplicas num serviço com volume. A API não escala na horizontal; o limite de requisições em memória (seção 7) vale para o todo justamente por isso. |
+| **Uma região só** | O volume fica na região do serviço; a API não pode ir para outra região sem levar (copiar) o volume. |
+| **Sem CDN** | Toda foto passa pelo Node da API, e o tráfego conta como saída (US$ 0,05/GB). Os arquivos já saem com `Cache-Control` de um ano (`immutable`), então o navegador não baixa de novo. |
+| **Indisponibilidade curta a cada deploy** | Dois deploys não podem montar o mesmo volume ao mesmo tempo: o antigo para antes de o novo subir, mesmo com health check. Alguns segundos fora do ar por deploy. |
+| **5 GB no plano Hobby** | ~15 mil fotos de ~300 KB (o frontend comprime para 1600 px). O volume só cresce: nada apaga as fotos órfãs (ver "Problemas conhecidos" na ARQUITETURA). |
+
+**Se um dia sair do volume** (escala, CDN, várias instâncias), a 1.4 já deixou
+o caminho curto: o banco guarda só a chave, então é copiar os arquivos para o
+bucket, trocar `UPLOADS_PUBLIC_URL` e escrever um driver S3 com os mesmos
+dois métodos do `localDriver`, sem tocar no banco:
 
 | Método | Quem usa | O que precisa fazer |
 | --- | --- | --- |
-| `save({ buffer, extension, ownerId })` | upload de foto (`upload.service.js`) e miniatura da foto de espécie (`species.service.js`) | Validar `ownerId` com o regex `UUID` do arquivo, gerar o nome com `randomBytes(16).toString("hex")` + `.` + `extension`, gravar no bucket com a chave `<ownerId>/<nome>` e devolver essa chave. Enviar `ContentType` certo (`image/jpeg`, `image/png` ou `image/webp`) e `Cache-Control: public, max-age=31536000, immutable` (o nome é aleatório e nunca muda). |
-| `read(chave)` | gera a miniatura quando o admin troca a foto de uma espécie | Conferir o formato da chave (como o `localDriver` faz) e baixar o objeto do bucket (`GetObject`), devolvendo um `Buffer`. |
+| `save({ buffer, extension, ownerId })` | upload de foto (`upload.service.js`) e miniatura da foto de espécie (`species.service.js`) | Validar `ownerId` com o regex `UUID` do arquivo, gerar o nome com `randomBytes(16).toString("hex")` + `.` + `extension`, gravar no bucket com a chave `<ownerId>/<nome>` e devolver essa chave. Enviar `ContentType` certo e `Cache-Control: public, max-age=31536000, immutable`. |
+| `read(chave)` | gera a miniatura quando o admin troca a foto de uma espécie | Conferir o formato da chave (como o `localDriver` faz) e baixar o objeto do bucket, devolvendo um `Buffer`. |
 
-O resto não depende do driver e fica como está: `publicUrl` monta
-`UPLOADS_PUBLIC_URL/<chave>` e `ownedKey` confere o dono pela URL que vem do
-cliente (seção 1.4). Mantenha o formato de chave `<ownerId>/<32 hex>.<ext>`:
-é dele que o `ownedKey` depende.
-
-**Credenciais.** Ficam só no ambiente do servidor, nunca no git. Os nomes
-abaixo são sugestão (ainda não existem no código); se mudar, atualize a
-tabela da seção 2 e o `backend/.env.example`:
-
-```
-S3_ENDPOINT="https://<id da conta>.r2.cloudflarestorage.com"   # R2; na AWS, omita
-S3_REGION="auto"                                              # R2 usa "auto"
-S3_BUCKET="tamba-uploads"
-S3_ACCESS_KEY_ID="..."
-S3_SECRET_ACCESS_KEY="..."
-```
-
-A chave de acesso precisa só de leitura e escrita **nesse bucket**.
-
-**Acesso público.** O navegador abre as fotos direto do bucket, então ele
-precisa de leitura pública (no R2: domínio próprio ligado ao bucket; o
-endereço `*.r2.dev` é limitado e não é para produção). `UPLOADS_PUBLIC_URL`
-aponta para esse endereço, por exemplo `https://fotos.exemplo.com.br`.
+O resto não depende do driver: `publicUrl` monta `UPLOADS_PUBLIC_URL/<chave>`
+e `ownedKey` confere o dono (seção 1.4). Credenciais do bucket só no
+ambiente do servidor, com permissão só naquele bucket.
 
 > **`UPLOADS_PUBLIC_URL` pode mudar** (seção 1.4): o banco guarda só a
-> chave, e trocar o domínio é trocar a variável e copiar os arquivos. Ela é
-> **obrigatória**: a API não sobe sem ela, nem com um valor que não seja um
-> endereço `http(s)` completo.
+> chave. Ela é **obrigatória**: a API não sobe sem ela, nem com um valor que
+> não seja um endereço `http(s)` completo. Com o volume, ela é
+> `https://<domínio da API>/uploads`.
 >
-> Mesmo assim, **não copie o banco de desenvolvimento** para produção: as
-> chaves dele apontam para arquivos que só existem no disco da máquina de
+> **Não copie o banco de desenvolvimento** para produção: as chaves dele
+> apontam para arquivos que só existem no disco da máquina de
 > desenvolvimento, e ele tem contas de teste. Produção começa com um banco
 > novo (seção 4).
-
-**Como testar antes do deploy.** Rode a API local com o driver novo e as
-variáveis do bucket, envie uma foto numa captura, confira que ela abre pela
-URL pública e, logado como admin, troque a foto de uma espécie (isso
-exercita `read`).
 
 ### 1.2 `npm start` sem arquivo `.env` (feito)
 
@@ -179,14 +176,14 @@ comentada: `backend/.env.example`.
 | `PORT` | o que o host definir | Muitos hosts injetam `PORT` sozinhos; a API usa 3333 se faltar. |
 | `CORS_ORIGIN` | `https://tamba.exemplo.com.br` | Endereço exato do frontend, sem barra no final. Ver seção 3. |
 | `PUBLIC_API_URL` | `https://api.exemplo.com.br` | Endereço público da API, **sem** `/api`. É a base das fotos do catálogo (`/assets/...`). **Obrigatória**: a API não sobe sem ela, nem com valor que não seja `http(s)`. |
-| `UPLOADS_PUBLIC_URL` | `https://fotos.exemplo.com.br` | Endereço público das fotos enviadas. **Obrigatória**: a API não sobe sem ela. Pode mudar depois (o banco guarda só a chave; seção 1.4). |
+| `UPLOADS_PUBLIC_URL` | `https://api.exemplo.com.br/uploads` | Endereço público das fotos enviadas. **Obrigatória**: a API não sobe sem ela. Pode mudar depois (o banco guarda só a chave; seção 1.4). |
 | `FRONTEND_URL` | `https://tamba.exemplo.com.br` | Para onde o link de confirmação de e-mail redireciona. |
 | `EMAIL_VERIFICATION_URL` | `https://api.exemplo.com.br/api/auth/verify-email` | Link que vai no e-mail de confirmação. |
 | `REQUIRE_EMAIL_VERIFICATION` | `false` | Ver seção 1.3. |
 | `SEED_DEV_USERS` | `false` | **Nunca** `true` em produção: cria contas com a senha pública `admin123`. |
 | `ADMIN_EMAIL` | e-mail do primeiro admin | Usado só pelo seed. Ver seção 4.4. |
 | `REPORT_HIDE_THRESHOLD` | `3` | Quantas denúncias de pessoas diferentes ocultam uma captura. `1` é só para demonstração. |
-| `S3_*` | credenciais do bucket | Criadas na seção 1.1. |
+| `UPLOADS_DIR` | `/data/uploads` | Pasta das fotos enviadas, dentro do volume montado em `/data`. **Obrigatória** com `NODE_ENV=production`. Ver seção 1.1. |
 
 > **No Railway, `DATABASE_URL` da API é sempre `${{MySQL.MYSQL_URL}}`**, a
 > URL da **rede privada** (`*.railway.internal`), digitada assim mesmo no
@@ -217,8 +214,8 @@ comentada: `backend/.env.example`.
   `app.js` para aceitar uma lista, como `CORS_ORIGIN.split(",")`.
 - O login usa token no cabeçalho `Authorization`, não cookie: não é preciso
   `credentials`.
-- As imagens (catálogo e bucket) entram por `<img>`, que não depende de
-  CORS. O bucket não precisa de regra de CORS.
+- As imagens (catálogo e fotos enviadas, as duas servidas pela API) entram
+  por `<img>`, que não depende de CORS.
 
 ---
 
@@ -517,7 +514,7 @@ Publique o conteúdo de `frontend/dist/` num host de site estático.
 
 Hoje a API **não limita** quantas requisições alguém pode fazer. Sem isso,
 dá para testar senhas no login sem parar, criar contas em massa e encher o
-bucket de uploads. Não impede o primeiro deploy, mas deve entrar antes de
+volume das fotos. Não impede o primeiro deploy, mas deve entrar antes de
 divulgar o endereço.
 
 Sugestão: o pacote `express-rate-limit`, aplicado só nas rotas sensíveis
@@ -548,8 +545,15 @@ O que **não** precisa de backup: o código e as fotos do catálogo
 
 O que **precisa**:
 
-1. **Banco.** Ligue o backup automático diário do provedor, se houver, com
-   retenção de pelo menos 7 dias. Se não houver, agende um dump:
+No Railway, banco e fotos são **dois volumes** (o do serviço MySQL e o da
+API), e cada serviço com volume tem uma aba **Backups**: agendamento diário
+(guardado 6 dias), semanal (27 dias) ou mensal (89 dias), incremental,
+cobrado como espaço de volume. Ligue pelo menos o **diário nos dois**.
+Restaurar cria um volume novo a partir do backup e refaz o deploy do serviço;
+o volume antigo fica guardado, desmontado.
+
+1. **Banco.** O backup do volume do MySQL (acima). Fora do Railway, ou como
+   cópia extra fora dele, agende um dump:
 
    ```bash
    mysqldump --single-transaction --routines --triggers \
@@ -557,19 +561,19 @@ O que **precisa**:
    ```
 
    `--triggers` é necessário: sem ele, o dump perde os triggers da migration
-   007 (se eles tiverem sido aplicados; ver a seção 4.5). Guarde os dumps **fora** do servidor do banco (no próprio bucket, numa
-   pasta privada separada, por exemplo).
+   007 (no Railway eles foram aplicados; ver a seção 4.2). Guarde os dumps
+   **fora** do servidor do banco.
 
-2. **Bucket das fotos.** Ligue o versionamento de objetos ou uma cópia
-   periódica para outro bucket. Os arquivos nunca são sobrescritos (nome
-   aleatório, gravação única), então o maior risco é apagar por engano.
+2. **Fotos enviadas.** O backup do volume da API (acima). Os arquivos nunca
+   são sobrescritos (nome aleatório, gravação única), então o maior risco é
+   apagar por engano — ou perder o volume.
 
 3. **Teste a restauração uma vez**, logo depois do primeiro backup:
    restaure o dump num banco vazio e abra o app apontando para ele. Backup
    que nunca foi restaurado não é garantia.
 
-Os dois backups andam juntos: o banco guarda as chaves das fotos, o bucket
-guarda as fotos.
+Os dois backups andam juntos: o banco guarda as chaves das fotos, o volume
+da API guarda as fotos.
 
 ---
 
@@ -581,12 +585,15 @@ guarda as fotos.
 - [ ] O console do navegador não mostra erro de CORS (testa `CORS_ORIGIN`).
 - [ ] `/feed` aberto direto e recarregado não dá 404 (testa a reescrita).
 - [ ] Cadastro e login funcionam.
+- [ ] O log da API, na subida, diz "Fotos enviadas em /data/uploads" (testa
+      `UPLOADS_DIR` e o volume).
 - [ ] Uma captura com foto: a foto abre e a URL dela começa com
-      `UPLOADS_PUBLIC_URL` (testa o driver novo).
-- [ ] A foto continua lá depois de um novo deploy da API.
+      `UPLOADS_PUBLIC_URL`.
+- [ ] A foto continua lá depois de um novo deploy da API (testa o volume: sem
+      ele, ela some aqui).
 - [ ] O admin entra e vê a área de moderação; trocar a foto de uma espécie
       gera a miniatura.
 - [ ] Não existe conta `admin@tamba.local` (testa `SEED_DEV_USERS=false`).
 - [ ] No celular (Chrome no Android), o menu oferece "Instalar app" e o
       ícone instalado é o tambaqui.
-- [ ] O primeiro backup do banco rodou.
+- [ ] O primeiro backup rodou nos dois volumes (MySQL e API).

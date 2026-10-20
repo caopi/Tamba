@@ -19,15 +19,40 @@
 // ver "Problemas conhecidos" na ARQUITETURA.
 
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Pasta dos arquivos do driver local. Servida estaticamente em /uploads. */
-export const UPLOADS_DIR = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../uploads",
-);
+/**
+ * Pasta dos arquivos do driver local. Servida estaticamente em /uploads.
+ *
+ * Vem de UPLOADS_DIR; sem ela, backend/uploads/ (desenvolvimento). Em
+ * produção é obrigatória e aponta para o volume do Railway: o disco do
+ * container é apagado a cada deploy, e sem a variável as fotos iriam para lá
+ * em silêncio e sumiriam no deploy seguinte. Ver DEPLOY.md, seção 1.1.
+ */
+export const UPLOADS_DIR = lerPastaUploads(process.env.UPLOADS_DIR);
+
+function lerPastaUploads(valor) {
+  if (valor) return path.resolve(valor);
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "UPLOADS_DIR não definido: em produção as fotos precisam ir para o volume (disco persistente), senão somem a cada deploy",
+    );
+  }
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../uploads");
+}
+
+/**
+ * Garante que a pasta dos uploads existe e aceita escrita. Chamado antes de a
+ * API aceitar requests: volume não montado ou sem permissão aparece na
+ * subida, não no primeiro upload de alguém.
+ */
+export async function prepararArmazenamento() {
+  await mkdir(UPLOADS_DIR, { recursive: true });
+  await access(UPLOADS_DIR, constants.W_OK);
+}
 
 /**
  * Imagens versionadas no repositório (hoje, as fotos do catálogo de espécies).

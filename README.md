@@ -59,6 +59,7 @@ Abra o `backend/.env` e preencha:
 | `ADMIN_EMAIL` | Conta que o `npm run seed` promove a admin (ver "Primeiro admin" abaixo). |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` liga a confirmação de e-mail no cadastro (RGN-01). Padrão `false`: o cadastro já entra logado. |
 | `UPLOADS_PUBLIC_URL` | Endereço público das fotos enviadas. **Obrigatória** (a API não sobe sem ela); em desenvolvimento, `http://localhost:3333/uploads` (a própria API), como no `.env.example`. |
+| `UPLOADS_DIR` | Pasta onde as fotos enviadas são gravadas. Opcional no desenvolvimento (padrão `backend/uploads/`); obrigatória com `NODE_ENV=production`. |
 | `PUBLIC_API_URL` | Endereço público da própria API, sem `/api`. Base das fotos do catálogo (`/assets/...`). **Obrigatória** (a API não sobe sem ela); em desenvolvimento, `http://localhost:3333`. |
 | `SEED_DEV_USERS` | `true` faz o `npm run seed` criar as contas de desenvolvimento (ver abaixo). Ignorado com `NODE_ENV=production`. |
 

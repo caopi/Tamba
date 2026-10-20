@@ -200,7 +200,7 @@ comentada: `backend/.env.example`.
 
 | Variável | Valor em produção | Observação |
 | --- | --- | --- |
-| `VITE_API_URL` | `https://api.exemplo.com.br/api` | **Com** `/api` no final. É gravada no JavaScript **na hora do build**: defina-a nas variáveis de build do host e gere o build de novo sempre que ela mudar. Sem ela, o site tenta falar com `http://localhost:3333/api`. |
+| `VITE_API_URL` | `https://tamba-production-5fff.up.railway.app/api` | **Com** `/api` no final. É gravada no JavaScript **na hora do build**: defina-a nas variáveis de build do host e gere o build de novo sempre que ela mudar. Sem ela, o site tenta falar com `http://localhost:3333/api`. |
 
 ---
 
@@ -593,8 +593,7 @@ Publique o conteúdo de `frontend/dist/` num host de site estático.
 
   - **Netlify**: arquivo `frontend/public/_redirects` com
     `/*  /index.html  200`
-  - **Vercel**: `frontend/vercel.json` com
-    `{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }`
+  - **Vercel**: `frontend/vercel.json` (já no repositório; ver 6.1).
   - **Cloudflare Pages**: já faz isso sozinho quando não há `404.html` no
     build (não há).
   - **nginx**: `location / { try_files $uri $uri/ /index.html; }`
@@ -606,6 +605,72 @@ Publique o conteúdo de `frontend/dist/` num host de site estático.
   longo. O `index.html` e o `manifest.webmanifest` não: sirva-os com
   `Cache-Control: no-cache`, senão quem já abriu o site continua na versão
   antiga depois de um deploy.
+
+### 6.1 Na Vercel, passo a passo
+
+API em produção: `https://tamba-production-5fff.up.railway.app`.
+
+1. **Importar.** Na Vercel: **Add New → Project → Import** o repositório
+   `caopi/Tamba` (autorize o app da Vercel no GitHub na primeira vez).
+2. **Configure Project:**
+
+   | Campo | Valor |
+   | --- | --- |
+   | Root Directory | `frontend` (botão **Edit**) |
+   | Framework Preset | **Vite** (a Vercel detecta sozinha depois do Root Directory) |
+   | Build Command | `npm run build` (o padrão; roda `tsc -b` e `vite build`) |
+   | Output Directory | `dist` (o padrão do Vite) |
+   | Install Command | o padrão |
+
+   O Node do build tem de ser 20.19+ ou 22.12+ (exigência do Vite 8); o
+   padrão da Vercel atende. Se precisar trocar: **Settings → Build and
+   Deployment → Node.js Version**.
+3. **Environment Variables**, antes do primeiro deploy (é gravada no
+   JavaScript **no build**; mudar depois exige refazer o deploy):
+
+   | Nome | Valor |
+   | --- | --- |
+   | `VITE_API_URL` | `https://tamba-production-5fff.up.railway.app/api` |
+
+   **Com `/api` no final, uma vez só, e sem barra depois.** O frontend só
+   acrescenta o resto: `${VITE_API_URL}/auth/login`, `${VITE_API_URL}/uploads`
+   (`src/api/`), nunca outro `/api` — então não há como virar `/api/api`. Sem
+   o `/api`, toda chamada dá 404 (conferido: `/health` dá 404, `/api/health`
+   dá 200). A barra no final (`/api/`) por acaso funciona (o Express aceita
+   `/api//health`), mas não conte com isso.
+4. **Deploy.** A Vercel dá o domínio de produção, `https://<projeto>.vercel.app`
+   (em **Settings → Domains**). É **esse** que vai no CORS — não as URLs de
+   preview de cada deploy (`<projeto>-<hash>-<conta>.vercel.app`), que são
+   outras origens e ficam bloqueadas pelo CORS de propósito.
+5. **De volta ao Railway**, no serviço da API, **Variables**:
+
+   ```
+   CORS_ORIGIN=https://<projeto>.vercel.app
+   FRONTEND_URL=https://<projeto>.vercel.app
+   ```
+
+   Exatamente o domínio, **sem barra no final** e em minúsculas: outro
+   formato no `CORS_ORIGIN` impede a API de subir (seção 3). Aplicar refaz o
+   deploy da API (alguns segundos fora do ar).
+
+**O `frontend/vercel.json`** faz duas coisas:
+
+- **Reescrita da SPA:** todo caminho que não for arquivo existente serve
+  `/index.html` (a Vercel confere o arquivo antes de reescrever), **menos
+  `/assets/`**: arquivo de build que falta dá 404 de verdade, e não o
+  `index.html` no lugar de um JavaScript.
+- **Cache:** `/assets/*` (nome com hash) com um ano, `immutable`. O resto,
+  `index.html` e `manifest.webmanifest` inclusive, fica no padrão da Vercel
+  (`max-age=0, must-revalidate`): quem já abriu o site pega a versão nova
+  no próximo acesso.
+
+**Conferência:**
+
+- [ ] `https://<projeto>.vercel.app/feed` aberto direto na barra de endereço
+      e recarregado (F5) abre o app, não um 404 da Vercel.
+- [ ] O console do navegador (F12) não mostra erro de CORS no login.
+- [ ] Na aba Network, as chamadas vão para
+      `https://tamba-production-5fff.up.railway.app/api/...` (uma `/api` só).
 
 ---
 

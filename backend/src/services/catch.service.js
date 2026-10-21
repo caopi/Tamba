@@ -10,6 +10,7 @@ import * as speciesModel from "../models/species.model.js";
 import * as spotModel from "../models/spot.model.js";
 import * as userModel from "../models/user.model.js";
 import { withTransaction } from "../lib/db.js";
+import { regiaoDaCoordenada } from "../lib/geocoder.js";
 import { ownedKey, storedRef } from "../lib/storage.js";
 import { httpError } from "../middlewares/errorHandler.js";
 
@@ -132,6 +133,18 @@ async function regiaoDoPesqueiro(spotId, { aceitarDesativado = false } = {}) {
     throw httpError(422, "Esse pesqueiro foi desativado: escolha outro ou digite o local");
   }
   return pesqueiro.location.slice(0, 120);
+}
+
+/**
+ * Região pelo GPS, só como último recurso: com coordenada, sem pesqueiro do
+ * catálogo e sem cidade/região digitada (um nome de local digitado não
+ * conta — é o rótulo, não a região). Em qualquer outro caso vale o que já
+ * existe e não sai chamada externa. Sem resposta, null: fica como antes.
+ * Mesma regra na criação e na edição, com os valores finais.
+ */
+async function regiaoPeloGps({ spotId, region, latitude, longitude }) {
+  if (spotId || region || latitude == null || longitude == null) return null;
+  return regiaoDaCoordenada(latitude, longitude);
 }
 
 /**
@@ -278,8 +291,9 @@ export async function createCatch(userId, entrada) {
   conferirCoordenadas(dados.latitude, dados.longitude);
 
   const especie = await especieParaCaptura(dados.speciesId);
-  const regiao = await regiaoDoPesqueiro(dados.spotId);
+  const regiao = (await regiaoDoPesqueiro(dados.spotId)) ?? dados.region;
   const sinalizada = avaliarFaixa(especie, dados, dados.confirmOutOfRange);
+  const regiaoGps = await regiaoPeloGps({ ...dados, region: regiao });
 
   // Captura e fotos entram juntas, ou nenhuma entra.
   const captura = await withTransaction((conn) =>
@@ -287,7 +301,7 @@ export async function createCatch(userId, entrada) {
       userId,
       {
         ...dados,
-        region: regiao ?? dados.region,
+        region: regiao ?? regiaoGps,
         isFlaggedForReview: sinalizada,
       },
       conn,
@@ -337,6 +351,16 @@ export async function updateCatch(userId, catchId, entrada) {
     });
     if (regiao !== undefined) alteracoes.region = regiao;
   }
+
+  // Valores finais: o que veio na edição, senão o que já estava gravado.
+  const final = (campo) => (campo in alteracoes ? alteracoes[campo] : atual[campo]);
+  const regiaoGps = await regiaoPeloGps({
+    spotId: final("spotId"),
+    region: final("region"),
+    latitude: final("latitude"),
+    longitude: final("longitude"),
+  });
+  if (regiaoGps) alteracoes.region = regiaoGps;
 
   const captura = await withTransaction(async (conn) => {
     await catchModel.updateForUser(catchId, userId, alteracoes, conn);

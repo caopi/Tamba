@@ -94,6 +94,19 @@ export function CreditsPage() {
         </li>
       </ul>
 
+      {/* Exigido pela ODbL: a cidade de uma captura que só tem o GPS vem do
+          OpenStreetMap (lib/geocoder.js no backend). */}
+      <h2 className="creditos-secao">Mapas</h2>
+      <ul className="creditos-tema">
+        <li>
+          <strong>Cidade pela localização</strong> (captura só com o GPS): ©{" "}
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+            OpenStreetMap contributors
+          </a>{" "}
+          · ODbL, consultado pelo Nominatim.
+        </li>
+      </ul>
+
       {/* Sai do banco, como a lista acima: some sozinha quando a última espécie
           ganhar foto. Sem motivo por espécie — o porquê de cada uma muda quando
           chega uma foto, e um texto fixo ficaria errado sem ninguém notar. */}

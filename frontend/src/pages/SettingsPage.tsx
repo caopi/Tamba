@@ -165,6 +165,10 @@ export function SettingsPage() {
           <span className="campo-dica">
             Desligado, os outros veem só a cidade/região; a coordenada exata fica só para você.
           </span>
+          <span className="campo-dica">
+            Se você usar o botão de localização sem escolher um pesqueiro nem preencher a cidade, a coordenada
+            aproximada (cerca de 1 km) é enviada ao OpenStreetMap para descobrir a cidade.
+          </span>
         </fieldset>
 
         <fieldset>

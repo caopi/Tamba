@@ -162,7 +162,7 @@ Para achar: `grep -rn "RGN-08" backend/`.
 | RGN-10 | `dex.service`; `species.model.findDexForUser` | Espécie conta como capturada a partir da primeira captura não oculta |
 | RGN-11 | `species.service` — `createSpecies`, `updateSpecies`; whitelist de `species.model` | Raridade só é gravada pelas rotas de admin; `rarity` no corpo de qualquer outra rota é descartado pelo Zod |
 | RGN-12 | `catch.service.findVisibleCatch`; `catch.model.findFeed` | Feed e capturas de terceiros: só autor ativo e captura não oculta |
-| RGN-13 | `catch.service.toCatchResponse` | Coordenada só sai para terceiros com `share_exact_location`; senão só `region` |
+| RGN-13 | `catch.service.toCatchResponse`; `lib/geocoder.js` | Coordenada só sai para terceiros com `share_exact_location`; senão só `region`. Para o Nominatim (região pelo GPS), só a coordenada arredondada a ~1 km |
 | RGN-14 | `report.service.reportCatch` | N denúncias pendentes de usuários distintos ocultam a captura (`REPORT_HIDE_THRESHOLD`, padrão 3) |
 | RGN-15 | PK de `follows`/`likes`; trigger da migration 007; `social.service` | Não seguir a si mesmo; uma curtida por usuário por captura |
 | RGN-16 | `species.service` — `createSpecies`, `updateSpecies` | Só admin cria/edita espécie |
@@ -364,6 +364,42 @@ abre uma janela entre a conferência e o INSERT.
   salva sem mexer em espécie, peso nem comprimento não pede a confirmação de
   novo. Excluir mora embaixo da edição, separado e em vermelho, com
   confirmação; no histórico do Perfil, cada linha tem só "Editar".
+- **Região pelo GPS (Nominatim) — a única dependência externa em tempo de
+  execução.** Quem usa o botão de localização e não escolhe pesqueiro nem
+  digita a cidade ganha a região ("Cidade, UF") pela geocodificação reversa
+  do Nominatim, do OpenStreetMap (`lib/geocoder.js`, chamado por
+  `catch.service.regiaoPeloGps`). É só último recurso: com pesqueiro do
+  catálogo ou cidade digitada, vale o que existe e não sai chamada nenhuma.
+  Um nome de local digitado não conta — ele é o rótulo, a região é o lugar
+  aproximado que o RGN-13 mostra aos outros ("Pesqueiro Amizade · Bragança
+  Paulista, SP"). Vale igual na criação e na edição (acrescentar o GPS a uma
+  captura antiga preenche a região do mesmo jeito).
+  - **Arredondamento para 2 casas (~1 km) antes de sair do servidor.** Não
+    muda o nome da cidade, e o Nominatim nunca recebe o ponto exato: seria
+    incoerente proteger a coordenada dos outros usuários (RGN-13) e
+    entregá-la a um terceiro. A chamada parte do servidor, então o IP do
+    usuário também não vai. Pede-se o nível de cidade (`zoom=10`): a resposta
+    nem traz rua nem bairro, e só "Cidade, UF" é gravado. Fora do Brasil (sem
+    UF), fica vazio. As Configurações avisam isso numa frase, na seção
+    Privacidade.
+  - **Política de uso do Nominatim.** User-Agent que identifica o app;
+    no máximo 1 requisição por segundo (uma fila, 1,1 s entre chamadas); cache
+    em memória pela coordenada arredondada (até 500), porque capturas
+    repetidas no mesmo pesqueiro são o caso comum. A fila e o cache ficam na
+    memória do processo **porque a API roda numa instância só** — o volume
+    das fotos no Railway não permite réplicas (DEPLOY.md, 1.1). Se um dia
+    houver várias instâncias, o limite de 1/s passa a valer por instância e
+    precisa ir para um lugar comum.
+  - **Fora do ar: falha calada.** Timeout de 2,5 s; erro de rede, timeout,
+    HTTP de erro ou resposta sem cidade dão `null`, só com um aviso no log
+    do servidor. A região fica vazia — "Local não informado", exatamente
+    como antes desta função — e o usuário não vê erro nenhum. Salvar uma
+    captura nesse caso demora até ~3,6 s a mais no pior caso (até 1,1 s de
+    fila, se outra captura acabou de consultar, mais o timeout); com o
+    serviço no ar, cerca de 1 s; nos outros casos, nada muda.
+    Erro não entra no cache: a próxima captura tenta de novo.
+  - **Licença.** Os dados são ODbL: o crédito "© OpenStreetMap
+    contributors" está em `/creditos`.
 - **Fotos em disco local — escolha deliberada de desenvolvimento.** O upload
   (`POST /api/uploads`, multer) grava em `backend/uploads/` e a própria API
   serve os arquivos em `/uploads`. Assim ninguém do grupo precisa de conta ou

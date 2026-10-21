@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCombobox } from "downshift";
 import { speciesApi, spotsApi } from "../api/species";
 import { catchesApi } from "../api/catches";
 import { ApiError } from "../api/client";
@@ -12,10 +13,13 @@ import "./LogCatchPage.css";
 /**
  * Formulário de registro de uma captura.
  *
- * A espécie é escolhida por um <input list> ligado a um <datalist>: o navegador
- * já filtra enquanto o usuário digita, então a busca sai de graça, sem
- * biblioteca e sem componente novo. Como `fish_species.name` é UNIQUE, dá para
- * voltar do nome digitado para o id com segurança.
+ * A espécie é escolhida num combobox com busca (`CampoEspecie`, abaixo). Era
+ * um <input list> + <datalist>, mas a lista do datalist é desenhada pelo
+ * navegador e nenhum CSS a alcança — no tema retrô ficava a única peça com
+ * cara de sistema. O comportamento (papéis ARIA, setas, Enter, Esc, Tab, foco)
+ * vem do `useCombobox` do Downshift; a marcação e o estilo são nossos. Como
+ * `fish_species.name` é UNIQUE, dá para voltar do nome digitado para o id com
+ * segurança — digitar o nome inteiro, sem escolher na lista, também vale.
  *
  * Medida fora da faixa (RGN-08 / REQ-24): quem decide é a API. Se ela
  * responder 422 OUT_OF_RANGE, a tela guarda o que tentou enviar, abre a
@@ -305,24 +309,15 @@ export function LogCatchPage() {
 
       {/* noValidate: a validação é a nossa, para as mensagens saírem em português. */}
       <form className="captura-form" onSubmit={handleSubmit} noValidate>
-        <label>
-          Espécie *
-          <input
-            list="lista-especies"
-            value={nomeEspecie}
-            onChange={(e) => setNomeEspecie(e.target.value)}
-            placeholder={carregando ? "Carregando espécies…" : "Digite para buscar…"}
-            disabled={carregando}
-            aria-invalid={Boolean(erros.especie)}
-          />
-          <datalist id="lista-especies">
-            {especies.map((especie) => (
-              <option key={especie.id} value={especie.name}>
-                {especie.scientificName}
-              </option>
-            ))}
-          </datalist>
-          {erros.especie && <span className="campo-erro">{erros.especie}</span>}
+        {/* key: na edição, remonta com o nome da espécie quando a captura chega. */}
+        <CampoEspecie
+          key={original?.id ?? "nova"}
+          especies={especies}
+          valor={nomeEspecie}
+          aoMudar={setNomeEspecie}
+          carregando={carregando}
+          erro={erros.especie}
+        >
           {especieEscolhida && (
             <span className="campo-dica">
               ✓ {especieEscolhida.scientificName}
@@ -330,7 +325,7 @@ export function LogCatchPage() {
                 ` · faixa esperada: ${[faixaPeso, faixaTamanho].filter(Boolean).join(", ")}`}
             </span>
           )}
-        </label>
+        </CampoEspecie>
 
         <div className="captura-dupla">
           <label>
@@ -488,6 +483,80 @@ export function LogCatchPage() {
         />
       )}
     </section>
+  );
+}
+
+/**
+ * Combobox da espécie: digitar filtra (nome popular ou científico, sem caixa
+ * nem acento — "colossoma" acha o tambaqui), mas a lista mostra só o nome
+ * popular: uma linha por opção, cabem 7 no celular em vez de 5, e o
+ * científico aparece na dica depois de escolher. Setas andam pela lista,
+ * Enter escolhe, Esc fecha (de novo, limpa) e Tab escolhe a destacada e segue. O texto é do Downshift, que só
+ * avisa a página (`aoMudar`); a espécie escolhida continua sendo derivada dele
+ * lá, como antes. Controlar o texto daqui (`inputValue`) perde letras quando
+ * se digita rápido: o aviso chega depois de o React repor o valor antigo.
+ * Não é <label> em volta de tudo: com a lista dentro do rótulo, clicar numa
+ * opção também "clicaria" o rótulo.
+ */
+function CampoEspecie({
+  especies,
+  valor,
+  aoMudar,
+  carregando,
+  erro,
+  children,
+}: {
+  especies: FishSpecies[];
+  valor: string;
+  aoMudar: (valor: string) => void;
+  carregando: boolean;
+  erro?: string;
+  children?: ReactNode;
+}) {
+  const filtradas = useMemo(() => {
+    const busca = normalizar(valor);
+    if (!busca) return especies;
+    return especies.filter(
+      (e) => normalizar(e.name).includes(busca) || normalizar(e.scientificName).includes(busca),
+    );
+  }, [especies, valor]);
+
+  const { isOpen, highlightedIndex, getLabelProps, getInputProps, getMenuProps, getItemProps } = useCombobox({
+    items: filtradas,
+    itemToString: (e) => e?.name ?? "",
+    initialInputValue: valor,
+    onInputValueChange: ({ inputValue }) => aoMudar(inputValue ?? ""),
+  });
+  const aberta = isOpen && filtradas.length > 0;
+
+  return (
+    <div className="especie">
+      <label {...getLabelProps()}>Espécie *</label>
+      <div className="especie-caixa">
+        <input
+          {...getInputProps({
+            placeholder: carregando ? "Carregando espécies…" : "Digite para buscar…",
+            disabled: carregando,
+            "aria-invalid": Boolean(erro),
+          })}
+        />
+        {/* getMenuProps sempre: o Downshift precisa da lista montada, mesmo fechada. */}
+        <ul className="especie-lista" hidden={!aberta} {...getMenuProps()}>
+          {aberta &&
+            filtradas.map((especie, index) => (
+              <li
+                key={especie.id}
+                className={index === highlightedIndex ? "especie-opcao destacada" : "especie-opcao"}
+                {...getItemProps({ item: especie, index })}
+              >
+                {especie.name}
+              </li>
+            ))}
+        </ul>
+      </div>
+      {erro && <span className="campo-erro">{erro}</span>}
+      {children}
+    </div>
   );
 }
 

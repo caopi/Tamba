@@ -521,6 +521,20 @@ abre uma janela entre a conferência e o INSERT.
     `outline` ficaria fora do recorte). Link com cara de botão usa a classe
     `botao`. Os botões das ações do post são de madeira clara: os ícones do
     feed têm contorno escuro, que sumiria no marrom.
+  - **Combobox da espécie (Registrar Captura).** Era um `<input list>` com
+    `<datalist>`, mas a lista do datalist é desenhada pelo navegador (escura,
+    de sistema) e nenhum CSS a alcança. Virou um combobox com busca feito com
+    o `useCombobox` do **Downshift** — a única dependência de interface do
+    frontend (+12,7 KB gzip): papéis ARIA, `aria-activedescendant`, setas,
+    Enter, Esc (fecha; de novo, limpa), Tab (escolhe a destacada) e clique
+    vêm dele; marcação e estilo são nossos. O texto do campo é do Downshift
+    (controlá-lo de fora perde letras ao digitar rápido). A busca vale para
+    o nome popular e o científico, mas a lista mostra só o popular (uma linha
+    por opção: no celular cabem 7 em vez de 5); o científico aparece na dica,
+    depois de escolher. O campo é igual aos vizinhos; no tema, só a lista tem
+    a moldura em degrau dos botões, em madeira, e a opção ativa fica amarela,
+    com os nomes na sans-serif. Sem o tema, a lista é neutra (branca, fio
+    fino) — não volta a ser a do navegador.
   - **Menos intensidade fora da Dex.** A Dex (cartas, itens bloqueados) é a
     única tela "de jogo" e fica com a moldura pesada; nas outras o Layout
     marca `data-tela="outra"`, e painel e cartões ganham fio de 1 px, sem

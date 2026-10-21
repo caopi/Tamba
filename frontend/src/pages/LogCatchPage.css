@@ -100,3 +100,49 @@
   justify-content: space-between;
   gap: 0.75rem;
 }
+
+/* --- Espécie: combobox com busca (CampoEspecie) --- */
+
+/* Mesmo empilhamento dos <label> do formulário: rótulo, campo, dica. */
+.especie {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* A lista abre por cima dos campos de baixo, presa à largura do campo. */
+.especie-caixa {
+  position: relative;
+}
+
+.especie-lista {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: min(18rem, 50vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: 0 6px 18px rgba(15, 43, 48, 0.15);
+}
+
+.especie-lista[hidden] {
+  display: none;
+}
+
+.especie-opcao {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.95rem;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.especie-opcao.destacada {
+  background: var(--agua-clara);
+}

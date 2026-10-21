@@ -1314,3 +1314,38 @@ html.tema-retro .layout[data-tela="outra"] .captura-form {
 /* Botões e abas: a mesma moldura em degrau de todo o app. Ela não afina
    para 1 px aqui: o degrau é feito na unidade de 2 px, e com moldura de
    1 px a escada perderia o desenho. */
+
+/* --- Espécie (Registrar Captura): lista do combobox, 16 bits -------------
+   O campo é igual aos vizinhos (regras gerais de input). Só a lista que abre
+   embaixo dele tem a moldura em degrau dos botões (--degraus e os quadrados
+   de --u nos cantos de dentro), em madeira, com miolo claro; a opção ativa
+   (setas ou mouse) fica amarela. Os nomes ficam na sans-serif (RNF-13). --- */
+html.tema-retro .especie-lista {
+  --e-moldura: var(--madeira-800);
+  top: calc(100% + var(--u));
+  padding: var(--u);
+  border: var(--u) solid transparent;
+  border-radius: 0;
+  background:
+    linear-gradient(var(--e-moldura) 0 0) left var(--u) top var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--e-moldura) 0 0) right var(--u) top var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--e-moldura) 0 0) left var(--u) bottom var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--e-moldura) 0 0) right var(--u) bottom var(--u) / var(--u) var(--u) no-repeat border-box,
+    linear-gradient(var(--retro-50) 0 0) padding-box,
+    linear-gradient(var(--e-moldura) 0 0) border-box;
+  box-shadow: none;
+  clip-path: var(--degraus);
+}
+
+html.tema-retro .especie-opcao {
+  color: var(--retro-950);
+  border-bottom: 1px dashed var(--retro-200);
+}
+
+html.tema-retro .especie-opcao:last-child {
+  border-bottom: none;
+}
+
+html.tema-retro .especie-opcao.destacada {
+  background: var(--retro-amarelo);
+}

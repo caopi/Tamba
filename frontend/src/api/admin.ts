@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { CatchReports, FishSpecies, PublicProfile, SpeciesInput } from "../types";
+import type { CatchReports, FishSpecies, FishingSpot, PublicProfile, SpeciesInput, SpotInput } from "../types";
 
 /**
  * Ações de admin. Não há área de admin no app: estas chamadas aparecem dentro
@@ -25,4 +25,12 @@ export const adminApi = {
     api<FishSpecies>(`/admin/species/${id}`, json("PUT", dados)),
   setSpeciesActive: (id: string, isActive: boolean) =>
     api<FishSpecies>(`/admin/species/${id}/active`, json("PATCH", { isActive })),
+
+  // Pesqueiros (fora dos UCs do documento; ver ARQUITETURA.md)
+  /** Inclui os desativados. */
+  listSpots: () => api<FishingSpot[]>("/admin/spots"),
+  createSpot: (dados: SpotInput) => api<FishingSpot>("/admin/spots", json("POST", dados)),
+  updateSpot: (id: string, dados: SpotInput) => api<FishingSpot>(`/admin/spots/${id}`, json("PUT", dados)),
+  setSpotActive: (id: string, isActive: boolean) =>
+    api<FishingSpot>(`/admin/spots/${id}/active`, json("PATCH", { isActive })),
 };

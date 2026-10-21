@@ -27,6 +27,7 @@ const SELECT_COMPLETO = `
     p.name                   AS pesqueiro_name,
     p.location               AS pesqueiro_location,
     p.google_place_id        AS pesqueiro_google_place_id,
+    p.is_active              AS pesqueiro_is_active,
     u.name                   AS autor_name,
     u.nickname               AS autor_nickname,
     u.avatar_url             AS autor_avatar_url,
@@ -94,6 +95,7 @@ function mapCatch(linha) {
           name: linha.pesqueiro_name,
           location: linha.pesqueiro_location,
           googlePlaceId: linha.pesqueiro_google_place_id,
+          isActive: Boolean(linha.pesqueiro_is_active),
         }
       : null,
     author: {

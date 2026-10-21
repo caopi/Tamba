@@ -92,14 +92,18 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
 - **fishing_spots** — `name` + `location` ("Cidade, UF", que vira a
   `region` da captura). UNIQUE (`name`, `location`), não só no nome: dois
   pesqueiros de cidades diferentes podem ter o mesmo nome (migration 019).
-  `is_active` (019) existe para esconder pesqueiro que fechou sem apagar —
-  as capturas apontam para ele —, mas por enquanto nada o lê nem grava.
+  `is_active` (019) esconde pesqueiro que fechou sem apagar — as capturas
+  apontam para ele: desativado some de `GET /spots` e não entra em captura
+  nova nem em troca de pesqueiro, mas a captura que já aponta para ele
+  continua editável. Pesqueiro com captura nunca é apagado, só desativado
+  (mesma razão do RGN-17); como a FK é `SET NULL`, a regra fica no próprio
+  `DELETE` (`spot.model.removeIfUnused`), não no banco.
   `google_place_id` fica nulo até integrarmos o Google Places; os links de
   Maps (CID) do CSV de origem **não** são Place ID e nunca vão para o banco.
   **Não é catálogo como `fish_species`: é dado de produção**, como capturas
   e usuários. O seed só faz a carga inicial (upsert pela chave única, sem
-  tocar em pesqueiro existente); com a tela de admin de pesqueiros (prevista)
-  eles passam a ser cadastrados, editados e desativados pelo app, e a fonte da
+  tocar em pesqueiro existente); daí em diante o admin cadastra, edita e
+  desativa pelo app (Registrar Captura, ver "Casos de uso"), e a fonte da
   verdade é o banco de produção, não o repositório. **Ninguém deve supor que
   a lista do `seed.js` está completa.** Mudar nome ou cidade no seed cria
   outro pesqueiro, não renomeia. A origem da carga inicial (busca assistida
@@ -179,6 +183,7 @@ e a API recusa (403) para os demais de qualquer jeito.
 | UC008 — seguir | Post, perfil público, aba "Pessoas" do Feed (`/feed?aba=pessoas`) | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
 | UC009 — notificações (REQ-43) | Aba "Notificações" na barra de baixo, com o número de não lidas no ícone; `/notificacoes`: quem fez o quê, marcar uma ou todas como lidas, rolagem infinita | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` → `notification.service` |
 | UC010 — catálogo de espécies | Dex (`/`): "+ Nova espécie"; ficha da espécie: "Editar espécie", "Desativar/Reativar" | `/admin/species` → `species.service` |
+| Pesqueiros (sem UC no documento de requisitos) | Registrar Captura, embaixo do campo Pesqueiro: "+ Novo pesqueiro" (já preenchido com o "outro lugar" digitado); com um pesqueiro escolhido, "Editar pesqueiro" e "Desativar/Reativar". O admin vê os desativados na lista, marcados | `/admin/spots` → `spot.service`; `GET /spots` (público) só os ativos |
 | UC011 — moderação | Post: "🛡 Moderar" (denúncias, ocultar/reexibir); feed: aba "🛡 Denunciadas" | `GET /admin/catches/:id/reports`, `POST /admin/catches/:id/review`, `GET /feed?scope=reported` → `report.service` |
 
 ## Convenções
@@ -287,7 +292,7 @@ abre uma janela entre a conferência e o INSERT.
   por admin". O efeito vem do que já existia: some do feed e da busca (RGN-12),
   toda request é recusada no `requireAuth`, e nem o login (com a confirmação
   desligada) nem o reenvio do link a reativam. O admin não desativa a si mesmo.
-- **Sem área de admin.** As ações de admin (UC002, UC010, UC011) aparecem como
+- **Sem área de admin.** As ações de admin (UC002, UC010, UC011 e os pesqueiros) aparecem como
   controles dentro das telas normais, só para admin — ver "Casos de uso". Para
   achar o que foi denunciado, inclusive o que já sumiu do feed por denúncias, o
   admin tem uma aba "🛡 Denunciadas" no próprio feed. O admin também enxerga
@@ -551,6 +556,12 @@ abre uma janela entre a conferência e o INSERT.
     a moldura em degrau dos botões, em madeira, e a opção ativa fica amarela,
     com os nomes na sans-serif. Sem o tema, a lista é neutra (branca, fio
     fino) — não volta a ser a do navegador.
+  - **Combobox do pesqueiro.** O mesmo Downshift e o mesmo estilo (classes
+    `combo-*`, comuns aos dois), com uma diferença: a escolha é pelo item, não
+    pelo texto, porque o mesmo nome pode existir em duas cidades — cada opção
+    mostra a cidade na mesma linha. O que for digitado sem escolher da lista é
+    "outro lugar": vira `spot_name`, e a cidade/região se digita logo abaixo
+    (antes eram um select com "Outro lugar" e dois campos de texto).
   - **Menos intensidade fora da Dex.** A Dex (cartas, itens bloqueados) é a
     única tela "de jogo" e fica com a moldura pesada; nas outras o Layout
     marca `data-tela="outra"`, e painel e cartões ganham fio de 1 px, sem

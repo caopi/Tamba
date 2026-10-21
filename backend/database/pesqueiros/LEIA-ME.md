@@ -11,7 +11,7 @@ a linha fica de fora. Só entra no `seed.js` o que foi conferido abaixo: **5 das
 
 **As outras 25 não foram verificadas** e não vão ser curadas em lote. O Lucas,
 que pesca na região, vai conferindo cada uma localmente e cadastrando as que
-existem pela tela de admin de pesqueiros (prevista), não por este CSV nem pelo
+existem pelo cadastro de pesqueiros do app (admin, em Registrar Captura), não por este CSV nem pelo
 seed. Daí em diante o banco de produção é a fonte da verdade sobre pesqueiros;
 esta tabela registra só o estado em 21/10/2026.
 

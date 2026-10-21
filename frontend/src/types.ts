@@ -101,8 +101,17 @@ export interface Stats {
 export interface FishingSpot {
   id: string;
   name: string;
+  /** "Cidade, UF" — vira a região da captura. */
   location: string;
   googlePlaceId: string | null;
+  /** Desativado: fora da lista de captura nova; só admin vê (migration 019). */
+  isActive: boolean;
+}
+
+/** Cadastro/edição de pesqueiro pelo admin. */
+export interface SpotInput {
+  name: string;
+  location: string;
 }
 
 export interface CatchPhoto {

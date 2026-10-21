@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { useNavigate, useParams } from "react-router-dom";
 import { useCombobox } from "downshift";
 import { speciesApi, spotsApi } from "../api/species";
+import { adminApi } from "../api/admin";
+import { useAuth } from "../context/AuthContext";
+import { SpotForm } from "../components/SpotForm";
 import { catchesApi } from "../api/catches";
 import { ApiError } from "../api/client";
 import { useUnidades } from "../units";
@@ -20,6 +23,12 @@ import "./LogCatchPage.css";
  * vem do `useCombobox` do Downshift; a marcação e o estilo são nossos. Como
  * `fish_species.name` é UNIQUE, dá para voltar do nome digitado para o id com
  * segurança — digitar o nome inteiro, sem escolher na lista, também vale.
+ *
+ * O pesqueiro é outro combobox (`CampoPesqueiro`), com o mesmo Downshift.
+ * Escolher da lista liga a captura ao pesqueiro do catálogo (a região vem
+ * dele); o que for digitado sem escolher é "outro lugar": vira o nome do local
+ * (`spotName`), e a cidade/região é digitada logo abaixo. O admin cadastra,
+ * edita e desativa pesqueiros dali mesmo, sem área de admin (`SpotForm`).
  *
  * Medida fora da faixa (RGN-08 / REQ-24): quem decide é a API. Se ela
  * responder 422 OUT_OF_RANGE, a tela guarda o que tentou enviar, abre a
@@ -123,11 +132,23 @@ export function LogCatchPage() {
   const [foraDaFaixa, setForaDaFaixa] = useState<ForaDaFaixa | null>(null);
   const navigate = useNavigate();
   const unidades = useUnidades();
+  const { user } = useAuth();
+  const ehAdmin = user?.role === "admin";
+  // Pesqueiro: diálogo do admin e a "versão" que remonta o combobox depois de
+  // criar/editar/desativar (ele guarda a escolha dentro do Downshift).
+  const [formPesqueiro, setFormPesqueiro] = useState<"novo" | "editar" | null>(null);
+  const [versaoPesqueiro, setVersaoPesqueiro] = useState(0);
+  const [erroAdmin, setErroAdmin] = useState<string | null>(null);
 
   useEffect(() => {
     // Na edição, a captura vem do histórico do próprio usuário: se não estiver
     // lá, ou não existe ou é de outra pessoa (RGN-09) — e a API recusaria.
-    Promise.all([speciesApi.list(), spotsApi.list(), editando ? catchesApi.list() : Promise.resolve(null)])
+    // O admin vê também os pesqueiros desativados, para poder reativá-los.
+    Promise.all([
+      speciesApi.list(),
+      ehAdmin ? adminApi.listSpots() : spotsApi.list(),
+      editando ? catchesApi.list() : Promise.resolve(null),
+    ])
       .then(([especies, pesqueiros, minhas]) => {
         setEspecies(especies);
         setPesqueiros(pesqueiros);
@@ -168,7 +189,35 @@ export function LogCatchPage() {
     () => especies.find((e) => normalizar(e.name) === normalizar(nomeEspecie)) ?? null,
     [especies, nomeEspecie],
   );
-  const pesqueiroEscolhido = pesqueiros.find((p) => p.id === spotId) ?? null;
+  // Na edição, o pesqueiro da captura entra na lista mesmo desativado (a API
+  // aceita manter o mesmo); para captura nova, só os da lista.
+  const opcoesPesqueiro = useMemo(() => {
+    const atual = original?.spot;
+    return atual && !pesqueiros.some((p) => p.id === atual.id) ? [...pesqueiros, atual] : pesqueiros;
+  }, [pesqueiros, original]);
+  const pesqueiroEscolhido = opcoesPesqueiro.find((p) => p.id === spotId) ?? null;
+
+  /** Depois de uma ação de admin: recarrega a lista e remonta o combobox. */
+  async function recarregarPesqueiros(escolher?: FishingSpot) {
+    setPesqueiros(await adminApi.listSpots());
+    if (escolher) {
+      setSpotId(escolher.id);
+      setSpotName("");
+    }
+    setVersaoPesqueiro((v) => v + 1);
+  }
+
+  async function alternarPesqueiroAtivo(pesqueiro: FishingSpot) {
+    const pergunta = `Desativar ${pesqueiro.name} (${pesqueiro.location})? Ele sai da lista de captura nova; as capturas antigas continuam mostrando o lugar.`;
+    if (pesqueiro.isActive && !confirm(pergunta)) return;
+    setErroAdmin(null);
+    try {
+      await adminApi.setSpotActive(pesqueiro.id, !pesqueiro.isActive);
+      await recarregarPesqueiros();
+    } catch (e) {
+      setErroAdmin(e instanceof Error ? e.message : "Não foi possível alterar o pesqueiro");
+    }
+  }
 
   /** Valida tudo de uma vez e devolve os erros encontrados. */
   function validar(): Erros {
@@ -359,40 +408,62 @@ export function LogCatchPage() {
           </label>
         </div>
 
-        <label>
-          Pesqueiro
-          <select value={spotId} onChange={(e) => setSpotId(e.target.value)} disabled={carregando}>
-            <option value="">Outro lugar (digitar abaixo)</option>
-            {pesqueiros.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {p.location}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CampoPesqueiro
+          key={`${original?.id ?? "nova"}-${versaoPesqueiro}`}
+          pesqueiros={opcoesPesqueiro}
+          spotId={spotId}
+          spotName={spotName}
+          carregando={carregando}
+          aoMudar={(pesqueiro, texto) => {
+            setSpotId(pesqueiro?.id ?? "");
+            setSpotName(pesqueiro ? "" : texto);
+          }}
+        >
+          {pesqueiroEscolhido ? (
+            <span className="campo-dica">
+              Região: {pesqueiroEscolhido.location} (vem do pesqueiro)
+              {!pesqueiroEscolhido.isActive && " · pesqueiro desativado"}
+            </span>
+          ) : (
+            spotName.trim() && (
+              <span className="campo-dica">Fora da lista: “{spotName.trim()}” fica como o nome do local.</span>
+            )
+          )}
+        </CampoPesqueiro>
 
-        {pesqueiroEscolhido ? (
-          <p className="campo-dica">Região: {pesqueiroEscolhido.location} (vem do pesqueiro)</p>
-        ) : (
-          <div className="captura-dupla">
-            <label>
-              Local da pescaria
-              <input
-                value={spotName}
-                onChange={(e) => setSpotName(e.target.value)}
-                placeholder="Pesqueiro Recanto Azul"
-                maxLength={180}
-              />
-            </label>
-            <label>
-              Cidade / região
-              <input
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                placeholder="Salto, SP"
-                maxLength={120}
-              />
-            </label>
+        {!pesqueiroEscolhido && (
+          <label>
+            Cidade / região
+            <input
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="Salto, SP"
+              maxLength={120}
+            />
+          </label>
+        )}
+
+        {ehAdmin && (
+          <div className="captura-admin">
+            <span>🛡 Admin</span>
+            {pesqueiroEscolhido && (
+              <>
+                <button type="button" className="secundario" onClick={() => setFormPesqueiro("editar")}>
+                  ✏️ Editar pesqueiro
+                </button>
+                <button
+                  type="button"
+                  className={pesqueiroEscolhido.isActive ? "perigo" : undefined}
+                  onClick={() => alternarPesqueiroAtivo(pesqueiroEscolhido)}
+                >
+                  {pesqueiroEscolhido.isActive ? "Desativar" : "Reativar"}
+                </button>
+              </>
+            )}
+            <button type="button" className="secundario" onClick={() => setFormPesqueiro("novo")}>
+              + Novo pesqueiro
+            </button>
+            {erroAdmin && <span className="campo-erro">{erroAdmin}</span>}
           </div>
         )}
 
@@ -470,6 +541,20 @@ export function LogCatchPage() {
         </div>
       )}
 
+      {formPesqueiro && (
+        <SpotForm
+          pesqueiro={formPesqueiro === "editar" ? (pesqueiroEscolhido ?? undefined) : undefined}
+          // O "outro lugar" digitado vira a sugestão do cadastro novo.
+          sugestao={formPesqueiro === "novo" ? { name: spotName.trim(), location: region.trim() } : undefined}
+          aoCancelar={() => setFormPesqueiro(null)}
+          aoSalvar={async (salvo) => {
+            setFormPesqueiro(null);
+            setErroAdmin(null);
+            await recarregarPesqueiros(salvo);
+          }}
+        />
+      )}
+
       {foraDaFaixa && (
         <ConfirmacaoForaDaFaixa
           tentativa={foraDaFaixa}
@@ -530,9 +615,9 @@ function CampoEspecie({
   const aberta = isOpen && filtradas.length > 0;
 
   return (
-    <div className="especie">
+    <div className="combo">
       <label {...getLabelProps()}>Espécie *</label>
-      <div className="especie-caixa">
+      <div className="combo-caixa">
         <input
           {...getInputProps({
             placeholder: carregando ? "Carregando espécies…" : "Digite para buscar…",
@@ -541,12 +626,12 @@ function CampoEspecie({
           })}
         />
         {/* getMenuProps sempre: o Downshift precisa da lista montada, mesmo fechada. */}
-        <ul className="especie-lista" hidden={!aberta} {...getMenuProps()}>
+        <ul className="combo-lista" hidden={!aberta} {...getMenuProps()}>
           {aberta &&
             filtradas.map((especie, index) => (
               <li
                 key={especie.id}
-                className={index === highlightedIndex ? "especie-opcao destacada" : "especie-opcao"}
+                className={index === highlightedIndex ? "combo-opcao destacada" : "combo-opcao"}
                 {...getItemProps({ item: especie, index })}
               >
                 {especie.name}
@@ -555,6 +640,88 @@ function CampoEspecie({
         </ul>
       </div>
       {erro && <span className="campo-erro">{erro}</span>}
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Combobox do pesqueiro. Diferente do da espécie, aqui a escolha é por item,
+ * não pelo texto: o mesmo nome pode existir em duas cidades (a chave é nome +
+ * cidade), então cada opção mostra a cidade e a escolha é o objeto do
+ * Downshift. Digitar depois de escolher desfaz a escolha: o texto passa a ser
+ * "outro lugar" (`aoMudar(null, texto)`). Esc fecha; de novo, limpa.
+ */
+function CampoPesqueiro({
+  pesqueiros,
+  spotId,
+  spotName,
+  carregando,
+  aoMudar,
+  children,
+}: {
+  pesqueiros: FishingSpot[];
+  spotId: string;
+  spotName: string;
+  carregando: boolean;
+  aoMudar: (pesqueiro: FishingSpot | null, texto: string) => void;
+  children?: ReactNode;
+}) {
+  const inicial = pesqueiros.find((p) => p.id === spotId) ?? null;
+  const [busca, setBusca] = useState(inicial?.name ?? spotName);
+  const filtrados = useMemo(() => {
+    const termo = normalizar(busca);
+    if (!termo) return pesqueiros;
+    return pesqueiros.filter((p) => normalizar(p.name).includes(termo) || normalizar(p.location).includes(termo));
+  }, [pesqueiros, busca]);
+
+  const { isOpen, highlightedIndex, getLabelProps, getInputProps, getMenuProps, getItemProps } = useCombobox({
+    items: filtrados,
+    itemToString: (p) => p?.name ?? "",
+    initialSelectedItem: inicial,
+    initialInputValue: inicial?.name ?? spotName,
+    onInputValueChange: ({ type, inputValue = "", selectedItem }) => {
+      setBusca(inputValue);
+      // Digitar nunca é escolher, nem se bater com um nome: só clique, Enter
+      // ou Tab numa opção ligam a captura ao catálogo.
+      const digitou = type === useCombobox.stateChangeTypes.InputChange;
+      aoMudar(!digitou && selectedItem?.name === inputValue ? selectedItem : null, inputValue);
+    },
+    // Trocar por outra opção de mesmo nome (outra cidade) não muda o texto.
+    onSelectedItemChange: ({ selectedItem }) => {
+      if (selectedItem) aoMudar(selectedItem, selectedItem.name);
+    },
+  });
+  const aberta = isOpen && filtrados.length > 0;
+
+  return (
+    <div className="combo">
+      <label {...getLabelProps()}>Pesqueiro</label>
+      <div className="combo-caixa">
+        <input
+          {...getInputProps({
+            placeholder: carregando ? "Carregando pesqueiros…" : "Busque na lista ou digite o local",
+            disabled: carregando,
+            maxLength: 180,
+          })}
+        />
+        <ul className="combo-lista" hidden={!aberta} {...getMenuProps()}>
+          {aberta &&
+            filtrados.map((p, index) => (
+              <li
+                key={p.id}
+                className={index === highlightedIndex ? "combo-opcao destacada" : "combo-opcao"}
+                {...getItemProps({ item: p, index })}
+              >
+                {p.name}{" "}
+                <span className="combo-detalhe">
+                  · {p.location}
+                  {!p.isActive && " · desativado"}
+                </span>
+              </li>
+            ))}
+        </ul>
+      </div>
       {children}
     </div>
   );

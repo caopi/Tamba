@@ -1,9 +1,10 @@
-// Rotas de admin: gestão do catálogo (UC010, RGN-16/17), moderação
+// Rotas de admin: gestão do catálogo (UC010, RGN-16/17), dos pesqueiros, moderação
 // (UC011, RGN-14) e desativação de conta (UC002, lado admin). Não existe área
 // de admin no frontend: estas ações aparecem dentro das telas normais.
 // Todas passam por requireAuth + requireAdmin (routes/admin.routes.js).
 
 import * as speciesService from "../services/species.service.js";
+import * as spotService from "../services/spot.service.js";
 import * as reportService from "../services/report.service.js";
 import * as userService from "../services/user.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
@@ -31,6 +32,32 @@ export const setSpeciesActive = asyncHandler(async (req, res) => {
 // DELETE /api/admin/species/:id  -> só sem capturas; com capturas, 409 (desative)
 export const deleteSpecies = asyncHandler(async (req, res) => {
   await speciesService.deleteSpecies(req.user, req.params.id);
+  res.status(204).send();
+});
+
+// GET /api/admin/spots  -> inclui os desativados
+export const listSpots = asyncHandler(async (req, res) => {
+  res.json(await spotService.listSpots(req.user, { includeInactive: "true" }));
+});
+
+// POST /api/admin/spots  { name, location }  -> 409 SPOT_TAKEN se o par já existe
+export const createSpot = asyncHandler(async (req, res) => {
+  res.status(201).json(await spotService.createSpot(req.user, req.body));
+});
+
+// PUT /api/admin/spots/:id
+export const updateSpot = asyncHandler(async (req, res) => {
+  res.json(await spotService.updateSpot(req.user, req.params.id, req.body));
+});
+
+// PATCH /api/admin/spots/:id/active  { isActive }
+export const setSpotActive = asyncHandler(async (req, res) => {
+  res.json(await spotService.setSpotActive(req.user, req.params.id, req.body));
+});
+
+// DELETE /api/admin/spots/:id  -> só sem capturas; com capturas, 409 (desative)
+export const deleteSpot = asyncHandler(async (req, res) => {
+  await spotService.deleteSpot(req.user, req.params.id);
   res.status(204).send();
 });
 

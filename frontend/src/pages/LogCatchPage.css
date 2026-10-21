@@ -101,21 +101,21 @@
   gap: 0.75rem;
 }
 
-/* --- Espécie: combobox com busca (CampoEspecie) --- */
+/* --- Comboboxes com busca: espécie e pesqueiro (CampoEspecie, CampoPesqueiro) --- */
 
 /* Mesmo empilhamento dos <label> do formulário: rótulo, campo, dica. */
-.especie {
+.combo {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
 /* A lista abre por cima dos campos de baixo, presa à largura do campo. */
-.especie-caixa {
+.combo-caixa {
   position: relative;
 }
 
-.especie-lista {
+.combo-lista {
   position: absolute;
   z-index: 5;
   top: calc(100% + 4px);
@@ -132,17 +132,56 @@
   box-shadow: 0 6px 18px rgba(15, 43, 48, 0.15);
 }
 
-.especie-lista[hidden] {
+.combo-lista[hidden] {
   display: none;
 }
 
-.especie-opcao {
+.combo-opcao {
   padding: 0.5rem 0.7rem;
   font-size: 0.95rem;
   color: var(--texto);
   cursor: pointer;
 }
 
-.especie-opcao.destacada {
+.combo-opcao.destacada {
   background: var(--agua-clara);
+}
+
+/* A cidade do pesqueiro, na mesma linha do nome: o nome sozinho é ambíguo
+   (a chave é nome + cidade). */
+.combo-detalhe {
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+}
+
+/* Ações de admin sobre os pesqueiros, embaixo do campo (como .dex-admin). */
+.captura-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed #c9a227;
+  border-radius: var(--raio);
+  background: #fffbea;
+  font-size: 0.85rem;
+}
+
+.captura-admin button {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+/* Diálogo de pesqueiro (SpotForm): campos empilhados, cidade e UF lado a lado. */
+.pesqueiro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.pesqueiro-cidade {
+  display: grid;
+  grid-template-columns: 1fr 5.5rem;
+  gap: 0.75rem;
 }

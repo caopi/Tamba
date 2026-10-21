@@ -647,6 +647,7 @@ html.tema-retro .login-card,
 html.tema-retro .moderacao,
 html.tema-retro .dex-recorde,
 html.tema-retro .dex-admin,
+html.tema-retro .captura-admin,
 html.tema-retro .perfil-numeros li,
 html.tema-retro .detalhe-bloco,
 html.tema-retro .especie-foto-campos,
@@ -1315,12 +1316,12 @@ html.tema-retro .layout[data-tela="outra"] .captura-form {
    para 1 px aqui: o degrau é feito na unidade de 2 px, e com moldura de
    1 px a escada perderia o desenho. */
 
-/* --- Espécie (Registrar Captura): lista do combobox, 16 bits -------------
+/* --- Comboboxes do Registrar Captura (espécie e pesqueiro), 16 bits -------
    O campo é igual aos vizinhos (regras gerais de input). Só a lista que abre
    embaixo dele tem a moldura em degrau dos botões (--degraus e os quadrados
    de --u nos cantos de dentro), em madeira, com miolo claro; a opção ativa
    (setas ou mouse) fica amarela. Os nomes ficam na sans-serif (RNF-13). --- */
-html.tema-retro .especie-lista {
+html.tema-retro .combo-lista {
   --e-moldura: var(--madeira-800);
   top: calc(100% + var(--u));
   padding: var(--u);
@@ -1337,15 +1338,23 @@ html.tema-retro .especie-lista {
   clip-path: var(--degraus);
 }
 
-html.tema-retro .especie-opcao {
+html.tema-retro .combo-opcao {
   color: var(--retro-950);
   border-bottom: 1px dashed var(--retro-200);
 }
 
-html.tema-retro .especie-opcao:last-child {
+html.tema-retro .combo-opcao:last-child {
   border-bottom: none;
 }
 
-html.tema-retro .especie-opcao.destacada {
+html.tema-retro .combo-opcao.destacada {
   background: var(--retro-amarelo);
+}
+
+html.tema-retro .combo-detalhe {
+  color: var(--retro-800);
+}
+
+html.tema-retro .combo-opcao.destacada .combo-detalhe {
+  color: var(--madeira-900);
 }

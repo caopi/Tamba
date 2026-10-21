@@ -1,8 +1,8 @@
-import * as spotModel from "../models/spot.model.js";
+import * as spotService from "../services/spot.service.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 
-// GET /api/spots -> lista de pesqueiros, usada pelo select do formulário de captura.
-// Somente leitura por enquanto; o cadastro de pesqueiros ainda não foi definido.
+// GET /api/spots -> pesqueiros ativos, para o formulário de captura. Público e
+// somente leitura; o cadastro é pelas rotas de admin (/api/admin/spots).
 export const listSpots = asyncHandler(async (_req, res) => {
-  res.json(await spotModel.findAll());
+  res.json(await spotService.listSpots(null, {}));
 });

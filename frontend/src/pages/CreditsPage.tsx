@@ -94,11 +94,13 @@ export function CreditsPage() {
         </li>
       </ul>
 
+      {/* Sai do banco, como a lista acima: some sozinha quando a última espécie
+          ganhar foto. Sem motivo por espécie — o porquê de cada uma muda quando
+          chega uma foto, e um texto fixo ficaria errado sem ninguém notar. */}
       {semFoto.length > 0 && (
         <p className="creditos-sem-foto">
-          Sem foto: {semFoto.map((e) => e.name).join(", ")}. Nenhuma foto livre com identificação confiável: os
-          híbridos de piscicultura não têm, mostrar uma das espécies que os originam no lugar estaria errado, e o
-          trairão é um grupo de espécies quase idênticas, sem registro brasileiro sólido.
+          {semFoto.length === 1 ? "Ainda sem foto" : `Ainda sem foto (${semFoto.length})`}:{" "}
+          {semFoto.map((e) => e.name).join(", ")}.
         </p>
       )}
     </main>

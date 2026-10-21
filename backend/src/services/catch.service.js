@@ -119,11 +119,18 @@ async function especieParaCaptura(speciesId) {
 /**
  * Com pesqueiro do catálogo, a região vem do `location` dele; sem pesqueiro,
  * vale o que o usuário digitou. Devolve undefined quando não há o que mudar.
+ *
+ * Pesqueiro desativado não entra em captura nova nem em troca de pesqueiro;
+ * editar outro campo de uma captura que já aponta para ele continua valendo
+ * (`aceitarDesativado`), como com espécie desativada.
  */
-async function regiaoDoPesqueiro(spotId) {
+async function regiaoDoPesqueiro(spotId, { aceitarDesativado = false } = {}) {
   if (!spotId) return undefined;
   const pesqueiro = await spotModel.findById(spotId);
   if (!pesqueiro) throw httpError(422, "Pesqueiro não existe");
+  if (!pesqueiro.isActive && !aceitarDesativado) {
+    throw httpError(422, "Esse pesqueiro foi desativado: escolha outro ou digite o local");
+  }
   return pesqueiro.location.slice(0, 120);
 }
 
@@ -325,7 +332,9 @@ export async function updateCatch(userId, catchId, entrada) {
   }
 
   if ("spotId" in dados) {
-    const regiao = await regiaoDoPesqueiro(dados.spotId);
+    const regiao = await regiaoDoPesqueiro(dados.spotId, {
+      aceitarDesativado: dados.spotId === atual.spotId,
+    });
     if (regiao !== undefined) alteracoes.region = regiao;
   }
 

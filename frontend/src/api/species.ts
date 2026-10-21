@@ -13,5 +13,6 @@ export const dexApi = {
 };
 
 export const spotsApi = {
+  /** Só os ativos (o admin usa adminApi.listSpots, com os desativados). */
   list: () => api<FishingSpot[]>("/spots"),
 };

@@ -1,4 +1,4 @@
-// Rotas de admin: gestão do catálogo (UC010, RGN-16/17), dos pesqueiros, moderação
+// Rotas de admin: gestão do catálogo (UC010, RGN-16/17), dos pesqueiros (UC012), moderação
 // (UC011, RGN-14) e desativação de conta (UC002, lado admin). Não existe área
 // de admin no frontend: estas ações aparecem dentro das telas normais.
 // Todas passam por requireAuth + requireAdmin (routes/admin.routes.js).

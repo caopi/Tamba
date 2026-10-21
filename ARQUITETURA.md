@@ -103,7 +103,7 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   **Não é catálogo como `fish_species`: é dado de produção**, como capturas
   e usuários. O seed só faz a carga inicial (upsert pela chave única, sem
   tocar em pesqueiro existente); daí em diante o admin cadastra, edita e
-  desativa pelo app (Registrar Captura, ver "Casos de uso"), e a fonte da
+  desativa pelo app (Registrar Captura, UC012 em "Casos de uso"), e a fonte da
   verdade é o banco de produção, não o repositório. **Ninguém deve supor que
   a lista do `seed.js` está completa.** Mudar nome ou cidade no seed cria
   outro pesqueiro, não renomeia. A origem da carga inicial (busca assistida
@@ -183,7 +183,7 @@ e a API recusa (403) para os demais de qualquer jeito.
 | UC008 — seguir | Post, perfil público, aba "Pessoas" do Feed (`/feed?aba=pessoas`) | `/users/:id/follow`, `/users/search`, `/users/suggestions` |
 | UC009 — notificações (REQ-43) | Aba "Notificações" na barra de baixo, com o número de não lidas no ícone; `/notificacoes`: quem fez o quê, marcar uma ou todas como lidas, rolagem infinita | `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` → `notification.service` |
 | UC010 — catálogo de espécies | Dex (`/`): "+ Nova espécie"; ficha da espécie: "Editar espécie", "Desativar/Reativar" | `/admin/species` → `species.service` |
-| Pesqueiros (sem UC no documento de requisitos) | Registrar Captura, embaixo do campo Pesqueiro: "+ Novo pesqueiro" (já preenchido com o "outro lugar" digitado); com um pesqueiro escolhido, "Editar pesqueiro" e "Desativar/Reativar". O admin vê os desativados na lista, marcados | `/admin/spots` → `spot.service`; `GET /spots` (público) só os ativos |
+| UC012 — manter pesqueiro (acréscimo: não está no documento entregue, que vai até o UC011; ver DIVERGENCIAS.md) | Registrar Captura, embaixo do campo Pesqueiro: "+ Novo pesqueiro" (já preenchido com o "outro lugar" digitado); com um pesqueiro escolhido, "Editar pesqueiro" e "Desativar/Reativar". O admin vê os desativados na lista, marcados | `/admin/spots` → `spot.service`; `GET /spots` (público) só os ativos |
 | UC011 — moderação | Post: "🛡 Moderar" (denúncias, ocultar/reexibir); feed: aba "🛡 Denunciadas" | `GET /admin/catches/:id/reports`, `POST /admin/catches/:id/review`, `GET /feed?scope=reported` → `report.service` |
 
 ## Convenções
@@ -292,7 +292,7 @@ abre uma janela entre a conferência e o INSERT.
   por admin". O efeito vem do que já existia: some do feed e da busca (RGN-12),
   toda request é recusada no `requireAuth`, e nem o login (com a confirmação
   desligada) nem o reenvio do link a reativam. O admin não desativa a si mesmo.
-- **Sem área de admin.** As ações de admin (UC002, UC010, UC011 e os pesqueiros) aparecem como
+- **Sem área de admin.** As ações de admin (UC002, UC010, UC011, UC012) aparecem como
   controles dentro das telas normais, só para admin — ver "Casos de uso". Para
   achar o que foi denunciado, inclusive o que já sumiu do feed por denúncias, o
   admin tem uma aba "🛡 Denunciadas" no próprio feed. O admin também enxerga

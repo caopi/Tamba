@@ -26,7 +26,7 @@ export const adminApi = {
   setSpeciesActive: (id: string, isActive: boolean) =>
     api<FishSpecies>(`/admin/species/${id}/active`, json("PATCH", { isActive })),
 
-  // Pesqueiros (fora dos UCs do documento; ver ARQUITETURA.md)
+  // UC012 — pesqueiros (acréscimo, fora do documento; ver DIVERGENCIAS.md)
   /** Inclui os desativados. */
   listSpots: () => api<FishingSpot[]>("/admin/spots"),
   createSpot: (dados: SpotInput) => api<FishingSpot>("/admin/spots", json("POST", dados)),

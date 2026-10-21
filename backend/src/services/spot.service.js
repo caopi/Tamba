@@ -1,5 +1,6 @@
-// Pesqueiros (fishing_spots): cadastro pelo admin, como o catálogo de
-// espécies (RGN-16/17), mas é dado de produção — o seed só faz a carga
+// Pesqueiros (fishing_spots), UC012 "Manter pesqueiro" — acréscimo, fora do
+// documento de requisitos. Cadastro pelo admin, como o catálogo de espécies
+// (UC010, RGN-16/17), mas é dado de produção — o seed só faz a carga
 // inicial (ver ARQUITETURA.md).
 //
 // - Só admin cria, edita, desativa e apaga (assertAdmin aqui e o

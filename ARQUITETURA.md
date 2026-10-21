@@ -32,7 +32,8 @@ Tamba/
 │   │   ├── migrations/    Arquivos .sql numerados — fonte da verdade do banco
 │   │   ├── migrate.js     Roda os .sql em ordem, controla schema_migrations
 │   │   ├── setup.sql      Preparação do MySQL (banco, usuário, grant), roda como root
-│   │   └── seed.js        Catálogo de espécies + pesqueiros de exemplo
+│   │   ├── pesqueiros/    CSV de origem dos pesqueiros + LEIA-ME da conferência
+│   │   └── seed.js        Catálogo de espécies + carga inicial de pesqueiros
 │   ├── uploads/           Fotos enviadas (driver local do storage). Fora do git
 │   └── src/
 │       ├── server.js      Sobe o HTTP (só isso)
@@ -88,7 +89,22 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   nunca sinaliza captura; as do seed são largas de propósito (o porquê também
   está no `seed.js`). Espécie nunca é apagada se tiver captura, só desativada
   (`is_active`, RGN-17).
-- **fishing_spots** — `google_place_id` fica nulo até integrarmos o Google Places.
+- **fishing_spots** — `name` + `location` ("Cidade, UF", que vira a
+  `region` da captura). UNIQUE (`name`, `location`), não só no nome: dois
+  pesqueiros de cidades diferentes podem ter o mesmo nome (migration 019).
+  `is_active` (019) existe para esconder pesqueiro que fechou sem apagar —
+  as capturas apontam para ele —, mas por enquanto nada o lê nem grava.
+  `google_place_id` fica nulo até integrarmos o Google Places; os links de
+  Maps (CID) do CSV de origem **não** são Place ID e nunca vão para o banco.
+  **Não é catálogo como `fish_species`: é dado de produção**, como capturas
+  e usuários. O seed só faz a carga inicial (upsert pela chave única, sem
+  tocar em pesqueiro existente); com a tela de admin de pesqueiros (prevista)
+  eles passam a ser cadastrados, editados e desativados pelo app, e a fonte da
+  verdade é o banco de produção, não o repositório. **Ninguém deve supor que
+  a lista do `seed.js` está completa.** Mudar nome ou cidade no seed cria
+  outro pesqueiro, não renomeia. A origem da carga inicial (busca assistida
+  por IA) e o que foi conferido de cada linha estão em
+  `database/pesqueiros/LEIA-ME.md`; só o conferido entra no seed.
 - **catches** — registro central, e **é também o post do feed**: curtida,
   comentário e denúncia apontam direto para a captura, não existe tabela de posts.
   `weight` em **kg**, `length` em **cm**. `spot_name` é o local digitado à mão no

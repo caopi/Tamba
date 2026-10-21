@@ -1,4 +1,4 @@
-// Popula o catálogo de espécies, alguns pesqueiros de exemplo, promove o
+// Popula o catálogo de espécies, a carga inicial de pesqueiros, promove o
 // primeiro admin e (só em desenvolvimento, com SEED_DEV_USERS=true) cria
 // contas de teste. Rode com: npm run seed
 //
@@ -478,11 +478,25 @@ const especies = [
   },
 ];
 
-// PLACEHOLDER: pesqueiros de exemplo, só para o formulário de captura ter opções.
+// PESQUEIROS — só a CARGA INICIAL, não o catálogo inteiro. Os pesqueiros
+// passam a ser cadastrados pelo app; o banco de produção é a fonte da verdade,
+// e esta lista não está (nem vai ficar) completa.
+//
+// Origem e conferência de cada linha: database/pesqueiros/LEIA-ME.md. Entra
+// aqui só o que foi conferido; o CSV de lá guarda todos, inclusive os
+// descartados. `location` é "Cidade, UF": vira a região da captura
+// (catches.region). Endereço e link do Maps ficam só no CSV.
+//
+// Upsert pela chave única (name, location) da migration 019: rodar de novo não
+// duplica, e um pesqueiro que já existe não é tocado (nem reativado, se tiver
+// sido desativado). Consequência: mudar o nome ou a cidade de um pesqueiro
+// AQUI cria outro, não renomeia — correção de pesqueiro existente é pelo app.
 const pesqueiros = [
-  { name: "Pesqueiro Modelo", location: "São Paulo, SP" },
-  { name: "Rio Tietê - Trecho", location: "Salto, SP" },
-  { name: "Represa de Exemplo", location: "Avaré, SP" },
+  { name: "Pesqueiro Santa Rita Gigantes", location: "Bragança Paulista, SP" },
+  { name: "Três Coqueiros Pesqueiro e Lanchonete", location: "Itatiba, SP" },
+  { name: "Pesqueiro Nenê Oliani", location: "Socorro, SP" },
+  { name: "Restaurante e Pesqueiro Pitauá", location: "Socorro, SP" },
+  { name: "Pousada e Pesqueiro Boa Vida", location: "Extrema, MG" },
 ];
 
 // Tudo com COALESCE: só preenche o que está NULL (ver o topo do arquivo).
@@ -542,15 +556,12 @@ for (const especie of especies) {
   ]);
 }
 
-// fishing_spots não tem coluna única, então só inserimos se a tabela estiver vazia.
-const [{ total }] = await query("SELECT COUNT(*) AS total FROM fishing_spots");
-if (total === 0) {
-  for (const pesqueiro of pesqueiros) {
-    await query(
-      "INSERT INTO fishing_spots (id, name, location, google_place_id) VALUES (?, ?, ?, NULL)",
-      [randomUUID(), pesqueiro.name, pesqueiro.location],
-    );
-  }
+for (const pesqueiro of pesqueiros) {
+  await query(
+    `INSERT INTO fishing_spots (id, name, location) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE id = id`,
+    [randomUUID(), pesqueiro.name, pesqueiro.location],
+  );
 }
 
 // Foto cadastrada para uma espécie que não existe no seed: erro de digitação

@@ -426,12 +426,45 @@ Sem `ADMIN_EMAIL`, o mesmo comando só reaplica o catálogo (depois de mudar o
 `railway ssh -- 'echo $NODE_ENV $SEED_DEV_USERS'` tem de mostrar
 `production false`.
 
-**Caminho alternativo: da máquina local, com Public Networking.** Só se o
-`railway ssh` não estiver disponível: o roteiro da seção 4.3 (PowerShell
-com o `MYSQL_PUBLIC_URL` mascarado, `NODE_ENV=production`,
-`SEED_DEV_USERS=false` e `ADMIN_EMAIL` definidos no shell), terminando com o
-Public Networking **desligado** de novo. Passa pelo proxy público sem TLS
-(seção 4.2).
+**No PowerShell**, as aspas aninhadas acima quebram (o `railway` do npm é um
+`railway.ps1`, que engole o `--` e acrescenta outra camada de aspas; o
+sintoma é ficar preso no prompt de continuação `>>`). Use o `railway.cmd`
+com `--%` e um comando sem aspas nem `&&`:
+
+```powershell
+railway.cmd --% ssh -- printenv NODE_ENV SEED_DEV_USERS
+railway.cmd --% ssh -- npm --prefix /app run seed
+```
+
+O primeiro tem de mostrar `production` e `false`; o segundo termina com
+"Seed concluído: N espécies e M pesqueiros.". Com `ADMIN_EMAIL`, use a aba
+Console (abaixo), que aceita a linha inteira. Rode o seed com o deploy da
+API já **Active**: o SSH entra no container em uso, e um deploy no meio o
+derruba.
+
+Se o CLI disser que a sessão expirou, `railway login` de novo — o Railway
+invalidou as sessões depois do incidente de outubro de 2026.
+
+**Se o `railway ssh` não conectar**, nesta ordem:
+
+1. **Aba Console** do serviço da API no painel: `cd /app && npm run seed`.
+2. **Pre-deploy command temporário:** Settings → Deploy → Pre-deploy Command
+   = `npm run migrate && npm run seed`, refaça o deploy, confira "Seed
+   concluído" no log do pre-deploy e **volte na hora para `npm run
+   migrate`**. Deixar o seed ali o faria rodar a cada deploy, devolvendo
+   espécie e pesqueiro que o admin apagou pelo app (seção 4.6).
+3. **Da máquina local, com Public Networking** — só se os dois acima
+   falharem: o roteiro da seção 4.3 (PowerShell com o `MYSQL_PUBLIC_URL`
+   mascarado, `NODE_ENV=production`, `SEED_DEV_USERS=false` e `ADMIN_EMAIL`
+   definidos no shell), terminando com o Public Networking **desligado** de
+   novo. Passa pelo proxy público sem TLS (seção 4.2), e é a única janela em
+   que a senha do banco fica utilizável de fora: se houver suspeita de que
+   ela vazou, troque-a antes (seção 4.7).
+
+Em 21/10/2026 o `railway ssh` dava "Connection timed out" na porta 22: era a
+indisponibilidade do próprio Railway, não bloqueio de rede — no dia seguinte
+funcionou normalmente. Timeout ali, portanto, não é motivo para pular direto
+para o Public Networking.
 
 ### 4.5 Sem os triggers da migration 007 (MySQL gerenciado)
 

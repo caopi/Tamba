@@ -584,6 +584,108 @@ reverter o schema à mão.
 **Migration nova no PR:** diga na descrição do commit, para quem revisa saber
 que o deploy vai mexer no banco de produção.
 
+### 4.7 Trocar a senha do banco (rotação de credencial)
+
+Quando: vazamento possível das variáveis do Railway (o incidente de outubro
+de 2026 foi isso), ou troca periódica. A API entra como `root` pelo
+`${{MySQL.MYSQL_URL}}` (seção 4.2), então é a senha do `root`.
+
+**Por que não basta trocar a variável.** A imagem do MySQL só aplica
+`MYSQL_ROOT_PASSWORD` quando o banco é criado pela primeira vez. Trocar a
+variável depois **não muda a senha dentro do banco**: a API, no próximo
+deploy, recebe a URL nova, o banco recusa ("Access denied") e o
+`/api/health` fica `"degraded"`. A ordem é sempre: **senha no banco
+primeiro, conferir, variável depois, deploy da API por último.**
+
+**Antes de começar:**
+
+- **Backup recente do volume do MySQL** (seção 8), de depois da última
+  escrita que importa. Sem backup, não comece.
+- **Guarde a senha atual** até o fim (gerenciador de senhas, não um arquivo
+  solto): restaurar o backup traz de volta a senha **antiga**, e sem ela a
+  variável e o banco ficariam desencontrados de novo. Apague-a quando o
+  `/api/health` estiver `ok` com a nova.
+- **Nada de Public Networking.** Tudo abaixo é por dentro do Railway; ligar o
+  acesso público é justamente a janela em que uma senha vazada ficaria
+  utilizável.
+- Faça isso **sozinho, sem deploy de código, migration ou seed na mesma
+  sessão**: se algo quebrar, a causa é esta.
+
+**Passo a passo:**
+
+1. **Gere a senha nova** direto para a área de transferência. Hexadecimal de
+   propósito: o `DATABASE_URL` exigiria codificar `@ : # /`, e hex não tem
+   nenhum deles.
+
+   ```powershell
+   node -e "console.log(require('crypto').randomBytes(24).toString('hex'))" | Set-Clipboard
+   ```
+
+2. **Abra um shell no container do MySQL**, da pasta do repositório (forma
+   que sobrevive às aspas do PowerShell; ver a seção 4.4):
+
+   ```powershell
+   railway.cmd --% ssh --service MySQL
+   ```
+
+   Se o `railway ssh` não conectar, use a aba **Console** do serviço MySQL
+   no painel. O que importa é estar **dentro** do container.
+
+3. **Entre no MySQL com a senha atual**, que o container já tem na variável
+   (nada é colado):
+
+   ```sh
+   mysql -uroot -p"$MYSQL_ROOT_PASSWORD"
+   ```
+
+   Confira quais contas `root` existem (normalmente `%` e `localhost`):
+
+   ```sql
+   SELECT user, host FROM mysql.user WHERE user = 'root';
+   ```
+
+4. **Troque a senha de cada uma**, colando a nova no lugar de `<nova>`
+   (o cliente `mysql` não grava no histórico linha com `IDENTIFIED`):
+
+   ```sql
+   ALTER USER 'root'@'%' IDENTIFIED BY '<nova>';
+   ALTER USER 'root'@'localhost' IDENTIFIED BY '<nova>';
+   ```
+
+   A API continua no ar: a senha só é conferida ao abrir conexão, e as que
+   já estão abertas seguem valendo.
+
+5. **Confira a senha nova antes de mexer em qualquer variável.** Saia do
+   `mysql` (`exit`) e entre de novo digitando a nova:
+
+   ```sh
+   mysql -uroot -p
+   ```
+
+   Se não entrar, **pare aqui**: a variável ainda tem a senha antiga, e com
+   ela (`mysql -uroot -p"$MYSQL_ROOT_PASSWORD"`) dá para repetir o passo 4.
+
+6. **Atualize a variável** no serviço **MySQL** → Variables:
+   `MYSQL_ROOT_PASSWORD` = a nova. Antes de salvar, abra o **Raw Editor** e
+   confira que `MYSQLPASSWORD`, `MYSQL_URL` e `MYSQL_PUBLIC_URL` são
+   **referências** (`${{MYSQL_ROOT_PASSWORD}}`), não o texto da senha; se
+   alguma tiver a senha escrita, troque também. O Railway deixa a mudança
+   pendente até você clicar **Deploy**; aí o MySQL reinicia com a variável
+   nova (o banco já existe, então ela não reaplica nada — serve só para as
+   referências).
+
+7. **Refaça o deploy da API** (Deployments → **Redeploy**): a referência
+   `${{MySQL.MYSQL_URL}}` só é resolvida no deploy. Entre o passo 6 e este,
+   a API pode perder as conexões e ficar fora do ar por alguns segundos.
+
+8. **Confira:** `/api/health` responde `{"status":"ok"}` e o login funciona.
+
+**Se der "Access denied" no passo 8:** a variável e o banco não batem. Entre
+pelo shell do passo 2 e teste as duas senhas com `mysql -uroot -p`: a que
+entrar é a que o banco tem; ponha essa na variável e refaça o deploy da API.
+Se nenhuma entrar, restaure o backup do volume do MySQL (seção 8) e ponha na
+variável a senha **antiga**, guardada no começo.
+
 ---
 
 ## 5. API: build e hospedagem

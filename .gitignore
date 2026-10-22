@@ -14,6 +14,13 @@ backend/uploads/
 # Versão pixel art das fotos (npm run pixel): experimento fora de uso, gerado sob demanda
 backend/assets/species/pixel/
 
+# Backups do banco (dumps têm e-mails e hashes de senha) — nunca versionar,
+# nem guardar na pasta do projeto (DEPLOY.md, 8.2)
+*.sql.gz
+*.b64
+*.7z
+tamba-backup/
+
 # Logs
 *.log
 npm-debug.log*

@@ -15,8 +15,9 @@ backend/uploads/
 backend/assets/species/pixel/
 
 # Backups do banco (dumps têm e-mails e hashes de senha) — nunca versionar,
-# nem guardar na pasta do projeto (DEPLOY.md, 8.2)
+# nem guardar na pasta do projeto (DEPLOY.md, seção 8); fotos também
 *.sql.gz
+*.tar.gz
 *.b64
 *.7z
 tamba-backup/

@@ -632,16 +632,22 @@ primeiro, conferir, variável depois, deploy da API por último.**
 
 **Antes de começar:**
 
-- **Backup recente do volume do MySQL** (seção 8.1) **e um dump** (seção
-  8.2), os dois de depois da última escrita que importa. Sem eles, não
-  comece.
+- **Os dois backups da seção 8 feitos logo antes** — o dump (8.1) e o
+  arquivo das fotos (8.2), conferidos pelo hash. Sem eles, não comece. Não
+  há snapshot de volume (o plano Hobby não cria; seção 8), e para esta
+  operação o dump é até a rede de segurança melhor: restaurado num serviço
+  MySQL **novo**, ele chega com uma senha nova, em vez de trazer de volta a
+  senha antiga, como um snapshot faria no meio da troca.
+- **Evite gravações entre o dump e o fim** (faça num horário sem uso): o que
+  for gravado depois do dump se perde se for preciso restaurá-lo.
 - **Guarde a senha atual** até o fim (gerenciador de senhas, não um arquivo
-  solto): restaurar o backup traz de volta a senha **antiga**, e sem ela a
-  variável e o banco ficariam desencontrados de novo. Apague-a quando o
+  solto): depois do passo 6 ela some da variável, e é com ela que se
+  descobre, no "Access denied", qual senha o banco tem. Apague-a quando o
   `/api/health` estiver `ok` com a nova.
-- **Nada de Public Networking.** Tudo abaixo é por dentro do Railway; ligar o
-  acesso público é justamente a janela em que uma senha vazada ficaria
-  utilizável.
+- **Nada de Public Networking no banco atual.** Tudo abaixo é por dentro do
+  Railway; ligar o acesso público é justamente a janela em que uma senha
+  vazada ficaria utilizável. (A restauração da 8.4 A liga no serviço
+  **novo**, de senha nova — outra coisa.)
 - Faça isso **sozinho, sem deploy de código, migration ou seed na mesma
   sessão**: se algo quebrar, a causa é esta.
 
@@ -717,8 +723,11 @@ primeiro, conferir, variável depois, deploy da API por último.**
 **Se der "Access denied" no passo 8:** a variável e o banco não batem. Entre
 pelo shell do passo 2 e teste as duas senhas com `mysql -uroot -p`: a que
 entrar é a que o banco tem; ponha essa na variável e refaça o deploy da API.
-Se nenhuma entrar, restaure o backup do volume do MySQL (seção 8) e ponha na
-variável a senha **antiga**, guardada no começo.
+
+**Se nenhuma das duas entrar:** o banco atual ficou inacessível. Restaure o
+dump num **serviço MySQL novo** (seção 8.4 A) e aponte a API para ele. As
+fotos não são afetadas (estão no volume da API). O serviço antigo fica
+parado até você ter certeza, e então pode ser apagado.
 
 ---
 
@@ -973,65 +982,66 @@ Espere 15 minutos (ou reinicie a API) para o seu IP sair do limite.
 
 ## 8. Backups
 
-Dois tipos de backup, com papéis diferentes:
+**O que existe: dois backups manuais.** O plano Hobby do Railway só deixa
+ver, restaurar e apagar backups que já existem — criar backup, agendar e
+recuperar para um ponto no tempo exigem o **Pro**. Então não há snapshot
+nenhum, e o que temos é:
 
-| | Snapshot de volume (Railway) | Dump do banco (`mysqldump`) |
+| | Dump do banco (8.1) | Arquivo das fotos (8.2) |
 | --- | --- | --- |
-| Como roda | **Automático**, diário | **Manual**, em momentos certos (8.2) |
-| Restaura onde | Só no Railway | Em qualquer MySQL 8.0.19+ |
-| Para quê | Recuperação de rotina | Portabilidade: os dados fora do provedor |
-| Cobre | Banco **e** fotos (dois volumes) | Só o banco |
+| O que leva | Todas as tabelas (`mysqldump`) | `/data/uploads`, as fotos enviadas pelo app |
+| Onde roda | Dentro do container do **MySQL** | Dentro do container da **API** |
+| Restaura onde | Em qualquer MySQL 8.0.19+ | Em qualquer pasta de uploads (volume ou disco local) |
 
-O snapshot é o caminho normal de recuperação. O dump existe porque um
-snapshot só volta dentro do Railway: depois do incidente de outubro de 2026,
-ter os dados e a única cópia deles no mesmo provedor não é uma posição
-aceitável.
+Os dois **são os únicos backups**, e os dois são **manuais**: não há
+agendador e não vai haver num projeto de um semestre. Um backup que ninguém
+roda não é backup, então eles têm hora marcada — **sempre os dois juntos**:
+
+- **antes da troca de senha do banco** (seção 4.7);
+- **antes de qualquer outra operação arriscada** (migration que apaga
+  coluna, restauração, mexer nas variáveis ou no volume de um serviço);
+- **uma vez na semana anterior à apresentação.**
+
+Juntos porque um depende do outro: o banco guarda as chaves das fotos, o
+volume guarda as fotos. Um dump sem as fotos restaura capturas sem imagem.
 
 O que **não** precisa de backup: o código e as fotos do catálogo
 (`backend/assets/`), que estão no git.
 
-### 8.1 Snapshots de volume (rotina, automático)
+**O que o Pro daria** (registrado para quem decidir no futuro): snapshots
+automáticos dos dois volumes, em agendamento diário (guardado 6 dias),
+semanal (27) ou mensal (89), incrementais, cobrados como espaço de volume,
+restaurados pela aba **Backups** de cada serviço (o Railway cria um volume
+novo a partir do snapshot; o antigo fica desmontado). Não foi contratado:
+para o tamanho do projeto, os dois passos manuais abaixo bastam. Mesmo com o
+Pro, o dump continuaria valendo: um snapshot só volta **dentro** do Railway,
+e um dump volta em qualquer lugar.
 
-Banco e fotos são **dois volumes**: o do serviço MySQL e o da API. Em
-**cada um** dos dois serviços, aba **Backups** → agendamento **Daily**
-(guardado 6 dias; há também semanal, 27 dias, e mensal, 89 dias). É
-incremental e cobrado como espaço de volume. Se a aba tiver backup manual,
-faça um na hora; senão, confira no dia seguinte que o primeiro apareceu nos
-dois.
-
-Os dois andam juntos: o banco guarda as chaves das fotos, o volume da API
-guarda as fotos (8.3 diz o que acontece quando só um volta).
-
-### 8.2 Dump do banco (manual, para portabilidade)
-
-**É um passo manual, não automático.** Não há agendador, e não vai haver
-num projeto de um semestre. Um backup que ninguém roda não é backup, então
-ele tem hora marcada:
-
-- **antes da troca de senha do banco** (seção 4.7);
-- **antes de qualquer outra operação arriscada no banco** (migration que
-  apaga coluna, restauração de snapshot, mexer nas variáveis do MySQL);
-- **uma vez na semana anterior à apresentação.**
-
-**O dump tem os e-mails e os hashes de senha de todos os usuários.** Ele
-**nunca** vai para o repositório (o `.gitignore` barra `*.sql.gz`, `*.b64`
-e `*.7z`, mas não conte só com isso), nem para a pasta do projeto — que
+**Onde guardar — os dois arquivos, lado a lado.** O dump tem os **e-mails e
+os hashes de senha** de todos os usuários, e as fotos são dos usuários:
+**nunca** no repositório (o `.gitignore` barra `*.sql.gz`, `*.tar.gz`,
+`*.b64` e `*.7z`, mas não conte só com isso), nem na pasta do projeto — que
 está dentro do OneDrive, ou seja, sincronizada com um terceiro —, nem por
-e-mail ou chat. Onde guardar: **compactado com senha** (7-Zip, AES-256,
-nomes de arquivo cifrados; a senha no gerenciador de senhas), num lugar
-**fora do Railway e fora da pasta do projeto**: um HD externo ou pendrive,
-ou uma pasta de nuvem pessoal — já cifrado. Guarde os três mais recentes e
-apague os mais antigos.
+e-mail ou chat. Guarde **compactados com senha** (7-Zip, AES-256, nomes de
+arquivo cifrados; a senha no gerenciador de senhas), **fora do Railway e
+fora da pasta do projeto**: um HD externo ou pendrive, ou uma pasta de
+nuvem pessoal — já cifrados. Guarde os três mais recentes de cada e apague
+os mais antigos.
 
-**Como, sem Public Networking.** O `mysqldump` roda **dentro** do container
-do MySQL, que já tem o programa e a senha no ambiente. Para trazer o
+**A técnica de transporte, igual para os dois.** Tudo roda **dentro** dos
+containers, pelo `railway ssh` — sem Public Networking. Para trazer o
 arquivo: o terminal do SSH pode trocar `\n` por `\r\n` e o PowerShell 5.1
-recodifica o que redireciona — qualquer um dos dois estraga um dump em
-silêncio. Por isso ele sai compactado e em **base64** (o `certutil` ignora
-o `\r` a mais), e o SHA-256 dos dois lados prova que a cópia é idêntica.
+recodifica o que redireciona; qualquer um dos dois estraga um arquivo
+binário em silêncio. Por isso ele sai em **base64** (o `certutil -decode`
+ignora o `\r` a mais) e o **SHA-256 dos dois lados** prova que a cópia é
+idêntica. O `cmd /c` grava os bytes como vieram. Os comandos rodam **da
+pasta do repositório** (o vínculo do CLI é por pasta) e gravam **fora** dela,
+em `%USERPROFILE%\tamba-backup`. Uma pasta temporária: dali os arquivos vão
+cifrados para o destino e são apagados.
 
-1. **Shell no container do MySQL** (da pasta do repositório; o vínculo do
-   CLI é por pasta):
+### 8.1 Dump do banco
+
+1. **Shell no container do MySQL:**
 
    ```powershell
    railway.cmd --% ssh --service MySQL
@@ -1049,18 +1059,15 @@ o `\r` a mais), e o SHA-256 dos dois lados prova que a cópia é idêntica.
    O aviso "Using a password on the command line interface can be
    insecure" é esperado: a senha não sai do container. **`--triggers` é
    obrigatório**: sem ele o dump perde os dois triggers da migration 007.
-   Anote o hash que o `sha256sum` mostrou.
+   **Anote o hash.**
 
-2. **Traga para a máquina**, ainda da pasta do repositório, gravando
-   **fora** dela. `cmd /c` porque o redirecionamento do `cmd` copia os bytes
-   como vieram:
+2. **Traga para a máquina:**
 
    ```powershell
    New-Item -ItemType Directory -Force "$env:USERPROFILE\tamba-backup" | Out-Null
    cmd /c "railway ssh --service MySQL -- cat /tmp/tamba.b64 > %USERPROFILE%\tamba-backup\tamba.b64"
-   cd "$env:USERPROFILE\tamba-backup"
-   certutil -decode tamba.b64 tamba-AAAA-MM-DD.sql.gz
-   (Get-FileHash tamba-AAAA-MM-DD.sql.gz -Algorithm SHA256).Hash.ToLower()
+   certutil -decode "$env:USERPROFILE\tamba-backup\tamba.b64" "$env:USERPROFILE\tamba-backup\tamba-AAAA-MM-DD.sql.gz"
+   (Get-FileHash "$env:USERPROFILE\tamba-backup\tamba-AAAA-MM-DD.sql.gz" -Algorithm SHA256).Hash.ToLower()
    ```
 
    O último comando tem de mostrar **o mesmo hash** do passo 1. Diferente:
@@ -1070,82 +1077,156 @@ o `\r` a mais), e o SHA-256 dos dois lados prova que a cópia é idêntica.
    completed" no fim quando termina bem):
 
    ```powershell
-   node -e "const s=require('zlib').gunzipSync(require('fs').readFileSync(process.argv[1])).toString(); console.log(s.includes('-- Dump completed'), (s.match(/^CREATE TABLE/gm)||[]).length + ' tabelas', (s.match(/CREATE.*TRIGGER/g)||[]).length + ' triggers')" tamba-AAAA-MM-DD.sql.gz
+   node -e "const s=require('zlib').gunzipSync(require('fs').readFileSync(process.argv[1])).toString(); console.log(s.includes('-- Dump completed'), (s.match(/^CREATE TABLE/gm)||[]).length + ' tabelas', (s.match(/CREATE.*TRIGGER/g)||[]).length + ' triggers')" "$env:USERPROFILE\tamba-backup\tamba-AAAA-MM-DD.sql.gz"
    ```
 
    Esperado hoje (até a migration 019): `true 12 tabelas 2 triggers`.
 
-4. **Cifre e guarde**, depois **apague os rastros**: o `.b64` e o `.sql.gz`
-   soltos na máquina, e os arquivos no container.
+4. **Apague no container:**
 
    ```powershell
-   & "C:\Program Files\7-Zip\7z.exe" a -p -mhe=on <destino>\tamba-AAAA-MM-DD.7z tamba-AAAA-MM-DD.sql.gz
-   Remove-Item tamba.b64, tamba-AAAA-MM-DD.sql.gz
-   cd <pasta do repositório>
    railway.cmd --% ssh --service MySQL -- rm -f /tmp/tamba.sql.gz /tmp/tamba.b64
    ```
 
 Se o container não tiver `gzip` ("command not found"), troque o pipe por
-`--result-file=/tmp/tamba.sql`, faça o base64 do `.sql` e pule o passo 3
-(ou adapte-o sem o `gunzipSync`).
+`--result-file=/tmp/tamba.sql`, faça o base64 do `.sql` e, no passo 3, tire
+o `gunzipSync`.
 
-**Conferido em 22/10/2026:** o `mysqldump` com exatamente essas opções,
-rodado no banco local (MySQL 8.0), terminou sem erro e gerou as 12 tabelas,
-os 2 triggers da 007, o `schema_migrations` até a 019 e os acentos intactos.
-O transporte foi simulado na máquina: um `.gz` em base64 com `\r\n` em toda
-linha (o pior caso do terminal) voltou idêntico pelo `certutil -decode`, e o
-`Get-FileHash` em minúsculas sai no mesmo formato do `sha256sum`; a
-conferência do passo 3 foi rodada no PowerShell 5.1. **Ainda não feitos de
-verdade, contra o Railway: o dump do passo 1 e a restauração abaixo** — estão
-conferidos no papel.
+### 8.2 Arquivo das fotos
 
-### 8.3 Restaurar
+As fotos ficam no volume da **API** (`UPLOADS_DIR=/data/uploads`), então os
+comandos vão no serviço da API (o padrão do `railway ssh` na pasta do
+repositório). Os arquivos nunca são sobrescritos (nome aleatório, gravação
+única), então arquivar com a API no ar é seguro: no máximo uma foto enviada
+durante o `tar` fica para o próximo arquivo.
 
-**A. Snapshot de volume (dentro do Railway)** — o caminho normal:
-
-1. No serviço (MySQL ou API) → **Backups** → escolha o backup → **Restore**.
-   O Railway cria um volume novo a partir dele e deixa a mudança pendente
-   até você clicar **Deploy**. O volume antigo fica guardado, desmontado: dá
-   para voltar atrás.
-2. **A senha volta junto.** O banco restaurado tem a senha do `root` **da
-   data do backup**. Se ela foi trocada depois (seção 4.7), ponha a senha
-   antiga em `MYSQL_ROOT_PASSWORD` e refaça o deploy da API — é por isso
-   que a 4.7 manda guardar a senha antiga até o fim.
-3. **Migrations.** Se o backup é de antes de uma migration, o
-   `/api/health` fica `"degraded"` com a lista de pendentes; refaça o
-   deploy da API e o pre-deploy aplica (seção 4.6).
-4. **Banco e fotos.** Voltar só o banco para uma data antiga deixa fotos
-   sem dono no volume da API (inofensivo). Voltar só as fotos deixa as
-   capturas mais novas sem imagem. Para voltar o app inteiro a um dia,
-   restaure **os dois** para o mesmo dia.
-5. Confira com a seção 9: health `ok`, login, uma foto abrindo.
-
-**B. Dump (em qualquer MySQL — inclusive fora do Railway):**
-
-1. Um MySQL 8.0.19+ (seção 4.1) com um banco **vazio** e um usuário que
-   possa criar trigger com binary log ligado (SUPER, ou
-   `log_bin_trust_function_creators = 1`; seção 4.5). Sem isso a
-   importação para no `CREATE TRIGGER` com o erro 1419.
-2. Descompacte (7-Zip) e importe com o `source` do próprio cliente — no
-   PowerShell não há `<`, e um pipe recodificaria o arquivo:
+0. **Confira as ferramentas** do container da API (uma vez):
 
    ```powershell
-   mysql -h <host> -u <usuario> -p <banco> -e "source C:/caminho/tamba-AAAA-MM-DD.sql"
+   railway.cmd --% ssh -- which tar gzip base64 sha256sum
    ```
 
-   O dump começa cada tabela com `DROP TABLE IF EXISTS`: num banco que não
-   está vazio, ele **substitui** as tabelas do Tamba.
-3. Aponte o `DATABASE_URL` da API para o banco novo e rode `npm run
-   migrate`: o `schema_migrations` veio no dump, então só se aplica o que
-   for mais novo que ele. **Não rode o seed** — os dados vieram do dump.
-4. `/api/health` `ok`, login com uma conta conhecida, a Dex com as espécies.
-5. **As fotos enviadas não estão no dump**: ficam no volume da API. Sair do
-   Railway de vez exigiria copiar também o `/data/uploads` (pelo `railway
-   ssh`, do mesmo jeito: `tar` + base64). Isso **não está montado**; sem
-   isso, as capturas restauradas aparecem sem foto.
+   Tem de mostrar os quatro caminhos. Se faltar algum, pare e veja a nota
+   no fim desta seção.
 
-Depois de restaurar de qualquer jeito, apague a cópia descompactada do
-dump.
+1. **Shell no container da API:**
+
+   ```powershell
+   railway.cmd --% ssh
+   ```
+
+   Lá dentro:
+
+   ```sh
+   du -sh /data/uploads
+   find /data/uploads -type f | wc -l
+   tar -czf /tmp/fotos.tar.gz -C /data uploads
+   base64 /tmp/fotos.tar.gz > /tmp/fotos.b64
+   sha256sum /tmp/fotos.tar.gz
+   exit
+   ```
+
+   **Anote** o tamanho, o número de arquivos e o hash. O base64 tem ~1/3 a
+   mais que o `tar.gz` (foto já é comprimida, o gzip quase não reduz): com
+   dezenas de MB, a cópia do passo 2 leva alguns minutos.
+
+2. **Traga para a máquina:**
+
+   ```powershell
+   cmd /c "railway ssh -- cat /tmp/fotos.b64 > %USERPROFILE%\tamba-backup\fotos.b64"
+   certutil -decode "$env:USERPROFILE\tamba-backup\fotos.b64" "$env:USERPROFILE\tamba-backup\fotos-AAAA-MM-DD.tar.gz"
+   (Get-FileHash "$env:USERPROFILE\tamba-backup\fotos-AAAA-MM-DD.tar.gz" -Algorithm SHA256).Hash.ToLower()
+   ```
+
+   Mesmo hash do passo 1, ou repita.
+
+3. **Confira o conteúdo** com o `tar` do próprio Windows (10 e 11 já vêm com
+   ele): o número de arquivos tem de bater com o `find` do passo 1.
+
+   ```powershell
+   (tar -tzf "$env:USERPROFILE\tamba-backup\fotos-AAAA-MM-DD.tar.gz" | Where-Object { $_ -notmatch '/$' }).Count
+   ```
+
+4. **Apague no container:**
+
+   ```powershell
+   railway.cmd --% ssh -- rm -f /tmp/fotos.tar.gz /tmp/fotos.b64
+   ```
+
+**Se faltar ferramenta no container da API:** o caminho alternativo é baixar
+as fotos pela própria API, que as serve publicamente em `UPLOADS_PUBLIC_URL`:
+as chaves estão no dump (`catch_photos.url`, `users.avatar_url` e as fotos de
+espécie enviadas pelo admin). Isso não está montado; avise antes de seguir.
+
+### 8.3 Guardar
+
+Com os dois arquivos conferidos em `%USERPROFILE%\tamba-backup`:
+
+```powershell
+cd "$env:USERPROFILE\tamba-backup"
+& "C:\Program Files\7-Zip\7z.exe" a -p -mhe=on <destino>\tamba-AAAA-MM-DD.7z tamba-AAAA-MM-DD.sql.gz fotos-AAAA-MM-DD.tar.gz
+Remove-Item tamba.b64, fotos.b64, tamba-AAAA-MM-DD.sql.gz, fotos-AAAA-MM-DD.tar.gz
+```
+
+O `-p` pede a senha (não fica no histórico); `-mhe=on` cifra também os nomes.
+Um `.7z` por data, com o banco e as fotos do mesmo momento.
+
+### 8.4 Restaurar
+
+**O que foi conferido de verdade (22/10/2026):** o `mysqldump` com
+exatamente essas opções, no banco local (MySQL 8.0), terminou sem erro com
+as 12 tabelas, os 2 triggers da 007, o `schema_migrations` até a 019 e os
+acentos intactos; o transporte foi simulado na máquina (um `.gz` em base64
+com `\r\n` em toda linha voltou idêntico pelo `certutil`, e o `Get-FileHash`
+em minúsculas sai no formato do `sha256sum`); a conferência do 8.1 passo 3
+rodou no PowerShell 5.1. **No papel, ainda não feitos de verdade:** os dois
+backups contra o Railway e as restaurações abaixo.
+
+**A. Banco, a partir do dump.** Num MySQL **vazio** — o caminho mais seguro
+é um **serviço MySQL novo** no projeto, não o atual:
+
+1. No projeto do Railway: **+ New → Database → MySQL**. Ele nasce com banco
+   `railway`, usuário `root` e uma senha nova, que nunca esteve nas
+   variáveis antigas. O `root` do Railway tem SUPER, então os triggers
+   entram (no MySQL 8.4 do Railway a 007 passou direto; seção 4.2). Fora do
+   Railway, o usuário precisa de SUPER ou `log_bin_trust_function_creators
+   = 1` (seção 4.5): sem isso a importação para no `CREATE TRIGGER` com o
+   erro 1419.
+2. Ligue o **Public Networking só no serviço novo**, importe da máquina e
+   **desligue em seguida**. Isso não reabre a exposição da seção 4.7: a
+   senha dele é nova. Descompacte o `.sql.gz` (7-Zip) e use o `source` do
+   próprio cliente — no PowerShell não há `<`, e um pipe recodificaria o
+   arquivo:
+
+   ```powershell
+   & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -h <host público> -P <porta> -u root -p railway -e "source C:/caminho/tamba-AAAA-MM-DD.sql"
+   ```
+
+   (Host e porta do `MYSQL_PUBLIC_URL` do serviço novo; a senha, colada no
+   prompt.)
+3. Na API, `DATABASE_URL` = `${{<nome do serviço novo>.MYSQL_URL}}` e
+   refaça o deploy. O pre-deploy roda o `migrate`, que aplica só o que for
+   mais novo que o dump (o `schema_migrations` veio nele). **Não rode o
+   seed**: os dados vieram do dump.
+4. `/api/health` `ok`, login com uma conta conhecida, a Dex com as espécies.
+5. O serviço MySQL antigo fica parado, não apagado, até você ter certeza.
+
+O dump começa cada tabela com `DROP TABLE IF EXISTS`: importado num banco
+que não está vazio, ele **substitui** as tabelas do Tamba. Tudo o que foi
+gravado depois do dump se perde — por isso o dump vem logo antes da
+operação arriscada, não horas antes.
+
+**B. Fotos, a partir do arquivo.** O `tar` guarda o caminho `uploads/...`:
+
+- **Num servidor novo ou na máquina local:** extraia na pasta pai do
+  `UPLOADS_DIR` (`tar -xzf fotos-AAAA-MM-DD.tar.gz -C <pasta pai>`); as
+  chaves no banco batem com os caminhos.
+- **De volta ao volume da API no Railway:** o caminho seria mandar o
+  arquivo para dentro do container pelo `railway ssh` (base64 pela entrada
+  padrão) e extrair em `/data`. **Não foi testado** — o `railway ssh` pode
+  não repassar a entrada; confira com um arquivo pequeno antes de precisar.
+
+Depois de restaurar de qualquer jeito, apague as cópias descompactadas.
 
 ---
 
@@ -1170,4 +1251,5 @@ dump.
 - [ ] Não existe conta `admin@tamba.local` (testa `SEED_DEV_USERS=false`).
 - [ ] No celular (Chrome no Android), o menu oferece "Instalar app" e o
       ícone instalado é o tambaqui.
-- [ ] O primeiro backup rodou nos dois volumes (MySQL e API).
+- [ ] Os dois backups manuais da seção 8 (dump e fotos) foram feitos, conferidos
+      pelo hash e guardados cifrados fora do projeto.

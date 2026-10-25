@@ -42,6 +42,17 @@
   gap: 1rem;
 }
 
+/* "Créditos das fotos", embaixo da grade: igual ao link do Perfil. */
+.dex-creditos {
+  margin: 1.5rem 0 0;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.dex-creditos a {
+  color: var(--agua);
+}
+
 /* Cards da mesma linha com a mesma altura, qualquer que seja o nome. */
 .dex-grade > li {
   display: flex;

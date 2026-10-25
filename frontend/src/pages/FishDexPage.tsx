@@ -10,7 +10,7 @@ import { adminApi } from "../api/admin";
 import { SpeciesForm } from "../components/SpeciesForm";
 import { SpeciesImage } from "../components/SpeciesImage";
 import { PhotoCredit } from "../components/PhotoCredit";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import type { Catch, Dex, DexSpecies, Rarity } from "../types";
 import "./FishDexPage.css";
 
@@ -252,6 +252,11 @@ export function FishDexPage() {
           );
         })}
       </ul>
+
+      {/* Texto sublinhado, como no Perfil — não botão: é referência, não ação. */}
+      <p className="dex-creditos">
+        <Link to="/creditos">Créditos das fotos</Link>
+      </p>
 
       {selecionada && (
         <DetalheEspecie

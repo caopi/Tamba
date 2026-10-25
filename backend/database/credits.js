@@ -4,10 +4,15 @@
 //
 // Não precisa de banco. As fotos que um admin envia pelo app ficam só no
 // banco; essas aparecem na tela /creditos, que lê da API.
+//
+// "Sem foto" segue a mesma regra da tela: espécie do catálogo sem entrada em
+// speciesImages (no banco, sem image_url). Só o motivo de cada uma vem de
+// speciesWithoutImage, e um motivo que não bate com as fotos é erro.
 
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { speciesImages } from "./species-images.js";
+import { especies } from "./species-catalog.js";
+import { USO_AUTORIZADO, speciesImages, speciesWithoutImage } from "./species-images.js";
 
 function licencaUrl(licenca) {
   const by = /^CC BY (\d\.\d)$/.exec(licenca);
@@ -27,6 +32,25 @@ const linhas = Object.entries(speciesImages).map(([nome, f]) => {
   return `| ${celula(nome)} | *${celula(f.pictured)}* | ${celula(f.credit)} | ${licenca} | ${fonte} | ${celula(alteracoes)} |`;
 });
 
+const semFoto = especies.filter((e) => !speciesImages[e.name]).map((e) => e.name);
+for (const nome of Object.keys(speciesWithoutImage)) {
+  if (speciesImages[nome]) {
+    throw new Error(`species-images.js: "${nome}" tem foto; tire-a de speciesWithoutImage`);
+  }
+  if (!semFoto.includes(nome)) {
+    throw new Error(`species-images.js: "${nome}", em speciesWithoutImage, não é uma espécie do catálogo`);
+  }
+}
+for (const nome of semFoto) {
+  if (!speciesWithoutImage[nome]) {
+    throw new Error(`species-images.js: "${nome}" não tem foto; diga o porquê em speciesWithoutImage`);
+  }
+}
+
+const linhasSemFoto = especies
+  .filter((e) => semFoto.includes(e.name))
+  .map((e) => `- **${e.name}** (*${e.scientificName}*) — ${speciesWithoutImage[e.name]}`);
+
 const md = `# Créditos das fotos
 
 Fotos do catálogo de espécies do Tamba, versionadas em \`backend/assets/species/\`.
@@ -35,6 +59,10 @@ Fotos do catálogo de espécies do Tamba, versionadas em \`backend/assets/specie
   estão sob licença livre; o resto do repositório não dá permissão de uso
   delas. Os originais não estão no repositório: só o recorte no peixe, sem
   pessoas no quadro e sem metadados (sem a localização GPS dos pesqueiros).
+- **Fotos cedidas por pescadores** ("${USO_AUTORIZADO}"): o autor deu
+  permissão por escrito para o Tamba usar a foto. Também **não** são licença
+  livre: a permissão vale para o app, não para quem reaproveitar o
+  repositório. Recortadas no peixe, como as da equipe, e sem metadados.
 - **Fotos de terceiros**: usadas sob as licenças indicadas — domínio público,
   CC0 ou Creative Commons Atribuição (CC BY), que permite usar e adaptar desde
   que se credite o autor, se indique a licença e se diga o que foi alterado.
@@ -53,17 +81,9 @@ ${linhas.join("\n")}
 
 ## Sem foto
 
-- **Patinga, Pincachara e Cachapira** — híbridos de piscicultura. Não há foto
-  confiável de nenhum, e usar a foto de uma das espécies que os originam, como
-  se fosse o híbrido, estaria errado. O app mostra o ícone 🐟. (O Tambacu, também
-  híbrido, tem foto da própria equipe.)
-- **Piauçu** (*Megaleporinus macrocephalus*) — nenhuma foto livre em que a
-  espécie esteja identificada de forma confiável.
-- **Trairão** (*Hoplias lacerdae*) — o nome cobre um grupo de espécies quase
-  idênticas, e as populações do Sul e do Uruguai costumam ser atribuídas a
-  outras espécies do grupo. Não há registro brasileiro sólido com licença
-  livre: os dois disponíveis são uma foto turva do Rio Grande do Sul e uma
-  pilha de peixes. Melhor sem foto do que com uma identificação duvidosa.
+O app mostra o ícone 🐟 no lugar da foto.
+
+${linhasSemFoto.join("\n")}
 
 As fotos que um administrador enviar pelo app não entram neste arquivo: ficam
 no banco, com autor e licença obrigatórios, e aparecem na tela \`/creditos\`.
@@ -108,4 +128,4 @@ crédito de cada uma.
 
 const destino = fileURLToPath(new URL("../../CREDITOS.md", import.meta.url));
 await writeFile(destino, md);
-console.log(`CREDITOS.md gerado: ${linhas.length} fotos.`);
+console.log(`CREDITOS.md gerado: ${linhas.length} fotos, ${semFoto.length} espécies sem foto.`);

@@ -28,8 +28,18 @@ const RARIDADES: { valor: Rarity; rotulo: string }[] = [
   { valor: "muito_raro", rotulo: "Muito raro" },
 ];
 
-// Sugestões do campo de licença (aceita qualquer texto).
-const LICENCAS = ["Todos os direitos reservados", "Domínio público", "CC0", "CC BY 4.0", "CC BY 3.0", "CC BY 2.0"];
+// Sugestões do campo de licença (aceita qualquer texto). "Uso autorizado pelo
+// autor" é a frase única das fotos cedidas por pescadores (a mesma do
+// USO_AUTORIZADO em backend/database/species-images.js).
+const LICENCAS = [
+  "Todos os direitos reservados",
+  "Uso autorizado pelo autor",
+  "Domínio público",
+  "CC0",
+  "CC BY 4.0",
+  "CC BY 3.0",
+  "CC BY 2.0",
+];
 
 const textoDe = (valor: number | null | undefined) => (valor == null ? "" : String(valor));
 

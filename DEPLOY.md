@@ -422,7 +422,7 @@ railway ssh -- 'cd /app && ADMIN_EMAIL=<e-mail> npm run seed'
 ```
 
 Sem `ADMIN_EMAIL`, o mesmo comando só reaplica o catálogo (depois de mudar o
-`seed.js`, por exemplo). Para conferir antes, sem mexer em nada:
+catálogo, por exemplo). Para conferir antes, sem mexer em nada:
 `railway ssh -- 'echo $NODE_ENV $SEED_DEV_USERS'` tem de mostrar
 `production false`.
 
@@ -594,7 +594,7 @@ ativar nada (não mexe em `is_active`), mas **recria espécie que o admin
 apagou** (espécie sem captura pode ser apagada) e **devolve a foto que o
 admin tirou** (ARQUITETURA, "Crédito anda com a foto"). Rodar a cada deploy
 desfaria essas escolhas, e não é preciso. O seed se roda à mão, da máquina
-local, quando o catálogo do `seed.js` mudar ou para promover um admin
+local, quando o catálogo (`species-catalog.js`, `species-images.js`) mudar ou para promover um admin
 (seções 4.3 e 4.4) — com Public Networking ligado só durante o comando.
 
 **Rollback.** Voltar para um deploy anterior no Railway roda (ou não) o

@@ -33,8 +33,10 @@ export function CreditsPage() {
       </Link>
       <h1>Créditos das fotos</h1>
       <p className="creditos-intro">
-        As fotos marcadas "Equipe Tamba" são da própria equipe, com todos os direitos reservados. As demais são de
-        terceiros, usadas sob as licenças indicadas (domínio público, CC0 ou Creative Commons Atribuição). Cada foto
+        As fotos marcadas "Equipe Tamba" são da própria equipe, com todos os direitos reservados. As marcadas "Uso
+        autorizado pelo autor" foram cedidas por pescadores, que permitiram o uso no Tamba; também não são licença
+        livre. As demais são de terceiros, usadas sob as licenças indicadas (domínio público, CC0 ou Creative Commons
+        Atribuição). Cada foto
         foi conferida pelo nome científico da espécie; recortes e outras alterações estão no arquivo{" "}
         <code>CREDITOS.md</code> do repositório.
       </p>

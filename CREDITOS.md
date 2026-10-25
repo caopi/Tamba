@@ -6,6 +6,10 @@ Fotos do catálogo de espécies do Tamba, versionadas em `backend/assets/species
   estão sob licença livre; o resto do repositório não dá permissão de uso
   delas. Os originais não estão no repositório: só o recorte no peixe, sem
   pessoas no quadro e sem metadados (sem a localização GPS dos pesqueiros).
+- **Fotos cedidas por pescadores** ("Uso autorizado pelo autor"): o autor deu
+  permissão por escrito para o Tamba usar a foto. Também **não** são licença
+  livre: a permissão vale para o app, não para quem reaproveitar o
+  repositório. Recortadas no peixe, como as da equipe, e sem metadados.
 - **Fotos de terceiros**: usadas sob as licenças indicadas — domínio público,
   CC0 ou Creative Commons Atribuição (CC BY), que permite usar e adaptar desde
   que se credite o autor, se indique a licença e se diga o que foi alterado.
@@ -22,6 +26,7 @@ gênero ("spp.") é uma espécie do gênero.
 | --- | --- | --- | --- | --- | --- |
 | Tambaqui | *Colossoma macropomum* | Equipe Tamba | Todos os direitos reservados | foto da equipe | recortada no peixe (sem pessoas no quadro); metadados removidos (sem GPS); fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP |
 | Tambacu | *Tambacu (híbrido Colossoma macropomum × Piaractus mesopotamicus), identificado pela equipe* | Equipe Tamba | Todos os direitos reservados | foto da equipe | recortada no peixe (sem pessoas no quadro); metadados removidos (sem GPS); fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP |
+| Cachapira | *Cachapira (híbrido Pseudoplatystoma reticulatum × Phractocephalus hemioliopterus), identificado pelo pescador* | Ricardo o Pavarotti da UL | Uso autorizado pelo autor | [origem](https://www.instagram.com/pavarotti_da_ul/) | recortada no peixe (sem o rosto de quem segura; ficam as mãos e parte da camisa); metadados removidos; fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP |
 | Pacu | *Piaractus mesopotamicus* | Renata Rúbia Ota et al. | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) | [origem](https://commons.wikimedia.org/wiki/File:Peixes_da_plan%C3%ADcie_de_inunda%C3%A7%C3%A3o_do_alto_rio_Paran%C3%A1_(3678425)_(cropped).png) | redimensionada e convertida para WebP; letra do painel da figura removida |
 | Piracanjuba | *Brycon orbignyanus* | W.S.Serra | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) | [origem](https://commons.wikimedia.org/wiki/File:Brycon_orbignyanus.jpg) | redimensionada e convertida para WebP |
 | Matrinxã | *Brycon amazonicus* | Vincent A. Vos | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.pt-br) | [origem](https://commons.wikimedia.org/wiki/File:Brycon_amazonicus_118574803.jpg) | redimensionada e convertida para WebP |
@@ -53,17 +58,12 @@ gênero ("spp.") é uma espécie do gênero.
 
 ## Sem foto
 
-- **Patinga, Pincachara e Cachapira** — híbridos de piscicultura. Não há foto
-  confiável de nenhum, e usar a foto de uma das espécies que os originam, como
-  se fosse o híbrido, estaria errado. O app mostra o ícone 🐟. (O Tambacu, também
-  híbrido, tem foto da própria equipe.)
-- **Piauçu** (*Megaleporinus macrocephalus*) — nenhuma foto livre em que a
-  espécie esteja identificada de forma confiável.
-- **Trairão** (*Hoplias lacerdae*) — o nome cobre um grupo de espécies quase
-  idênticas, e as populações do Sul e do Uruguai costumam ser atribuídas a
-  outras espécies do grupo. Não há registro brasileiro sólido com licença
-  livre: os dois disponíveis são uma foto turva do Rio Grande do Sul e uma
-  pilha de peixes. Melhor sem foto do que com uma identificação duvidosa.
+O app mostra o ícone 🐟 no lugar da foto.
+
+- **Patinga** (*Piaractus mesopotamicus × Piaractus brachypomus*) — híbrido de piscicultura. Não há foto confiável, e usar a foto de uma das espécies que o originam, como se fosse o híbrido, estaria errado.
+- **Pincachara** (*Pseudoplatystoma corruscans × Pseudoplatystoma reticulatum*) — híbrido de piscicultura. Não há foto confiável, e usar a foto de uma das espécies que o originam, como se fosse o híbrido, estaria errado.
+- **Trairão** (*Hoplias lacerdae*) — o nome cobre um grupo de espécies quase idênticas, e as populações do Sul e do Uruguai costumam ser atribuídas a outras espécies do grupo. Não há registro brasileiro sólido com licença livre: os dois disponíveis são uma foto turva do Rio Grande do Sul e uma pilha de peixes. Melhor sem foto do que com uma identificação duvidosa.
+- **Piauçu** (*Megaleporinus macrocephalus*) — nenhuma foto livre em que a espécie esteja identificada de forma confiável.
 
 As fotos que um administrador enviar pelo app não entram neste arquivo: ficam
 no banco, com autor e licença obrigatórios, e aparecem na tela `/creditos`.

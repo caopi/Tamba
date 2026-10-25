@@ -5,8 +5,15 @@
 //
 // Fotos da equipe ("Equipe Tamba"): todos os direitos reservados, NÃO são CC.
 // Os originais (pasta peixes/, fora do git) tinham pessoas e podiam ter GPS de
-// pesqueiro (RGN-13): aqui só entra o recorte no peixe, regravado sem metadado. Lido
-// pelo seed (fish_species.image_*) e pelo `npm run credits`, que gera o
+// pesqueiro (RGN-13): aqui só entra o recorte no peixe, regravado sem metadado.
+//
+// Fotos cedidas por pescadores (USO_AUTORIZADO): o autor deu permissão por
+// escrito para o Tamba usar a foto; a permissão fica guardada fora do
+// repositório. Também NÃO são CC: valem para o app, não para quem reaproveitar
+// o repositório. Mesmo tratamento das fotos da equipe (recorte no peixe, sem
+// rosto, sem metadado), e a licença é sempre a constante, nunca outra frase.
+//
+// Lido pelo seed (fish_species.image_*) e pelo `npm run credits`, que gera o
 // CREDITOS.md da raiz.
 //
 // Como as fotos foram escolhidas:
@@ -18,18 +25,20 @@
 //     e nenhum desenho: só fotografia;
 //   - espécies de gênero ("spp.") usam a foto de uma espécie do gênero.
 //
-// Sem foto, de propósito (a Dex mostra o 🐟):
-//   - os híbridos Patinga, Pincachara e Cachapira: não há foto confiável, e
-//     mostrar um dos pais como se fosse o híbrido seria errado (o Tambacu tem
-//     foto da equipe);
-//   - Piauçu (Megaleporinus macrocephalus): nenhuma foto livre com a espécie
-//     identificada de forma confiável;
-//   - Trairão (Hoplias lacerdae): o nome cobre um grupo de espécies quase
-//     idênticas, e não há registro brasileiro sólido com licença livre.
+// As espécies sem foto (a Dex mostra o 🐟) e o porquê estão em
+// speciesWithoutImage, no fim do arquivo.
 //
 // Trocar uma foto: substitua o arquivo, atualize a entrada e rode
-// `npm run credits`. O seed só preenche coluna vazia (ver seed.js): num banco
-// que já tem a foto antiga, a troca se faz pelo formulário de espécie.
+// `npm run thumbs` e `npm run credits`. O seed só preenche coluna vazia (ver
+// seed.js): num banco que já tem a foto antiga, a troca se faz pelo
+// formulário de espécie. Dar foto a uma espécie que não tinha: acrescente a
+// entrada e tire a espécie de speciesWithoutImage (o `npm run credits`
+// recusa as duas coisas ao mesmo tempo).
+
+// A licença das fotos cedidas por pescadores. Uma frase só, para a tela
+// /creditos não acumular variações da mesma coisa; a mesma está nas sugestões
+// do formulário de espécie (frontend, SpeciesForm.tsx).
+export const USO_AUTORIZADO = "Uso autorizado pelo autor";
 
 export const speciesImages = {
   "Tambaqui": {
@@ -47,6 +56,14 @@ export const speciesImages = {
     license: "Todos os direitos reservados",
     sourceUrl: null,
     changes: "recortada no peixe (sem pessoas no quadro); metadados removidos (sem GPS); fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP",
+  },
+  "Cachapira": {
+    pictured: "Cachapira (híbrido Pseudoplatystoma reticulatum × Phractocephalus hemioliopterus), identificado pelo pescador",
+    file: "cachapira.webp",
+    credit: "Ricardo o Pavarotti da UL",
+    license: USO_AUTORIZADO,
+    sourceUrl: "https://www.instagram.com/pavarotti_da_ul/",
+    changes: "recortada no peixe (sem o rosto de quem segura; ficam as mãos e parte da camisa); metadados removidos; fundo completado até 3:2 com o próprio recorte desfocado; convertida para WebP",
   },
   "Pacu": {
     pictured: "Piaractus mesopotamicus",
@@ -275,4 +292,20 @@ export const speciesImages = {
     sourceUrl: "https://commons.wikimedia.org/wiki/File:2018-04-21_Koi.jpg",
     changes: "redimensionada e convertida para WebP",
   },
+};
+
+// Espécies do catálogo sem foto, de propósito, e o porquê (vai para o
+// CREDITOS.md). A LISTA não sai daqui: o `npm run credits` a calcula pelo
+// catálogo menos speciesImages, a mesma regra da tela /creditos (sem
+// image_url). Daqui sai só o motivo, e o credits recusa motivo de espécie que
+// já tem foto ou espécie sem foto e sem motivo.
+const HIBRIDO_SEM_FOTO =
+  "híbrido de piscicultura. Não há foto confiável, e usar a foto de uma das espécies que o originam, como se fosse o híbrido, estaria errado.";
+
+export const speciesWithoutImage = {
+  "Patinga": HIBRIDO_SEM_FOTO,
+  "Pincachara": HIBRIDO_SEM_FOTO,
+  "Piauçu": "nenhuma foto livre em que a espécie esteja identificada de forma confiável.",
+  "Trairão":
+    "o nome cobre um grupo de espécies quase idênticas, e as populações do Sul e do Uruguai costumam ser atribuídas a outras espécies do grupo. Não há registro brasileiro sólido com licença livre: os dois disponíveis são uma foto turva do Rio Grande do Sul e uma pilha de peixes. Melhor sem foto do que com uma identificação duvidosa.",
 };

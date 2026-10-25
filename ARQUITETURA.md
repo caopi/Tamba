@@ -33,7 +33,9 @@ Tamba/
 │   │   ├── migrate.js     Roda os .sql em ordem, controla schema_migrations
 │   │   ├── setup.sql      Preparação do MySQL (banco, usuário, grant), roda como root
 │   │   ├── pesqueiros/    CSV de origem dos pesqueiros + LEIA-ME da conferência
-│   │   └── seed.js        Catálogo de espécies + carga inicial de pesqueiros
+│   │   ├── species-catalog.js  Catálogo de espécies (sem banco: o seed e o credits leem)
+│   │   ├── species-images.js   Fotos do catálogo: arquivo, autor, licença; e o porquê das sem foto
+│   │   └── seed.js        Grava o catálogo + carga inicial de pesqueiros
 │   ├── uploads/           Fotos enviadas (driver local do storage). Fora do git
 │   └── src/
 │       ├── server.js      Sobe o HTTP (só isso)
@@ -83,11 +85,11 @@ Parte social: `follows`, `likes`, `comments`, `reports`, `notifications` e
   obrigatória: `VARCHAR NOT NULL` + CHECK com os quatro valores, e não ENUM —
   o ENUM grava o primeiro valor quando a coluna é omitida (ver migration 009).
   O critério — frequência de estocagem em pesqueiro — está no topo do
-  `seed.js`. Correção de dado que precisa chegar a todos os bancos vira
+  `species-catalog.js`. Correção de dado que precisa chegar a todos os bancos vira
   migration de dados (ex.: 010), porque o seed não sobrescreve. Faixas plausíveis
   (`min/max_weight` em kg, `min/max_length` em cm) são opcionais: faixa nula
   nunca sinaliza captura; as do seed são largas de propósito (o porquê também
-  está no `seed.js`). Espécie nunca é apagada se tiver captura, só desativada
+  está no `species-catalog.js`). Espécie nunca é apagada se tiver captura, só desativada
   (`is_active`, RGN-17).
 - **fishing_spots** — `name` + `location` ("Cidade, UF", que vira a
   `region` da captura). UNIQUE (`name`, `location`), não só no nome: dois
@@ -335,7 +337,7 @@ abre uma janela entre a conferência e o INSERT.
 - **Primeiro admin pelo `.env`.** O `npm run seed` promove a conta de
   `ADMIN_EMAIL`, se ela já existir (não cria conta). Não há rota para virar admin.
 - **Seed nunca sobrescreve.** O upsert usa `COALESCE(coluna, novo.coluna)`: só
-  preenche o que está NULL. Corrigir um dado no `seed.js` não altera espécie que
+  preenche o que está NULL. Corrigir um dado no `species-catalog.js` não altera espécie que
   já está no banco — isso se faz pela rota de admin.
 - **Feed.** Padrão "Seguindo" (REQ-26), "Descobrir" com `scope=all`
   (REQ-28). Ordem por engajamento (padrão) ou cronológica (REQ-35): a
@@ -476,9 +478,22 @@ abre uma janela entre a conferência e o INSERT.
   - **Escolha das fotos.** Pelo nome científico (categoria do Commons ou
     observação "research grade" do iNaturalist), nunca pelo nome popular;
     domínio público/CC0 primeiro, depois CC BY; nada de CC BY-SA nem desenho.
-    Ficaram sem foto, de propósito: três híbridos (Patinga, Pincachara,
-    Cachapira), o Piauçu e o Trairão, cujo nome cobre um grupo de espécies
-    quase idênticas sem registro brasileiro sólido (ver o `CREDITOS.md`).
+    Ficaram sem foto, de propósito: dois híbridos (Patinga, Pincachara), o
+    Piauçu e o Trairão, cujo nome cobre um grupo de espécies quase idênticas
+    sem registro brasileiro sólido. Quais estão sem foto não se escreve à mão
+    em lugar nenhum: a tela `/creditos` lista as espécies sem `image_url`, e o
+    `npm run credits` calcula catálogo menos `speciesImages` — só o motivo de
+    cada uma fica em `speciesWithoutImage`, e o script recusa motivo de
+    espécie que já tem foto (ver o `CREDITOS.md`).
+  - **Fotos cedidas por pescadores.** Foto de terceiro com permissão por
+    escrito do autor (guardada fora do repositório), sem licença CC — a
+    primeira foi a da Cachapira. A licença é sempre a mesma frase, "Uso
+    autorizado pelo autor" (`USO_AUTORIZADO` em `species-images.js`, e a
+    mesma nas sugestões do formulário de espécie), com o perfil do autor como
+    origem. Mesmo tratamento das fotos da equipe: recorte no peixe sem o
+    rosto de ninguém, sem metadado, fundo completado até 3:2. Entram pelo
+    repositório (`species-images.js` + seed), não pelo formulário do app: o
+    que sobe pelo app existe só no banco de produção.
   - **Padronização no CSS.** As fontes variam em ângulo, fundo e proporção;
     `<SpeciesImage>` normaliza: moldura 3:2 fixa, `object-fit: cover`, mesmo
     fundo e a mesma vinheta. Nas fotos de estúdio muito largas (fundo liso), o
